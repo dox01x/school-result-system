@@ -698,13 +698,14 @@ export default function ExamsPage() {
                                 <Card key={cat}>
                                     <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">{cat} Marks Subjects</CardTitle></CardHeader>
                                     <CardContent className="p-0">
+                                        <div className="overflow-x-auto">
                                         <Table>
                                             <TableHeader>
                                                 <TableRow>
-                                                    <TableHead>Range (%)</TableHead>
-                                                    <TableHead>Grade</TableHead>
-                                                    <TableHead>Grade Point</TableHead>
-                                                    <TableHead className="text-right">Actions</TableHead>
+                                                    <TableHead className="whitespace-nowrap">Range (%)</TableHead>
+                                                    <TableHead className="whitespace-nowrap">Grade</TableHead>
+                                                    <TableHead className="whitespace-nowrap">Grade Point</TableHead>
+                                                    <TableHead className="text-right whitespace-nowrap">Actions</TableHead>
                                                 </TableRow>
                                             </TableHeader>
                                             <TableBody>
@@ -727,6 +728,7 @@ export default function ExamsPage() {
                                                 ))}
                                             </TableBody>
                                         </Table>
+                                        </div>
                                     </CardContent>
                                 </Card>
                             ))}
@@ -791,20 +793,21 @@ export default function ExamsPage() {
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="p-0">
+                                <div className="overflow-x-auto">
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
-                                            <TableHead>Subject</TableHead>
-                                            <TableHead className="text-center">Default Full Marks</TableHead>
-                                            <TableHead className="text-center w-36">
+                                            <TableHead className="whitespace-nowrap">Subject</TableHead>
+                                            <TableHead className="text-center whitespace-nowrap">Default Full Marks</TableHead>
+                                            <TableHead className="text-center w-36 whitespace-nowrap">
                                                 Full Marks
-                                                <span className="block text-[10px] text-muted-foreground font-normal">(for this exam)</span>
+                                                <span className="block text-[10px] text-muted-foreground font-normal whitespace-normal">(for this exam)</span>
                                             </TableHead>
-                                            <TableHead className="text-center w-36">
+                                            <TableHead className="text-center w-36 whitespace-nowrap">
                                                 Weight %
-                                                <span className="block text-[10px] text-muted-foreground font-normal">(contribution to result)</span>
+                                                <span className="block text-[10px] text-muted-foreground font-normal whitespace-normal">(contribution to result)</span>
                                             </TableHead>
-                                            <TableHead className="w-12"></TableHead>
+                                            <TableHead className="w-12 whitespace-nowrap"></TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -860,6 +863,7 @@ export default function ExamsPage() {
                                         })}
                                     </TableBody>
                                 </Table>
+                                </div>
                                 {/* Show removed subjects that can be re-added */}
                                 {(() => {
                                     const removedSubjects = subjects.filter((s) => !configEdits[s.id]);

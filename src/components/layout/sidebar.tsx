@@ -23,6 +23,8 @@ import {
     CalendarDays,
     CalendarCheck,
     ArrowUpCircle,
+    Bell,
+    User,
 } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 
@@ -194,6 +196,14 @@ export function Sidebar() {
                         <div className="h-7 w-7 rounded-lg bg-primary flex items-center justify-center"><GraduationCap className="h-3.5 w-3.5 text-primary-foreground" /></div>
                         <span className="font-bold text-sm text-foreground tracking-tight">ResultPro</span>
                     </div>
+                </div>
+                <div className="flex items-center gap-1">
+                    <Link href="/dashboard/administration/notice" className="relative p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-all duration-200 btn-press" aria-label="Notifications">
+                        <Bell className="h-[18px] w-[18px]" strokeWidth={1.8} />
+                    </Link>
+                    <Link href="/dashboard/settings" className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary btn-press" aria-label="Account">
+                        <User className="h-4 w-4" strokeWidth={2} />
+                    </Link>
                 </div>
             </header>
 

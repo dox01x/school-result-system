@@ -179,6 +179,16 @@
     -moz-appearance: textfield;
     appearance: textfield;
   }
+  /* Prevent iOS Safari auto-zoom on input focus (triggered when font-size < 16px) */
+  @media screen and (max-width: 768px) {
+    input, select, textarea {
+      font-size: 16px !important;
+    }
+  }
+  /* Faster mobile tap response */
+  button, a, [role="button"] {
+    touch-action: manipulation;
+  }
 }
 
 /* ── Animations ── */

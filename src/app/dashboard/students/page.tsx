@@ -502,6 +502,8 @@ function StudentsPageContent() {
                 actions={
                     <div className="flex items-center gap-2 flex-wrap">
                         {bgSyncing && <span className="text-xs text-blue-600 flex items-center font-medium"><RefreshCw className="h-3 w-3 mr-1 animate-spin" /> Syncing...</span>}
+                        {lastSyncTime && !bgSyncing && <span className="text-xs text-slate-400 font-medium hidden sm:inline">Synced: {lastSyncTime.toLocaleTimeString()}</span>}
+                        {bgSyncing && <span className="text-xs text-blue-600 flex items-center font-medium"><RefreshCw className="h-3 w-3 mr-1 animate-spin" /> Syncing...</span>}
                         {lastSyncTime && !bgSyncing && <span className="text-xs text-slate-400 font-medium">Synced: {lastSyncTime.toLocaleTimeString()}</span>}
                         <Button variant="outline" onClick={() => setImportDialogOpen(true)} disabled={!selectedSection} className="rounded-xl border-slate-200 hover:bg-slate-50">
                             <Upload className="h-4 w-4 mr-2" />Import
@@ -520,10 +522,10 @@ function StudentsPageContent() {
             {/* Filter Card */}
             <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-4">
                 <div className="flex items-center gap-3 flex-wrap">
-                    <div>
+                    <div className="flex-1 min-w-[120px]">
                         <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold mb-1.5">Class</p>
                         <Select value={selectedClass} onValueChange={setSelectedClass}>
-                            <SelectTrigger className="w-[160px] h-9 rounded-lg border-slate-200 bg-white text-sm">
+                            <SelectTrigger className="w-full h-9 rounded-lg border-slate-200 bg-white text-sm">
                                 <SelectValue placeholder="Select class" />
                             </SelectTrigger>
                             <SelectContent>
@@ -533,10 +535,10 @@ function StudentsPageContent() {
                             </SelectContent>
                         </Select>
                     </div>
-                    <div>
+                    <div className="flex-1 min-w-[120px]">
                         <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold mb-1.5">Section</p>
                         <Select value={selectedSection} onValueChange={setSelectedSection}>
-                            <SelectTrigger className="w-[160px] h-9 rounded-lg border-slate-200 bg-white text-sm">
+                            <SelectTrigger className="w-full h-9 rounded-lg border-slate-200 bg-white text-sm">
                                 <SelectValue placeholder="Select section" />
                             </SelectTrigger>
                             <SelectContent>
@@ -573,14 +575,14 @@ function StudentsPageContent() {
             )}
 
             <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) setEditingStudent(null); if (open) setTimeout(() => rollInputRef.current?.focus(), 100); }}>
-                <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+                <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto w-[95vw] sm:w-full">
                     <DialogHeader>
                         <DialogTitle>{editingStudent ? "Edit Student" : "Add Student"}</DialogTitle>
                     </DialogHeader>
                     <form onSubmit={(e) => { e.preventDefault(); handleSave(); }}>
                     <div className="space-y-5 py-4">
                         {/* Core Info */}
-                        <div className="grid gap-4 grid-cols-2">
+                        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
                             <div className="space-y-2">
                                 <Label>Roll Number *</Label>
                                 <Input ref={rollInputRef} placeholder="e.g., 01" value={form.roll} onChange={(e) => setForm({ ...form, roll: e.target.value })} id="student-roll" data-field-index={0} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); document.getElementById("student-name")?.focus(); }}} />
@@ -596,7 +598,7 @@ function StudentsPageContent() {
                         </div>
 
                         {/* Personal Info */}
-                        <div className="grid gap-4 grid-cols-2">
+                        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
                             <div className="space-y-2">
                                 <Label>Gender</Label>
                                 <Select value={form.gender || "_none"} onValueChange={(v) => setForm({ ...form, gender: v === "_none" ? "" : v })}>
@@ -613,7 +615,7 @@ function StudentsPageContent() {
                                 <Input type="date" value={form.date_of_birth} onChange={(e) => setForm({ ...form, date_of_birth: e.target.value })} />
                             </div>
                         </div>
-                        <div className="grid gap-4 grid-cols-2">
+                        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
                             <div className="space-y-2">
                                 <Label>Father&apos;s Name</Label>
                                 <Input placeholder="Father's full name" value={form.father_name} onChange={(e) => setForm({ ...form, father_name: e.target.value })} />
@@ -623,7 +625,7 @@ function StudentsPageContent() {
                                 <Input placeholder="Mother's full name" value={form.mother_name} onChange={(e) => setForm({ ...form, mother_name: e.target.value })} />
                             </div>
                         </div>
-                        <div className="grid gap-4 grid-cols-2">
+                        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
                             <div className="space-y-2">
                                 <Label>Phone</Label>
                                 <Input placeholder="+880 1XXX XXXXXX" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
@@ -641,7 +643,7 @@ function StudentsPageContent() {
                         {/* Group */}
                         <div className="space-y-2">
                             <Label>Group</Label>
-                            <div className="flex w-full gap-2 pt-1">
+                            <div className="flex w-full gap-2 pt-1 flex-wrap">
                                 {[{ value: "None", label: "None (General)" }, { value: "Science", label: "Science" }, { value: "Arts", label: "Arts" }, { value: "Commerce", label: "Commerce" }].map((opt) => (
                                     <label key={opt.value} className={`flex-1 flex items-center justify-center px-3 py-2.5 rounded-full border cursor-pointer transition-colors text-center ${form.group_name === opt.value ? "border-primary bg-primary/5 ring-1 ring-primary/30 text-primary font-medium" : "border-slate-200 bg-card hover:bg-slate-50 text-slate-600"}`}>
                                         <input type="radio" name="student-group" value={opt.value} checked={form.group_name === opt.value} onChange={() => setForm({ ...form, group_name: opt.value })} className="sr-only" />
@@ -692,7 +694,7 @@ function StudentsPageContent() {
 
             {/* Transfer Dialog */}
             <Dialog open={transferDialogOpen} onOpenChange={setTransferDialogOpen}>
-                <DialogContent>
+                <DialogContent className="w-[95vw] sm:w-full max-w-lg">
                     <DialogHeader><DialogTitle>Transfer Student</DialogTitle></DialogHeader>
                     <div className="space-y-4 py-4">
                         <div className="text-sm border-b pb-4 mb-2">
@@ -838,17 +840,18 @@ function StudentsPageContent() {
             {students.length > 0 && (
                 <Card>
                     <CardContent className="p-0">
+                        <div className="overflow-x-auto">
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead className="w-20">Roll</TableHead>
-                                    <TableHead className="w-28 text-muted-foreground">ID</TableHead>
-                                    <TableHead>Name</TableHead>
-                                    <TableHead className="text-muted-foreground">Gender</TableHead>
-                                    <TableHead className="text-muted-foreground">Phone</TableHead>
-                                    <TableHead className="text-muted-foreground">Father&apos;s Name</TableHead>
-                                    <TableHead>Group</TableHead>
-                                    <TableHead className="text-right">Actions</TableHead>
+                                    <TableHead className="w-20 whitespace-nowrap">Roll</TableHead>
+                                    <TableHead className="w-28 text-muted-foreground whitespace-nowrap">ID</TableHead>
+                                    <TableHead className="whitespace-nowrap">Name</TableHead>
+                                    <TableHead className="text-muted-foreground whitespace-nowrap hidden sm:table-cell">Gender</TableHead>
+                                    <TableHead className="text-muted-foreground whitespace-nowrap hidden md:table-cell">Phone</TableHead>
+                                    <TableHead className="text-muted-foreground whitespace-nowrap hidden lg:table-cell">Father&apos;s Name</TableHead>
+                                    <TableHead className="whitespace-nowrap">Group</TableHead>
+                                    <TableHead className="text-right whitespace-nowrap">Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -857,9 +860,9 @@ function StudentsPageContent() {
                                         <TableCell className="font-mono">{student.roll}</TableCell>
                                         <TableCell className="font-mono text-xs text-muted-foreground">{student.student_id || '-'}</TableCell>
                                         <TableCell className="font-medium">{student.name}</TableCell>
-                                        <TableCell className="text-muted-foreground text-sm">{student.gender || '-'}</TableCell>
-                                        <TableCell className="font-mono text-sm">{student.phone || '-'}</TableCell>
-                                        <TableCell className="text-muted-foreground text-sm">{student.father_name || '-'}</TableCell>
+                                        <TableCell className="text-muted-foreground text-sm hidden sm:table-cell">{student.gender || '-'}</TableCell>
+                                        <TableCell className="font-mono text-sm hidden md:table-cell">{student.phone || '-'}</TableCell>
+                                        <TableCell className="text-muted-foreground text-sm hidden lg:table-cell">{student.father_name || '-'}</TableCell>
                                         <TableCell>
                                             {student.group_name ? (
                                                 <Badge variant="secondary" className="font-normal">{student.group_name}</Badge>
@@ -884,6 +887,7 @@ function StudentsPageContent() {
                                 ))}
                             </TableBody>
                         </Table>
+                        </div>
 
                         {/* Quick-add row */}
                         <div className="flex items-center gap-2 px-4 py-3 border-t bg-muted/10">

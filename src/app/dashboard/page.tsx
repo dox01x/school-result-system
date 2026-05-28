@@ -176,12 +176,12 @@ export default async function DashboardPage() {
                             <p className="text-sm text-slate-400 text-center py-8">No sections yet</p>
                         ) : (
                             <div className="overflow-x-auto">
-                                <table className="w-full">
+                                    <table className="w-full">
                                     <thead>
                                         <tr className="text-[11px] text-slate-400 border-b border-slate-50 uppercase tracking-wider">
-                                            <th className="text-left py-2.5 pr-4 font-medium">Class</th>
-                                            <th className="text-left py-2.5 px-4 font-medium">Count</th>
-                                            <th className="text-left py-2.5 pl-4 font-medium w-1/3">Distribution</th>
+                                            <th className="text-left py-2.5 pr-4 font-medium whitespace-nowrap">Class</th>
+                                            <th className="text-left py-2.5 px-4 font-medium whitespace-nowrap">Count</th>
+                                            <th className="text-left py-2.5 pl-4 font-medium w-1/3 whitespace-nowrap">Distribution</th>
                                         </tr>
                                     </thead>
                                     <tbody>

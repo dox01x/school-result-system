@@ -87,7 +87,7 @@ export function Header() {
     const headerLabel = displayName || email?.split("@")[0] || "Account";
 
     return (
-        <header className="bg-card border-b border-border h-16 px-4 sm:px-6 flex items-center justify-between gap-4 sticky top-0 z-30 shrink-0 overflow-visible">
+        <header className="hidden lg:flex bg-card border-b border-border h-16 px-4 sm:px-6 items-center justify-between gap-4 sticky top-0 z-30 shrink-0 overflow-visible">
             <div className="min-w-0 shrink">
                 <h1 className="text-lg font-bold text-foreground font-heading truncate">{title}</h1>
                 <p className="text-[11px] text-muted-foreground truncate -mt-0.5">{breadcrumb}</p>

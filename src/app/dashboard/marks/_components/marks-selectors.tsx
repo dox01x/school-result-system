@@ -50,51 +50,66 @@ const MarksSelectors = React.memo(function MarksSelectors({
     onAcademicYearChange,
 }: MarksSelectorProps) {
     return (
-        <div className="grid gap-3 grid-cols-2 lg:grid-cols-5">
-            <Select value={selectedClass} onValueChange={onClassChange}>
-                <SelectTrigger><SelectValue placeholder="Class" /></SelectTrigger>
-                <SelectContent>
-                    {classes.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                    ))}
-                </SelectContent>
-            </Select>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+            <div className="flex flex-col">
+                <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold mb-1.5 px-1">Class</p>
+                <Select value={selectedClass} onValueChange={onClassChange}>
+                    <SelectTrigger className="w-full bg-white"><SelectValue placeholder="Class" /></SelectTrigger>
+                    <SelectContent>
+                        {classes.map((c) => (
+                            <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
 
-            <Select value={selectedSection} onValueChange={onSectionChange}>
-                <SelectTrigger><SelectValue placeholder="Section" /></SelectTrigger>
-                <SelectContent>
-                    {sections.map((s) => (
-                        <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                    ))}
-                </SelectContent>
-            </Select>
+            <div className="flex flex-col">
+                <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold mb-1.5 px-1">Section</p>
+                <Select value={selectedSection} onValueChange={onSectionChange}>
+                    <SelectTrigger className="w-full bg-white"><SelectValue placeholder="Section" /></SelectTrigger>
+                    <SelectContent>
+                        {sections.map((s) => (
+                            <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
 
-            <Select value={selectedExam} onValueChange={onExamChange}>
-                <SelectTrigger><SelectValue placeholder="Exam" /></SelectTrigger>
-                <SelectContent>
-                    {exams.map((e) => (
-                        <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>
-                    ))}
-                </SelectContent>
-            </Select>
+            <div className="flex flex-col">
+                <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold mb-1.5 px-1">Exam</p>
+                <Select value={selectedExam} onValueChange={onExamChange}>
+                    <SelectTrigger className="w-full bg-white"><SelectValue placeholder="Exam" /></SelectTrigger>
+                    <SelectContent>
+                        {exams.map((e) => (
+                            <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
 
-            <Select value={selectedSubject} onValueChange={onSubjectChange}>
-                <SelectTrigger><SelectValue placeholder="Subject" /></SelectTrigger>
-                <SelectContent>
-                    {subjects.map((s) => (
-                        <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                    ))}
-                </SelectContent>
-            </Select>
+            <div className="flex flex-col">
+                <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold mb-1.5 px-1">Subject</p>
+                <Select value={selectedSubject} onValueChange={onSubjectChange}>
+                    <SelectTrigger className="w-full bg-white"><SelectValue placeholder="Subject" /></SelectTrigger>
+                    <SelectContent>
+                        {subjects.map((s) => (
+                            <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
 
-            <Select value={academicYear} onValueChange={onAcademicYearChange}>
-                <SelectTrigger><SelectValue placeholder="Academic Year" /></SelectTrigger>
-                <SelectContent>
-                    {academicYearOptions.map((y) => (
-                        <SelectItem key={y} value={y}>{y}</SelectItem>
-                    ))}
-                </SelectContent>
-            </Select>
+            <div className="flex flex-col">
+                <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold mb-1.5 px-1">Year</p>
+                <Select value={academicYear} onValueChange={onAcademicYearChange}>
+                    <SelectTrigger className="w-full bg-white"><SelectValue placeholder="Year" /></SelectTrigger>
+                    <SelectContent>
+                        {academicYearOptions.map((y) => (
+                            <SelectItem key={y} value={y}>{y}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
         </div>
     );
 });

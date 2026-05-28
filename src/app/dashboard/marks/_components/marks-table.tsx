@@ -121,7 +121,7 @@ const MarksTableRow = React.memo(function MarksTableRow({
             </td>
 
             {/* Name */}
-            <td className="p-3 text-sm font-medium text-foreground">
+            <td className="p-3 text-sm font-medium text-foreground whitespace-nowrap">
                 {student.name}
             </td>
 
@@ -239,7 +239,7 @@ const MarksTable = React.memo(function MarksTable({
                         <th className="text-center p-3 font-medium text-xs text-muted-foreground uppercase tracking-wider w-16">
                             Roll
                         </th>
-                        <th className="text-left p-3 font-medium text-xs text-muted-foreground uppercase tracking-wider">
+                        <th className="text-left p-3 font-medium text-xs text-muted-foreground uppercase tracking-wider whitespace-nowrap">
                             Name
                         </th>
                         {!useDetailed && (

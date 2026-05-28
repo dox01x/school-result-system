@@ -791,45 +791,45 @@ body{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !impor
             />
 
             <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-4">
-                <div className="flex items-end gap-3 flex-wrap">
-                    <div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div className="flex flex-col">
                         <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold mb-1.5">Class</p>
                         <Select value={selectedClass} onValueChange={(v) => { setSelectedClass(v); setGenerated(false); }}>
-                            <SelectTrigger className="w-[160px] h-9 rounded-lg border-slate-200 bg-white text-sm"><SelectValue placeholder="Select Class" /></SelectTrigger>
+                            <SelectTrigger className="w-full h-9 rounded-lg border-slate-200 bg-white text-sm"><SelectValue placeholder="Select Class" /></SelectTrigger>
                             <SelectContent>{classes.map((c) => (<SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>))}</SelectContent>
                         </Select>
                     </div>
-                    <div>
+                    <div className="flex flex-col">
                         <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold mb-1.5">Section</p>
                         <Select value={selectedSection} onValueChange={(v) => { setSelectedSection(v); setGenerated(false); }}>
-                            <SelectTrigger className="w-[160px] h-9 rounded-lg border-slate-200 bg-white text-sm"><SelectValue placeholder="All Sections" /></SelectTrigger>
+                            <SelectTrigger className="w-full h-9 rounded-lg border-slate-200 bg-white text-sm"><SelectValue placeholder="All Sections" /></SelectTrigger>
                             <SelectContent><SelectItem value="all">All Sections</SelectItem>{sections.map((s) => (<SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>))}</SelectContent>
                         </Select>
                     </div>
-                    <div>
+                    <div className="flex flex-col">
                         <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold mb-1.5">Exam</p>
                         <Select value={selectedExam} onValueChange={(v) => { setSelectedExam(v); setGenerated(false); }}>
-                            <SelectTrigger className="w-[220px] h-9 rounded-lg border-slate-200 bg-white text-sm"><SelectValue placeholder="Select Exam" /></SelectTrigger>
+                            <SelectTrigger className="w-full h-9 rounded-lg border-slate-200 bg-white text-sm"><SelectValue placeholder="Select Exam" /></SelectTrigger>
                             <SelectContent>
                                 <SelectItem value={FINAL_RESULT_ID}>Final Result (Annual)</SelectItem>
                                 {exams.map((e) => (<SelectItem key={e.id} value={e.id}>{e.name}{e.exam_type === "semester" && " (Combined)"}</SelectItem>))}
                             </SelectContent>
                         </Select>
                     </div>
-                    <div>
+                    <div className="flex flex-col">
                         <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold mb-1.5">Year</p>
                         <Select value={selectedAcademicYear} onValueChange={(v) => { setSelectedAcademicYear(v); setGenerated(false); }}>
-                            <SelectTrigger className="w-[120px] h-9 rounded-lg border-slate-200 bg-white text-sm"><SelectValue placeholder="Academic Year" /></SelectTrigger>
+                            <SelectTrigger className="w-full h-9 rounded-lg border-slate-200 bg-white text-sm"><SelectValue placeholder="Academic Year" /></SelectTrigger>
                             <SelectContent>
                                 {academicYearOptions.map((y) => (<SelectItem key={y} value={y}>{y}</SelectItem>))}
                             </SelectContent>
                         </Select>
                     </div>
-                    <div className="flex items-end">
-                        <Button onClick={handleGenerate} disabled={!selectedClass || !selectedExam || processing} className="bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-all duration-200 btn-press h-9 mt-auto">
-                            <Sparkles className="h-4 w-4 mr-2" />{processing ? "Generating..." : "Generate Result"}
-                        </Button>
-                    </div>
+                </div>
+                <div className="mt-4 flex justify-end">
+                    <Button onClick={handleGenerate} disabled={!selectedClass || !selectedExam || processing} className="bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-all duration-200 btn-press h-9 w-full sm:w-auto">
+                        <Sparkles className="h-4 w-4 mr-2" />{processing ? "Generating..." : "Generate Result"}
+                    </Button>
                 </div>
             </div>
 
@@ -872,25 +872,25 @@ body{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !impor
                     <CardContent className="p-0 overflow-x-auto">
                         <Table>
                             <TableHeader><TableRow>
-                                <TableHead className="w-14">Roll</TableHead><TableHead>Name</TableHead>
-                                {(!selectedSection || selectedSection === "all") && <TableHead>Section</TableHead>}
-                                <TableHead className="text-center">Total</TableHead><TableHead className="text-center">%</TableHead>
-                                <TableHead className="text-center">GPA</TableHead><TableHead className="text-center">Grade</TableHead>
-                                {(showPosition || isFinal) && <TableHead className="text-center">Position</TableHead>}
-                                <TableHead className="text-center">Report</TableHead>
+                                <TableHead className="w-14 whitespace-nowrap">Roll</TableHead><TableHead className="whitespace-nowrap">Name</TableHead>
+                                {(!selectedSection || selectedSection === "all") && <TableHead className="whitespace-nowrap hidden sm:table-cell">Section</TableHead>}
+                                <TableHead className="text-center whitespace-nowrap">Total</TableHead><TableHead className="text-center whitespace-nowrap">%</TableHead>
+                                <TableHead className="text-center whitespace-nowrap">GPA</TableHead><TableHead className="text-center whitespace-nowrap">Grade</TableHead>
+                                {(showPosition || isFinal) && <TableHead className="text-center whitespace-nowrap hidden md:table-cell">Position</TableHead>}
+                                <TableHead className="text-center whitespace-nowrap">Report</TableHead>
                             </TableRow></TableHeader>
                             <TableBody>
                                 {filteredResults.map((r) => (
                                     <TableRow key={r.student.id}>
                                         <TableCell className="font-mono">{r.student.roll}</TableCell>
-                                        <TableCell className="font-medium">{r.student.name}</TableCell>
-                                        {(!selectedSection || selectedSection === "all") && <TableCell className="text-muted-foreground">{sections.find((s) => s.id === r.student.section_id)?.name || "-"}</TableCell>}
-                                        <TableCell className="text-center">{r.totalMarks}/{r.totalFullMarks}</TableCell>
-                                        <TableCell className="text-center font-mono">{r.percentage.toFixed(2)}%</TableCell>
+                                        <TableCell className="font-medium whitespace-nowrap">{r.student.name}</TableCell>
+                                        {(!selectedSection || selectedSection === "all") && <TableCell className="text-muted-foreground hidden sm:table-cell">{sections.find((s) => s.id === r.student.section_id)?.name || "-"}</TableCell>}
+                                        <TableCell className="text-center whitespace-nowrap">{r.totalMarks}/{r.totalFullMarks}</TableCell>
+                                        <TableCell className="text-center font-mono whitespace-nowrap">{r.percentage.toFixed(2)}%</TableCell>
                                         <TableCell className="text-center font-mono">{r.displayGpa.toFixed(2)}</TableCell>
                                         <TableCell className="text-center"><Badge className={getGradeColor(r.grade)}>{r.grade}</Badge></TableCell>
-                                        {(showPosition || isFinal) && <TableCell className="text-center font-semibold">{r.position}{r.position ? posSuffix(r.position) : "-"}</TableCell>}
-                                        <TableCell className="text-center"><Button variant="ghost" size="sm" onClick={() => setReportStudent(r)}><Eye className="h-4 w-4 mr-1" />View</Button></TableCell>
+                                        {(showPosition || isFinal) && <TableCell className="text-center font-semibold hidden md:table-cell">{r.position}{r.position ? posSuffix(r.position) : "-"}</TableCell>}
+                                        <TableCell className="text-center"><Button variant="ghost" size="sm" onClick={() => setReportStudent(r)}><Eye className="h-4 w-4 mr-1 hidden sm:inline" />View</Button></TableCell>
                                     </TableRow>
                                 ))}
                             </TableBody>
