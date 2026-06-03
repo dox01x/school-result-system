@@ -71,6 +71,15 @@ export async function POST(req: NextRequest) {
             .maybeSingle();
 
         const effectiveFullMarks = examConfig?.full_marks ?? subject.full_marks;
+
+        // Guard against misconfigured subjects with zero full_marks
+        if (!subject.full_marks || subject.full_marks <= 0) {
+            return NextResponse.json(
+                { error: "Subject has invalid full_marks (0 or negative). Please fix the subject configuration." },
+                { status: 400 }
+            );
+        }
+
         const scaleFactor = effectiveFullMarks / subject.full_marks;
         const maxTheory = Math.round(subject.theory_marks * scaleFactor);
         const maxMcq = Math.round(subject.mcq_marks * scaleFactor);

@@ -15,7 +15,7 @@ import {
 import type { Class, Section, Subject, Exam, Student, ExamSubjectConfig } from "@/lib/database.types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { PenLine, AlertCircle, Upload, RefreshCw, Save } from "lucide-react";
+import { PencilLine as PencilSimpleLine, AlertCircle as WarningCircle, Upload, RefreshCw as ArrowsClockwise, Save as FloppyDisk } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { toast } from "sonner";
 
@@ -584,9 +584,7 @@ export default function MarksPage() {
         <div className="space-y-6">
             {/* ── Page Header ── */}
             <PageHeader
-                icon={PenLine}
-                iconBg="bg-emerald-50"
-                iconColor="text-emerald-600"
+                icon={PencilSimpleLine}
                 title="Marks Entry"
                 subtitle="Enter marks for each student."
                 actions={
@@ -605,8 +603,8 @@ export default function MarksPage() {
                                 Synced: {lastSyncTime.toLocaleTimeString()}
                             </span>
                         )}
-                        <Button variant="outline" onClick={() => setImportDialogOpen(true)} disabled={!loaded}>
-                            <Upload className="h-4 w-4 mr-2" />
+                        <Button variant="outline" className="border-border/50 text-foreground font-semibold rounded-xl hover:bg-muted transition-all duration-200" onClick={() => setImportDialogOpen(true)} disabled={!loaded}>
+                            <Upload size={16} strokeWidth={1.5} className="mr-2" />
                             Import
                         </Button>
                     </div>
@@ -641,7 +639,7 @@ export default function MarksPage() {
             />
 
             {/* ── Selectors ── */}
-            <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-4">
+            <div className="bg-card rounded-2xl border border-border/50 shadow-none p-5">
                 <MarksSelectors
                 classes={classes}
                 sections={sections}
@@ -663,32 +661,27 @@ export default function MarksPage() {
 
             {/* ── Empty states / Loading ── */}
             {isFetchingMarks ? (
-                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-12 text-center flex flex-col items-center justify-center">
-                    <RefreshCw className="h-8 w-8 text-emerald-500 animate-spin mb-4" />
-                    <h3 className="font-semibold text-lg text-slate-800 font-heading mb-1">Loading Marks...</h3>
-                    <p className="text-sm text-muted-foreground max-w-sm mx-auto">Please wait while data is being fetched.</p>
+                <div className="bg-transparent rounded-2xl border-2 border-dashed border-border/50 shadow-none p-12 text-center flex flex-col items-center justify-center">
+                    <ArrowsClockwise size={32} strokeWidth={1.5} className="text-muted-foreground/60 animate-spin mb-4" />
+                    <h3 className="font-semibold text-lg text-foreground mb-4">Loading Marks...</h3>
                 </div>
             ) : !loaded ? (
-                <div className="bg-white rounded-2xl border-2 border-dashed border-slate-200 p-12 text-center">
-                    <div className="h-12 w-12 rounded-xl bg-emerald-50 flex items-center justify-center mb-4 mx-auto">
-                        <PenLine className="h-6 w-6 text-emerald-500" />
+                <div className="bg-transparent rounded-2xl border-2 border-dashed border-border/50 p-12 text-center shadow-none">
+                    <div className="h-12 w-12 rounded-xl flex items-center justify-center mb-4 mx-auto text-muted-foreground/40">
+                        <PencilSimpleLine size={32} strokeWidth={1.2} />
                     </div>
-                    <h3 className="font-semibold text-lg text-slate-800 font-heading mb-1">Select filters above</h3>
-                    <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-                        Choose class, section, subject, and exam to start.
-                    </p>
+                    <h3 className="font-semibold text-lg text-foreground mb-4">Select filters above</h3>
                 </div>
             ) : loaded && students.length === 0 ? (
-                <div className="bg-white rounded-2xl border-2 border-dashed border-slate-200 p-12 text-center">
-                    <div className="h-12 w-12 rounded-xl bg-amber-50 flex items-center justify-center mb-4 mx-auto">
-                        <AlertCircle className="h-6 w-6 text-amber-500" />
+                <div className="bg-transparent rounded-2xl border-2 border-dashed border-border/50 p-12 text-center shadow-none">
+                    <div className="h-12 w-12 rounded-xl flex items-center justify-center mb-4 mx-auto text-muted-foreground/40">
+                        <WarningCircle size={32} strokeWidth={1.2} />
                     </div>
-                    <h3 className="font-semibold text-lg text-slate-800 font-heading mb-1">No students found</h3>
-                    <p className="text-sm text-muted-foreground max-w-sm mx-auto">Add students first.</p>
+                    <h3 className="font-semibold text-lg text-foreground mb-4">No students found</h3>
                 </div>
             ) : (
                 loaded && students.length > 0 && currentSubject && (
-                    <Card className="overflow-hidden">
+                    <Card className="bg-card rounded-2xl border-border/50 shadow-none overflow-hidden">
                         <MarksToolbar
                             subjectName={currentSubject.name}
                             examName={currentExam?.name || ""}
@@ -715,13 +708,9 @@ export default function MarksPage() {
                         />
 
                         {/* Bottom bar */}
-                        <div className="flex items-center justify-between px-5 py-3 border-t bg-muted/20">
-                            <p className="text-xs text-muted-foreground">
-                                ↑↓←→ Navigate cells · Enter → next row · Esc → revert · Auto-save enabled ·{" "}
-                                {useDetailed ? "Detailed mode" : "Simple mode"}
-                            </p>
-                            <Button onClick={() => handleSave(false)} disabled={saving} size="sm" variant={hasUnsaved ? "default" : "outline"} className="h-8 px-4 text-xs">
-                                <Save className="h-3.5 w-3.5 mr-1.5" />
+                        <div className="flex items-center justify-end px-5 py-3 border-t bg-muted/20">
+                            <Button onClick={() => handleSave(false)} disabled={saving} size="sm" className={hasUnsaved ? "bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 font-semibold shadow-none h-8 px-4 text-xs transition-all duration-200 btn-press" : "border-border/50 text-foreground font-semibold rounded-xl hover:bg-muted transition-all duration-200 h-8 px-4 text-xs bg-transparent border"}>
+                                <FloppyDisk size={14} strokeWidth={1.5} className="mr-1.5" />
                                 {saving ? "Saving…" : "Save All"}
                             </Button>
                         </div>

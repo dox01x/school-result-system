@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Settings, ArrowLeft, Save, Clock, CalendarDays } from "lucide-react";
+import { Settings as Gear, ArrowLeft, Save as FloppyDisk, Clock, CalendarDays as CalendarBlank } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
 
@@ -166,7 +166,7 @@ export default function RoutineSettingsPage() {
                     </Button>
                 </Link>
                 <div>
-                    <h1 className="text-2xl font-semibold tracking-tight">Routine Settings</h1>
+                    <h1 className="text-2xl font-bold tracking-tight text-foreground font-heading mb-1">Routine Settings</h1>
                     <p className="text-muted-foreground mt-0.5 text-sm">Configure working days, periods, and timing for the class routine.</p>
                 </div>
             </div>
@@ -176,7 +176,7 @@ export default function RoutineSettingsPage() {
                 <Card>
                     <CardHeader>
                         <CardTitle className="text-sm flex items-center gap-2">
-                            <CalendarDays className="h-4 w-4 text-muted-foreground" />
+                            <CalendarBlank className="h-4 w-4 text-muted-foreground" />
                             Working Days
                         </CardTitle>
                     </CardHeader>
@@ -210,7 +210,7 @@ export default function RoutineSettingsPage() {
                 <Card>
                     <CardHeader>
                         <CardTitle className="text-sm flex items-center gap-2">
-                            <Clock className="h-4 w-4 text-muted-foreground" />
+                            <Clock size={16} strokeWidth={1.5} className=" text-muted-foreground" />
                             Period Configuration
                         </CardTitle>
                     </CardHeader>
@@ -296,7 +296,7 @@ export default function RoutineSettingsPage() {
                 <Card className="lg:col-span-2">
                     <CardHeader>
                         <CardTitle className="text-sm flex items-center gap-2">
-                            <Settings className="h-4 w-4 text-muted-foreground" />
+                            <Gear size={16} strokeWidth={1.5} className=" text-muted-foreground" />
                             Time Slots Preview
                             <Badge variant="secondary" className="text-[10px] px-1.5">{periodsPerDay} periods</Badge>
                         </CardTitle>
@@ -328,7 +328,7 @@ export default function RoutineSettingsPage() {
             {/* Save Button */}
             <div className="flex justify-end">
                 <Button onClick={handleSave} disabled={saving} className="gap-1.5">
-                    <Save className="h-4 w-4" />
+                    <FloppyDisk size={16} strokeWidth={1.5} className=" " />
                     {saving ? "Saving..." : "Save Settings"}
                 </Button>
             </div>

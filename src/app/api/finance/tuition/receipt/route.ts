@@ -29,9 +29,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: "Payment not found" }, { status: 404 });
     }
 
-    // 2. Fetch school info (Mocked or from settings if available, assuming settings table exists or hardcoded fallback)
-    // Using simple fallback since we don't know the exact routine_settings table structure
-    const schoolInfo = {
+    // 2. Fetch school info from DB (with safe fallback)
+    const { data: schoolData } = await supabase
+      .from('school_info')
+      .select('name, address, phone, logo_url')
+      .limit(1)
+      .single();
+
+    const schoolInfo = schoolData || {
       name: "Your School Name",
       address: "School Address, City, Country",
       phone: "+8801XXXXXXXXX",

@@ -78,7 +78,7 @@ function LoginForm() {
                 <div className="mx-auto mb-2 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                     <GraduationCap className="h-8 w-8" strokeWidth={1.75} />
                 </div>
-                <CardTitle className="font-heading text-2xl tracking-tight">ResultPro</CardTitle>
+                <CardTitle className="font-heading text-2xl tracking-tight">School Management System</CardTitle>
                 <CardDescription className="text-base">
                     Sign in to manage results, students, and school data.
                 </CardDescription>

@@ -15,7 +15,7 @@ export async function GET(request: Request) {
     // @ts-ignore
     let query = supabase.from('salary_payments').select(`
       *,
-      users!salary_payments_staff_id_fkey(name, role)
+      teachers!salary_payments_staff_id_fkey(name, designation, employee_type)
     `);
     
     if (staffId) query = query.eq('staff_id', staffId);

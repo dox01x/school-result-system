@@ -9,13 +9,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { createClient } from '@/lib/supabase/client';
 import { STAFF_SALARY_CONFIG_COLUMNS } from '@/lib/supabase/select-columns';
-import { Loader2, Plus, Trash2, CheckCircle2 } from 'lucide-react';
+import { Loader2 as SpinnerGap, Plus, Trash, CheckCircle } from "lucide-react";
 
 export default function SalaryConfigPage() {
   const [staffList, setStaffList] = useState<any[]>([]);
   const [selectedStaffId, setSelectedStaffId] = useState("");
   const [loadingConfig, setLoadingConfig] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [userRole, setUserRole] = useState("");
 
   const [basicSalary, setBasicSalary] = useState("0");
   const [allowances, setAllowances] = useState<any[]>([]);
@@ -28,7 +29,15 @@ export default function SalaryConfigPage() {
       const { data } = await supabase.from('teachers').select('id, name, designation, phone').order('name');
       if (data) setStaffList(data);
     };
+    const fetchRole = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+        if (data) setUserRole(data.role);
+      }
+    };
     fetchStaff();
+    fetchRole();
   }, [supabase]);
 
   // Load existing config
@@ -130,84 +139,84 @@ export default function SalaryConfigPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight bg-gradient-to-r from-violet-600 to-violet-400 bg-clip-text text-transparent">Salary Configuration</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground font-heading mb-1">Salary Configuration</h1>
         <p className="text-muted-foreground text-sm mt-1">Set basic salary, allowances and deductions for teachers & staff.</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <Card className="lg:col-span-8 border-none shadow-lg">
-          <div className="h-1.5 bg-violet-500"></div>
-          <CardHeader>
-            <CardTitle className="text-lg">Staff Configuration</CardTitle>
+        <Card className="lg:col-span-8 shadow-none border border-border/50 rounded-2xl overflow-hidden">
+          <CardHeader className="bg-muted/30 border-b border-border/50">
+            <CardTitle className="text-lg font-bold text-foreground">Staff Configuration</CardTitle>
           </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSave} className="space-y-5">
+          <CardContent className="pt-6">
+            <form onSubmit={handleSave} className="space-y-6">
               <div className="space-y-2">
-                <Label className="uppercase text-xs font-semibold text-muted-foreground">Select Teacher / Staff</Label>
+                <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground px-1">Select Teacher / Staff</Label>
                 <Select value={selectedStaffId} onValueChange={setSelectedStaffId}>
-                  <SelectTrigger className="bg-card"><SelectValue placeholder="Select staff member..." /></SelectTrigger>
-                  <SelectContent className="max-h-[300px]">
+                  <SelectTrigger className="h-11 rounded-xl bg-muted border-0 font-bold text-foreground focus:ring-1 focus:ring-ring/30 shadow-none"><SelectValue placeholder="Select staff member..." /></SelectTrigger>
+                  <SelectContent className="border-border/50 rounded-xl shadow-md max-h-[300px]">
                     {staffList.map(s => (
-                      <SelectItem key={s.id} value={s.id}>{s.name} {s.designation ? `(${s.designation})` : ''}</SelectItem>
+                      <SelectItem key={s.id} value={s.id} className="rounded-lg font-medium">{s.name} {s.designation ? `(${s.designation})` : ''}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
 
               {loadingConfig ? (
-                <div className="flex justify-center py-6"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>
+                <div className="flex justify-center py-6"><SpinnerGap size={24} strokeWidth={2} className="animate-spin text-muted-foreground/40" /></div>
               ) : selectedStaffId && (
-                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
-                  <div className="space-y-2">
-                    <Label className="uppercase text-xs font-semibold text-muted-foreground border-b pb-1 flex w-full">Basic Salary</Label>
-                    <Input type="number" dir="rtl" className="w-48 font-mono text-lg font-bold" value={basicSalary} onChange={e => setBasicSalary(e.target.value)} />
+                <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2">
+                  <div className="space-y-2 border border-border/50 p-5 rounded-2xl bg-muted/50/30">
+                    <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground px-1 block mb-3">Basic Salary</Label>
+                    <Input type="number" className="w-48 font-mono text-lg font-black h-11 rounded-xl bg-white border border-border/50 shadow-none focus-visible:ring-1 focus-visible:ring-ring/30" value={basicSalary} onChange={e => setBasicSalary(e.target.value)} />
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Allowances */}
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between border-b pb-1">
-                        <Label className="uppercase text-xs font-semibold text-muted-foreground">Allowances (+)</Label>
-                        <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => addComponent('allowance')}>
-                          <Plus className="w-3 h-3 mr-1" /> Add
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between border-b border-border/50 pb-2">
+                        <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground px-1">Allowances (+)</Label>
+                        <Button type="button" variant="ghost" size="sm" className="h-8 px-3 text-xs bg-muted hover:bg-muted/80 text-muted-foreground font-bold rounded-lg shadow-none" onClick={() => addComponent('allowance')}>
+                          <Plus size={14} strokeWidth={2.5} className="mr-1" /> Add
                         </Button>
                       </div>
-                      <div className="space-y-2">
+                      <div className="space-y-3">
                         {allowances.map((c, i) => (
                           <div key={i} className="flex items-center gap-2">
-                            <Input placeholder="E.g. House Rent" className="flex-1" value={c.name} onChange={e => updateComponent('allowance', i, 'name', e.target.value)} />
-                            <Input type="number" dir="rtl" placeholder="0" className="w-24 font-mono" value={c.amount} onChange={e => updateComponent('allowance', i, 'amount', e.target.value)} />
-                            <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:bg-red-50" onClick={() => removeComponent('allowance', i)}><Trash2 className="w-4 h-4" /></Button>
+                            <Input placeholder="E.g. House Rent" className="flex-1 h-11 rounded-xl bg-muted border-0 font-bold text-foreground focus-visible:ring-1 focus-visible:ring-ring/30 shadow-none" value={c.name} onChange={e => updateComponent('allowance', i, 'name', e.target.value)} />
+                            <Input type="number" placeholder="0" className="w-24 font-mono font-bold h-11 rounded-xl bg-muted border-0 text-foreground focus-visible:ring-1 focus-visible:ring-ring/30 shadow-none" value={c.amount} onChange={e => updateComponent('allowance', i, 'amount', e.target.value)} />
+                            <Button type="button" variant="ghost" size="icon" className="h-11 w-11 text-red-500 hover:bg-red-50 hover:text-red-600 rounded-xl" onClick={() => removeComponent('allowance', i)}><Trash size={16} strokeWidth={2} /></Button>
                           </div>
                         ))}
-                        {allowances.length === 0 && <p className="text-xs text-muted-foreground italic">No allowances added.</p>}
+                        {allowances.length === 0 && <p className="text-xs font-bold text-muted-foreground/60 italic">No allowances added.</p>}
                       </div>
                     </div>
 
                     {/* Deductions */}
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between border-b pb-1">
-                        <Label className="uppercase text-xs font-semibold text-muted-foreground">Deductions (-)</Label>
-                        <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => addComponent('deduction')}>
-                          <Plus className="w-3 h-3 mr-1" /> Add
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between border-b border-border/50 pb-2">
+                        <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground px-1">Deductions (-)</Label>
+                        <Button type="button" variant="ghost" size="sm" className="h-8 px-3 text-xs bg-muted hover:bg-muted/80 text-muted-foreground font-bold rounded-lg shadow-none" onClick={() => addComponent('deduction')}>
+                          <Plus size={14} strokeWidth={2.5} className="mr-1" /> Add
                         </Button>
                       </div>
-                      <div className="space-y-2">
+                      <div className="space-y-3">
                         {deductions.map((c, i) => (
                           <div key={i} className="flex items-center gap-2">
-                            <Input placeholder="E.g. Tax / Prov. Fund" className="flex-1" value={c.name} onChange={e => updateComponent('deduction', i, 'name', e.target.value)} />
-                            <Input type="number" dir="rtl" placeholder="0" className="w-24 font-mono text-red-600" value={c.amount} onChange={e => updateComponent('deduction', i, 'amount', e.target.value)} />
-                            <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:bg-red-50" onClick={() => removeComponent('deduction', i)}><Trash2 className="w-4 h-4" /></Button>
+                            <Input placeholder="E.g. Tax / Prov. Fund" className="flex-1 h-11 rounded-xl bg-muted border-0 font-bold text-foreground focus-visible:ring-1 focus-visible:ring-ring/30 shadow-none" value={c.name} onChange={e => updateComponent('deduction', i, 'name', e.target.value)} />
+                            <Input type="number" placeholder="0" className="w-24 font-mono font-bold h-11 rounded-xl bg-muted border-0 text-red-500 focus-visible:ring-1 focus-visible:ring-ring/30 shadow-none" value={c.amount} onChange={e => updateComponent('deduction', i, 'amount', e.target.value)} />
+                            <Button type="button" variant="ghost" size="icon" className="h-11 w-11 text-red-500 hover:bg-red-50 hover:text-red-600 rounded-xl" onClick={() => removeComponent('deduction', i)}><Trash size={16} strokeWidth={2} /></Button>
                           </div>
                         ))}
-                        {deductions.length === 0 && <p className="text-xs text-muted-foreground italic">No deductions added.</p>}
+                        {deductions.length === 0 && <p className="text-xs font-bold text-muted-foreground/60 italic">No deductions added.</p>}
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex justify-end pt-4 border-t">
-                    <Button type="submit" className="px-6 shadow-md" disabled={submitting}>
-                      {submitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <CheckCircle2 className="w-4 h-4 mr-2" />}
+                  <div className="flex justify-end pt-5 border-t border-border/50 items-center">
+                    {userRole !== 'admin' && <span className="text-xs font-bold text-red-500 mr-4">Only Admin can change configuration.</span>}
+                    <Button type="submit" className="h-11 px-6 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold shadow-none" disabled={submitting || userRole !== 'admin'}>
+                      {submitting ? <SpinnerGap size={16} strokeWidth={2} className="mr-2 animate-spin" /> : <CheckCircle size={16} strokeWidth={2} className="mr-2" />}
                       {submitting ? "Saving..." : "Save Configuration"}
                     </Button>
                   </div>
@@ -218,26 +227,26 @@ export default function SalaryConfigPage() {
         </Card>
 
         {selectedStaffId && (
-          <Card className="lg:col-span-4 border-none shadow-lg h-fit bg-slate-50">
-            <CardHeader className="pb-3 border-b border-slate-200">
-              <CardTitle className="text-base uppercase tracking-wider text-slate-500">Summary</CardTitle>
+          <Card className="lg:col-span-4 shadow-none border border-border/50 rounded-2xl h-fit bg-card text-foreground">
+            <CardHeader className="pb-3 border-b border-border/50 bg-muted/30">
+              <CardTitle className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Summary</CardTitle>
             </CardHeader>
-            <CardContent className="pt-4 space-y-4">
-              <div className="flex justify-between items-center text-sm font-medium">
-                <span className="text-slate-600">Basic</span>
-                <span className="font-mono">{Number(basicSalary).toLocaleString('en-IN')} TK</span>
+            <CardContent className="pt-5 space-y-4">
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-muted-foreground font-bold">Basic</span>
+                <span className="font-mono font-bold text-foreground">{Number(basicSalary).toLocaleString('en-IN')} TK</span>
               </div>
-              <div className="flex justify-between items-center text-sm font-medium">
-                <span className="text-slate-600">Total Allowances</span>
-                <span className="font-mono text-primary">+{(gross - Number(basicSalary)).toLocaleString('en-IN')} TK</span>
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-muted-foreground font-bold">Total Allowances</span>
+                <span className="font-mono font-bold text-foreground">+{(gross - Number(basicSalary)).toLocaleString('en-IN')} TK</span>
               </div>
-              <div className="flex justify-between items-center text-sm font-medium">
-                <span className="text-slate-600">Total Deductions</span>
-                <span className="font-mono text-red-600">-{totalDed.toLocaleString('en-IN')} TK</span>
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-muted-foreground font-bold">Total Deductions</span>
+                <span className="font-mono font-bold text-red-500">-{totalDed.toLocaleString('en-IN')} TK</span>
               </div>
-              <div className="pt-3 border-t-2 border-slate-200 flex justify-between items-center">
-                <span className="font-bold text-slate-800">Net Salary</span>
-                <span className="font-bold font-mono text-xl text-violet-700">{net.toLocaleString('en-IN')} TK</span>
+              <div className="pt-4 mt-2 border-t border-border/50 flex justify-between items-center">
+                <span className="font-bold text-foreground">Net Salary</span>
+                <span className="font-black font-mono text-xl text-foreground">{net.toLocaleString('en-IN')} TK</span>
               </div>
             </CardContent>
           </Card>

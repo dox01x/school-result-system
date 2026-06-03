@@ -33,7 +33,7 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2, BookOpen } from "lucide-react";
+import { Plus, Pencil, Trash2 as Trash, BookOpen as BookOpenText } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -205,36 +205,34 @@ export default function SubjectsPage() {
     return (<>
         <div className="space-y-6">
             <PageHeader
-                icon={BookOpen}
-                iconBg="bg-sky-50"
-                iconColor="text-sky-600"
+                icon={BookOpenText}
                 title="Subjects"
                 subtitle="Manage subjects per class."
                 actions={
                     <Button
                         onClick={() => { resetForm(); setDialogOpen(true); }}
                         disabled={!selectedClass}
-                        className="bg-blue-600 text-white rounded-xl hover:bg-blue-700 btn-press"
+                        className="bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 font-semibold shadow-none transition-all duration-200 btn-press"
                     >
-                        <Plus className="h-4 w-4 mr-2" />
+                        <Plus size={16} strokeWidth={1.5} className="mr-2" />
                         Add Subject
                     </Button>
                 }
             />
 
-            {/* Filter Card */}
+            {/* Funnels Card */}
             {classes.length > 0 && (
-                <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-4">
-                    <div className="flex items-center gap-3">
-                        <div>
-                            <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold mb-1.5">Class</p>
+                <div className="bg-card rounded-2xl border border-border/50 p-5">
+                    <div className="flex items-center gap-4 flex-wrap">
+                        <div className="flex-1 min-w-[140px]">
+                            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-2">Class</p>
                             <Select value={selectedClass} onValueChange={setSelectedClass}>
-                                <SelectTrigger className="w-[200px] h-9 rounded-lg border-slate-200 bg-white text-sm">
+                                <SelectTrigger className="w-full h-11 rounded-xl border-0 bg-muted hover:bg-muted/80 transition-colors text-foreground font-semibold shadow-none focus:ring-1 focus:ring-ring/30">
                                     <SelectValue placeholder="Select class" />
                                 </SelectTrigger>
-                                <SelectContent>
+                                <SelectContent className="rounded-xl border-border/50 shadow-md">
                                     {classes.map((cls) => (
-                                        <SelectItem key={cls.id} value={cls.id}>
+                                        <SelectItem key={cls.id} value={cls.id} className="rounded-lg">
                                             {cls.name}
                                         </SelectItem>
                                     ))}
@@ -280,7 +278,7 @@ export default function SubjectsPage() {
                             <Label>Group</Label>
                             <div className="flex w-full gap-2 pt-1">
                                 {[{ value: "Common", label: "Common (All)" }, { value: "Science", label: "Science" }, { value: "Arts", label: "Arts" }, { value: "Commerce", label: "Commerce" }].map((opt) => (
-                                    <label key={opt.value} className={`flex-1 flex items-center justify-center px-3 py-2.5 rounded-full border cursor-pointer transition-colors text-center ${form.group_name === opt.value ? "border-primary bg-primary/5 ring-1 ring-primary/30 text-primary font-medium" : "border-slate-200 bg-card hover:bg-slate-50 text-slate-600"}`}>
+                                    <label key={opt.value} className={`flex-1 flex items-center justify-center px-3 py-2.5 rounded-xl border cursor-pointer transition-colors text-center ${form.group_name === opt.value ? "border-primary bg-primary text-primary-foreground font-medium shadow-none" : "border-border/50 bg-muted/50 hover:bg-muted text-muted-foreground font-medium"}`}>
                                         <input type="radio" name="subject-group" value={opt.value} checked={form.group_name === opt.value} onChange={() => setForm({ ...form, group_name: opt.value })} className="sr-only" />
                                         <span className="text-xs sm:text-sm whitespace-nowrap">{opt.label}</span>
                                     </label>
@@ -315,9 +313,9 @@ export default function SubjectsPage() {
                         </div>
 
                         <div className="space-y-4 pt-2">
-                            <p className="text-sm font-medium text-slate-700">Mark Distribution</p>
-                            <div className="space-y-3 rounded-xl border border-slate-200/60 bg-slate-50/50 p-4">
-                                <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-card p-4">
+                            <p className="text-sm font-medium text-foreground">Mark Distribution</p>
+                            <div className="space-y-3 rounded-xl border border-border/50/60 bg-muted/50/50 p-4">
+                                <div className="flex items-center justify-between rounded-lg border border-border/50 bg-card p-4">
                                     <div className="flex items-center gap-3">
                                         <Switch
                                             checked={form.has_theory}
@@ -341,7 +339,7 @@ export default function SubjectsPage() {
                                         />
                                     )}
                                 </div>
-                                <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-card p-4">
+                                <div className="flex items-center justify-between rounded-lg border border-border/50 bg-card p-4">
                                     <div className="flex items-center gap-3">
                                         <Switch
                                             checked={form.has_mcq}
@@ -365,7 +363,7 @@ export default function SubjectsPage() {
                                         />
                                     )}
                                 </div>
-                                <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-card p-4">
+                                <div className="flex items-center justify-between rounded-lg border border-border/50 bg-card p-4">
                                     <div className="flex items-center gap-3">
                                         <Switch
                                             checked={form.has_practical}
@@ -394,9 +392,9 @@ export default function SubjectsPage() {
                     </div>
                     <DialogFooter>
                         <DialogClose asChild>
-                            <Button type="button" variant="outline">Cancel</Button>
+                            <Button type="button" variant="outline" className="border-border/50 text-foreground font-semibold rounded-xl hover:bg-muted transition-all duration-200">Cancel</Button>
                         </DialogClose>
-                        <Button type="submit">
+                        <Button type="submit" className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl font-semibold shadow-none transition-all duration-200">
                             {editingSubject ? "Update" : "Create"}
                         </Button>
                     </DialogFooter>
@@ -406,11 +404,11 @@ export default function SubjectsPage() {
 
             {/* No class selected */}
             {classes.length === 0 && !loading && (
-                <div className="bg-white rounded-2xl border-2 border-dashed border-slate-200 p-12 text-center">
-                    <div className="h-12 w-12 rounded-xl bg-sky-50 flex items-center justify-center mb-4 mx-auto">
-                        <BookOpen className="h-6 w-6 text-sky-500" />
+                <div className="bg-transparent rounded-2xl border-2 border-dashed border-border/50 p-12 text-center shadow-none">
+                    <div className="h-12 w-12 rounded-xl flex items-center justify-center mb-4 mx-auto text-muted-foreground/40">
+                        <BookOpenText size={32} strokeWidth={1.2} />
                     </div>
-                    <h3 className="font-semibold text-lg text-slate-800 font-heading mb-1">No classes found</h3>
+                    <h3 className="font-semibold text-lg text-foreground mb-1">No classes found</h3>
                     <p className="text-sm text-muted-foreground max-w-sm mx-auto">
                         Create a class first before adding subjects.
                     </p>
@@ -419,7 +417,7 @@ export default function SubjectsPage() {
 
             {/* Subject Table */}
             {selectedClass && subjects.length > 0 && (
-                <Card className="bg-white rounded-2xl border-slate-100 shadow-sm">
+                <Card className="bg-card rounded-2xl border-border/50 shadow-none">
                     <CardContent className="p-0">
                         <Table>
                             <TableHeader>
@@ -436,38 +434,38 @@ export default function SubjectsPage() {
                             <TableBody>
                                 {subjects.map((subject) => (
                                     <TableRow key={subject.id}>
-                                        <TableCell className="font-medium">
+                                        <TableCell className="font-medium text-foreground">
                                             {subject.name}
                                             {subject.group_name && (
-                                                <Badge variant="secondary" className="ml-2 text-xs">
+                                                <Badge variant="secondary" className="ml-2 text-[10px] bg-muted text-muted-foreground border-0 rounded-md font-medium uppercase tracking-wider">
                                                     {subject.group_name}
                                                 </Badge>
                                             )}
                                             {subject.is_optional && (
-                                                <Badge variant="outline" className="ml-2 text-xs text-muted-foreground border-purple-200 bg-purple-50 dark:border-purple-900 dark:bg-purple-900/20">
+                                                <Badge variant="outline" className="ml-2 text-[10px] bg-muted/50 text-muted-foreground border border-border/50 rounded-md font-medium uppercase tracking-wider">
                                                     Optional
                                                 </Badge>
                                             )}
                                         </TableCell>
-                                        <TableCell className="text-center">{subject.full_marks}</TableCell>
-                                        <TableCell className="text-center">{subject.pass_marks}</TableCell>
+                                        <TableCell className="text-center font-medium text-foreground">{subject.full_marks}</TableCell>
+                                        <TableCell className="text-center font-medium text-foreground">{subject.pass_marks}</TableCell>
                                         <TableCell className="text-center">
                                             {subject.has_theory ? (
-                                                <Badge variant="secondary">{subject.theory_marks}</Badge>
+                                                <Badge variant="secondary" className="bg-muted text-muted-foreground border-0 rounded-md font-medium">{subject.theory_marks}</Badge>
                                             ) : (
                                                 <span className="text-muted-foreground">-</span>
                                             )}
                                         </TableCell>
                                         <TableCell className="text-center">
                                             {subject.has_mcq ? (
-                                                <Badge variant="secondary">{subject.mcq_marks}</Badge>
+                                                <Badge variant="secondary" className="bg-muted text-muted-foreground border-0 rounded-md font-medium">{subject.mcq_marks}</Badge>
                                             ) : (
                                                 <span className="text-muted-foreground">-</span>
                                             )}
                                         </TableCell>
                                         <TableCell className="text-center">
                                             {subject.has_practical ? (
-                                                <Badge variant="secondary">{subject.practical_marks}</Badge>
+                                                <Badge variant="secondary" className="bg-muted text-muted-foreground border-0 rounded-md font-medium">{subject.practical_marks}</Badge>
                                             ) : (
                                                 <span className="text-muted-foreground">-</span>
                                             )}
@@ -480,7 +478,7 @@ export default function SubjectsPage() {
                                                     className="h-8 w-8"
                                                     onClick={() => openEdit(subject)}
                                                 >
-                                                    <Pencil className="h-3.5 w-3.5" />
+                                                    <Pencil className="h-3.5 w-3.5" strokeWidth={1.5} />
                                                 </Button>
                                                 <Button
                                                     variant="ghost"
@@ -488,7 +486,7 @@ export default function SubjectsPage() {
                                                     className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive active:bg-destructive/20"
                                                     onClick={() => handleDelete(subject)}
                                                 >
-                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                    <Trash size={14} strokeWidth={1.5} />
                                                 </Button>
                                             </div>
                                         </TableCell>
@@ -502,11 +500,11 @@ export default function SubjectsPage() {
 
             {/* Empty subjects */}
             {selectedClass && subjects.length === 0 && !loading && classes.length > 0 && (
-                <div className="bg-white rounded-2xl border-2 border-dashed border-slate-200 p-12 text-center">
-                    <div className="h-12 w-12 rounded-xl bg-sky-50 flex items-center justify-center mb-4 mx-auto">
-                        <BookOpen className="h-6 w-6 text-sky-500" />
+                <div className="bg-transparent rounded-2xl border-2 border-dashed border-border/50 p-12 text-center shadow-none">
+                    <div className="h-12 w-12 rounded-xl flex items-center justify-center mb-4 mx-auto text-muted-foreground/40">
+                        <BookOpenText size={32} strokeWidth={1.2} />
                     </div>
-                    <h3 className="font-semibold text-lg text-slate-800 font-heading mb-1">No subjects yet</h3>
+                    <h3 className="font-semibold text-lg text-foreground mb-1">No subjects yet</h3>
                     <p className="text-sm text-muted-foreground max-w-sm mx-auto">
                         Add subjects to this class with mark distribution settings.
                     </p>

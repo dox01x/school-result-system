@@ -32,7 +32,7 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Settings, BookOpen, Award, Building2, Save, AlertCircle, CheckCircle2, SlidersHorizontal, ArrowUpRight, Bell } from "lucide-react";
+import { Settings as Gear, BookOpen, Trophy, Building2 as Buildings, Save as FloppyDisk, AlertCircle as WarningCircle, CheckCircle2 as CheckCircle, SlidersHorizontal, ArrowUpRight, Bell } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Link from "next/link";
@@ -57,7 +57,7 @@ export default function SettingsPage() {
         current_academic_year: currentYearStr,
         last_promotion_year: "",
     });
-    const [savingSchool, setSavingSchool] = useState(false);
+    const [savingSchoolInfo, setSavingSchoolInfo] = useState(false);
     const [detailedMarks, setDetailedMarks] = useState(false);
     const [genderSplitClassId, setGenderSplitClassId] = useState<string>("_none");
     const [savingPrefs, setSavingPrefs] = useState(false);
@@ -139,7 +139,7 @@ export default function SettingsPage() {
 
 
     const handleSaveSchoolInfo = async () => {
-        setSavingSchool(true);
+        setSavingSchoolInfo(true);
         try {
             if (schoolInfo.id) {
                 // Update existing — also initialize last_promotion_year if missing
@@ -190,29 +190,29 @@ export default function SettingsPage() {
         } catch (err: unknown) {
             toast.error(err instanceof Error ? err.message : "Failed to save school information");
         } finally {
-            setSavingSchool(false);
+            setSavingSchoolInfo(false);
         }
     };
 
     return (
         <div className="space-y-6">
             <PageHeader
-                icon={Settings}
-                iconBg="bg-slate-100"
-                iconColor="text-slate-600"
+                icon={Gear}
+                iconBg="bg-primary/10"
+                iconColor="text-primary"
                 title="Settings"
                 subtitle="School info, preferences, and grading."
             />
 
             {/* Connection Status Banner */}
             {dbConnected === false && (
-                <Card className="border-destructive bg-destructive/5">
+                <Card className="border border-red-200 bg-red-50/50 shadow-none rounded-2xl">
                     <CardContent className="flex items-start gap-3 py-4">
-                        <AlertCircle className="h-5 w-5 text-destructive mt-0.5 shrink-0" />
+                        <WarningCircle size={20} strokeWidth={1.5} className="text-red-500 mt-0.5 shrink-0" />
                         <div>
-                            <p className="text-sm font-medium text-destructive">Database not connected</p>
-                            <p className="text-xs text-muted-foreground mt-1">
-                                Update your <code className="bg-muted px-1 rounded">.env.local</code> file with your Supabase credentials, then run the <code className="bg-muted px-1 rounded">schema.sql</code> in your Supabase SQL Editor. Restart the dev server after updating.
+                            <p className="text-sm font-bold text-red-900 tracking-tight">Database not connected</p>
+                            <p className="text-xs text-red-700/80 mt-1 font-medium">
+                                Update your <code className="bg-red-100 px-1 rounded">.env.local</code> file with your Supabase credentials, then run the <code className="bg-red-100 px-1 rounded">schema.sql</code> in your Supabase SQL Editor. Restart the dev server after updating.
                             </p>
                         </div>
                     </CardContent>
@@ -220,163 +220,163 @@ export default function SettingsPage() {
             )}
 
             {dbConnected === true && (
-                <div className="flex items-center gap-2 mb-2">
-                    <CheckCircle2 className="h-5 w-5 text-emerald-500" />
-                    <p className="text-sm font-medium text-emerald-600">Database connected successfully</p>
+                <div className="flex items-center gap-2 mb-2 bg-muted/50 px-3 py-2 rounded-xl border border-border/50 inline-flex">
+                    <CheckCircle size={16} strokeWidth={2} className="text-muted-foreground" />
+                    <p className="text-xs font-bold text-muted-foreground tracking-tight">Database connected successfully</p>
                 </div>
             )}
 
             {shouldShowPromotionReminder && (
-                <Card className="border-red-200 bg-red-50/60 shadow-sm animate-in fade-in slide-in-from-top-2">
+                <Card className="border border-red-200 bg-red-50/50 shadow-none rounded-2xl animate-in fade-in slide-in-from-top-2">
                     <CardContent className="py-3 flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
                         <div className="flex items-center gap-2">
-                            <Bell className="h-5 w-5 text-red-600" />
-                            <p className="text-sm text-red-800 font-medium">
+                            <Bell size={20} strokeWidth={1.5} className="text-red-500" />
+                            <p className="text-sm text-red-900 font-bold tracking-tight">
                                 New calendar year ({promotionCurrentYear}) detected, but active academic year is still {schoolInfo.current_academic_year}. Please execute the Yearly Promotion.
                             </p>
                         </div>
                         <div className="flex gap-2">
-                            <Button asChild size="sm" className="bg-red-600 hover:bg-red-700 text-white font-bold transition-colors">
+                            <Button asChild size="sm" className="bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shadow-none transition-colors">
                                 <Link href="/dashboard/promotion">Promote Now</Link>
                             </Button>
-                            <Button variant="outline" size="sm" onClick={dismissReminder} className="border-red-300 text-red-800 hover:bg-red-100">Dismiss</Button>
+                            <Button variant="outline" size="sm" onClick={dismissReminder} className="border-0 bg-red-100 text-red-800 hover:bg-red-200 font-bold rounded-xl shadow-none">Dismiss</Button>
                         </div>
                     </CardContent>
                 </Card>
             )}
 
-            <Tabs defaultValue="school" className="space-y-4">
-                <TabsList className="bg-slate-100/80 rounded-xl p-1 h-auto flex-wrap">
-                    <TabsTrigger value="school" className="rounded-lg text-xs font-semibold px-4 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 transition-all gap-2">
-                        <Building2 className="h-3.5 w-3.5" />
+            <Tabs defaultValue="school" className="space-y-6">
+                <TabsList className="bg-muted rounded-2xl p-1 h-auto flex-wrap border-0 shadow-none">
+                    <TabsTrigger value="school" className="rounded-xl text-xs font-bold px-4 py-2.5 data-[state=active]:bg-card data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground transition-all gap-2">
+                        <Buildings size={14} strokeWidth={2} />
                         School Info
                     </TabsTrigger>
-                    <TabsTrigger value="preferences" className="rounded-lg text-xs font-semibold px-4 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 transition-all gap-2">
-                        <SlidersHorizontal className="h-3.5 w-3.5" />
+                    <TabsTrigger value="preferences" className="rounded-xl text-xs font-bold px-4 py-2.5 data-[state=active]:bg-card data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground transition-all gap-2">
+                        <SlidersHorizontal size={14} strokeWidth={2} />
                         Preferences
                     </TabsTrigger>
-                    <TabsTrigger value="distribution" className="rounded-lg text-xs font-semibold px-4 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 transition-all gap-2">
-                        <BookOpen className="h-3.5 w-3.5" />
-                        Mark Distribution
-                    </TabsTrigger>
-                    <TabsTrigger value="grading" className="rounded-lg text-xs font-semibold px-4 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 transition-all gap-2">
-                        <Award className="h-3.5 w-3.5" />
-                        Grading Overview
-                    </TabsTrigger>
+
                 </TabsList>
 
                 {/* ──── SCHOOL INFO TAB ──── */}
                 <TabsContent value="school" className="space-y-4">
-                    <Card>
+                    <Card className="border border-border/50 shadow-none bg-card rounded-2xl">
                         <CardHeader>
-                            <CardTitle className="text-base flex items-center gap-2">
-                                <Building2 className="h-4 w-4" />
+                            <CardTitle className="text-base flex items-center gap-2 font-bold tracking-tight text-foreground">
+                                <Buildings size={18} strokeWidth={2} className="text-muted-foreground" />
                                 School Information
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="grid gap-4 md:grid-cols-2">
-                                <div className="space-y-2">
-                                    <Label htmlFor="schoolName">School Name *</Label>
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="schoolName" className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest px-1">School Name *</Label>
                                     <Input
                                         id="schoolName"
                                         placeholder="e.g., ABC International School"
                                         value={schoolInfo.name}
                                         onChange={(e) => setSchoolInfo({ ...schoolInfo, name: e.target.value })}
+                                        className="bg-muted border-0 shadow-none h-11 rounded-xl focus-visible:ring-1 focus-visible:ring-ring/30 font-semibold text-foreground"
                                     />
                                 </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="principalName">Principal Name</Label>
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="principalName" className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest px-1">Principal Name</Label>
                                     <Input
                                         id="principalName"
                                         placeholder="e.g., Mr. Rahman"
                                         value={schoolInfo.principal_name}
                                         onChange={(e) => setSchoolInfo({ ...schoolInfo, principal_name: e.target.value })}
+                                        className="bg-muted border-0 shadow-none h-11 rounded-xl focus-visible:ring-1 focus-visible:ring-ring/30 font-semibold text-foreground"
                                     />
                                 </div>
                             </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="address">Address</Label>
+                            <div className="space-y-1.5">
+                                <Label htmlFor="address" className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest px-1">Address</Label>
                                 <Textarea
                                     id="address"
                                     placeholder="Full school address"
                                     value={schoolInfo.address}
                                     onChange={(e) => setSchoolInfo({ ...schoolInfo, address: e.target.value })}
                                     rows={2}
+                                    className="bg-muted border-0 shadow-none rounded-xl focus-visible:ring-1 focus-visible:ring-ring/30 font-semibold text-foreground"
                                 />
                             </div>
                             <div className="grid gap-4 md:grid-cols-3">
-                                <div className="space-y-2">
-                                    <Label htmlFor="phone">Phone</Label>
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="phone" className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest px-1">Phone</Label>
                                     <Input
                                         id="phone"
                                         placeholder="+880 1XXX XXXXXX"
                                         value={schoolInfo.phone}
                                         onChange={(e) => setSchoolInfo({ ...schoolInfo, phone: e.target.value })}
+                                        className="bg-muted border-0 shadow-none h-11 rounded-xl focus-visible:ring-1 focus-visible:ring-ring/30 font-semibold text-foreground"
                                     />
                                 </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="email">Email</Label>
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="email" className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest px-1">Email</Label>
                                     <Input
                                         id="email"
                                         type="email"
                                         placeholder="info@school.edu"
                                         value={schoolInfo.email}
                                         onChange={(e) => setSchoolInfo({ ...schoolInfo, email: e.target.value })}
+                                        className="bg-muted border-0 shadow-none h-11 rounded-xl focus-visible:ring-1 focus-visible:ring-ring/30 font-semibold text-foreground"
                                     />
                                 </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="year">Established Year</Label>
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="year" className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest px-1">Established Year</Label>
                                     <Input
                                         id="year"
                                         placeholder="e.g., 1990"
                                         value={schoolInfo.established_year}
                                         onChange={(e) => setSchoolInfo({ ...schoolInfo, established_year: e.target.value })}
+                                        className="bg-muted border-0 shadow-none h-11 rounded-xl focus-visible:ring-1 focus-visible:ring-ring/30 font-semibold text-foreground"
                                     />
                                 </div>
                             </div>
                             <div className="grid gap-4 md:grid-cols-3">
-                                <div className="space-y-2">
-                                    <Label>Calendar Year</Label>
+                                <div className="space-y-1.5">
+                                    <Label className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest px-1">Calendar Year</Label>
                                     <Input
                                         value={currentYearStr}
                                         readOnly
                                         disabled
-                                        className="bg-muted text-blue-700 font-semibold border-blue-200"
+                                        className="bg-muted/50 border border-border/50 text-blue-700 font-bold h-11 rounded-xl shadow-none opacity-100"
                                     />
-                                    <p className="text-xs text-muted-foreground">Automatically detected clock year.</p>
+                                    <p className="text-[10px] font-bold text-muted-foreground/60 mt-1 px-1">Automatically detected clock year.</p>
                                 </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="academicYear">Active Academic Year</Label>
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="academicYear" className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest px-1">Active Academic Year</Label>
                                     <Input
                                         id="academicYear"
                                         value={schoolInfo.current_academic_year || "Not set"}
                                         readOnly
                                         disabled
-                                        className={`bg-muted font-semibold ${Number(schoolInfo.current_academic_year || 0) < currentYear ? 'text-red-600 border-red-300' : 'text-emerald-600 border-emerald-300'}`}
+                                        className={`font-bold h-11 rounded-xl border border-border/50 shadow-none opacity-100 ${Number(schoolInfo.current_academic_year || 0) < currentYear ? 'bg-red-50 text-red-700 border-red-200' : 'bg-muted text-foreground border-0'}`}
                                     />
-                                    <p className="text-xs text-muted-foreground">Updates only after yearly promotion.</p>
+                                    <p className="text-[10px] font-bold text-muted-foreground/60 mt-1 px-1">Updates only after yearly promotion.</p>
                                 </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="logo">Logo URL</Label>
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="logo" className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest px-1">Logo URL</Label>
                                     <Input
                                         id="logo"
                                         placeholder="https://example.com/logo.png"
                                         value={schoolInfo.logo_url}
                                         onChange={(e) => setSchoolInfo({ ...schoolInfo, logo_url: e.target.value })}
+                                        className="bg-muted border-0 shadow-none h-11 rounded-xl focus-visible:ring-1 focus-visible:ring-ring/30 font-semibold text-foreground"
                                     />
-                                    <p className="text-xs text-muted-foreground mt-1">
+                                    <p className="text-[10px] font-bold text-muted-foreground/60 mt-1 px-1">
                                         Enter a public URL for your school logo. Default logo will be used if empty.
                                     </p>
                                 </div>
                             </div>
                             <Button
                                 onClick={handleSaveSchoolInfo}
-                                disabled={savingSchool || dbConnected === false}
-                                className="bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-all duration-200 btn-press"
+                                disabled={savingSchoolInfo || dbConnected === false}
+                                className="bg-primary text-primary-foreground font-semibold h-11 rounded-xl shadow-none hover:bg-primary/90 transition-colors mt-2 btn-press"
                             >
-                                <Save className="h-4 w-4 mr-2" />
-                                {savingSchool ? "Saving..." : "Save School Info"}
+                                <FloppyDisk size={18} strokeWidth={1.5} className="mr-2" />
+                                {savingSchoolInfo ? "Saving..." : "Save School Info"}
                             </Button>
                         </CardContent>
                     </Card>
@@ -384,58 +384,48 @@ export default function SettingsPage() {
 
                 {/* ──── PREFERENCES TAB ──── */}
                 <TabsContent value="preferences" className="space-y-4">
-                    <Card>
+                    <Card className="border border-border/50 shadow-none bg-card rounded-2xl">
                         <CardHeader>
-                            <CardTitle className="text-base flex items-center gap-2">
-                                <Settings className="h-4 w-4" />
+                            <CardTitle className="text-base flex items-center gap-2 font-bold tracking-tight text-foreground">
+                                <Gear size={18} strokeWidth={2} className="text-muted-foreground" />
                                 Setup Center
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-3">
-                            <p className="text-sm text-muted-foreground">
-                                Manual setup pages are grouped here so you can configure everything from one place.
-                            </p>
                             <div className="grid gap-3 md:grid-cols-2">
                                 <Link
                                     href="/dashboard/attendance"
-                                    className="rounded-lg border p-3 hover:bg-muted/40 transition-colors"
+                                    className="rounded-xl border-0 bg-muted p-4 hover:bg-muted/80 transition-colors"
                                 >
-                                    <p className="font-medium text-sm">Attendance Setup</p>
-                                    <p className="text-xs text-muted-foreground mt-1">Sheet ID, range, import and auto-sync configuration.</p>
+                                    <p className="font-bold text-sm text-foreground">Attendance Setup</p>
                                 </Link>
                                 <Link
                                     href="/dashboard/administration/routine/settings"
-                                    className="rounded-lg border p-3 hover:bg-muted/40 transition-colors"
+                                    className="rounded-xl border-0 bg-muted p-4 hover:bg-muted/80 transition-colors"
                                 >
-                                    <p className="font-medium text-sm">Routine Settings</p>
-                                    <p className="text-xs text-muted-foreground mt-1">Manage class periods and default routine configuration.</p>
+                                    <p className="font-bold text-sm text-foreground">Routine Settings</p>
                                 </Link>
                                 <Link
                                     href="/dashboard/finance/fee-structure"
-                                    className="rounded-lg border p-3 hover:bg-muted/40 transition-colors"
+                                    className="rounded-xl border-0 bg-muted p-4 hover:bg-muted/80 transition-colors"
                                 >
-                                    <p className="font-medium text-sm">Fee Structure Setup</p>
-                                    <p className="text-xs text-muted-foreground mt-1">Set up tuition and fee heads for each class.</p>
+                                    <p className="font-bold text-sm text-foreground">Fee Structure Setup</p>
                                 </Link>
                             </div>
                         </CardContent>
                     </Card>
 
-                    <Card>
+                    <Card className="border border-border/50 shadow-none bg-card rounded-2xl">
                         <CardHeader>
-                            <CardTitle className="text-base flex items-center gap-2">
-                                <SlidersHorizontal className="h-4 w-4" />
+                            <CardTitle className="text-base flex items-center gap-2 font-bold tracking-tight text-foreground">
+                                <SlidersHorizontal size={18} strokeWidth={2} className="text-muted-foreground" />
                                 Marks Entry Preferences
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-6">
-                            <div className="flex items-center justify-between rounded-lg border p-4">
-                                <div className="space-y-0.5">
-                                    <Label className="text-base">Detailed Marks Entry</Label>
-                                    <p className="text-sm text-muted-foreground">
-                                        When enabled, marks entry will show separate fields for Theory, MCQ, and Practical.
-                                        When disabled, only a single marks field is shown per student (recommended).
-                                    </p>
+                            <div className="flex items-center justify-between rounded-xl border-0 bg-muted p-5">
+                                <div className="space-y-1">
+                                    <Label className="text-sm font-bold text-foreground">Detailed Marks Entry</Label>
                                 </div>
                                 <Switch checked={detailedMarks} onCheckedChange={async (checked) => {
                                     setDetailedMarks(checked);
@@ -461,20 +451,17 @@ export default function SettingsPage() {
                     </Card>
 
                     {/* Gender-Based Promotion Setting */}
-                    <Card>
+                    <Card className="border border-border/50 shadow-none bg-card rounded-2xl">
                         <CardHeader>
-                            <CardTitle className="text-base flex items-center gap-2">
-                                <SlidersHorizontal className="h-4 w-4" />
+                            <CardTitle className="text-base flex items-center gap-2 font-bold tracking-tight text-foreground">
+                                <SlidersHorizontal size={18} strokeWidth={2} className="text-muted-foreground" />
                                 Gender-Based Section Splitting
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-6">
-                            <div className="flex items-center justify-between rounded-lg border p-4">
-                                <div className="space-y-0.5 flex-1 mr-4">
-                                    <Label className="text-base">Start From Class</Label>
-                                    <p className="text-sm text-muted-foreground">
-                                        When students are promoted to this class or higher, they will be automatically split into <strong>Boys Section</strong> and <strong>Girls Section</strong> based on their gender. Classes below this threshold will follow normal promotion rules.
-                                    </p>
+                            <div className="flex items-center justify-between rounded-xl bg-muted border-0 p-5">
+                                <div className="space-y-1 flex-1 mr-4">
+                                    <Label className="text-sm font-bold text-foreground">Start From Class</Label>
                                 </div>
                                 <Select value={genderSplitClassId} onValueChange={async (v) => {
                                     const newVal = v === "_none" ? null : v;
@@ -495,7 +482,7 @@ export default function SettingsPage() {
                                         setSavingPrefs(false);
                                     }
                                 }}>
-                                    <SelectTrigger className="w-[180px]">
+                                    <SelectTrigger className="w-[180px] bg-card border-0 shadow-sm h-11 rounded-xl font-bold text-foreground focus:ring-1 focus:ring-ring/30">
                                         <SelectValue placeholder="Disabled" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -510,139 +497,10 @@ export default function SettingsPage() {
                         </CardContent>
                     </Card>
 
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="text-base flex items-center gap-2">
-                                <ArrowUpRight className="h-4 w-4" />
-                                Yearly Promotion
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <p className="text-sm text-muted-foreground">
-                                Promote students to the next academic year with a safe step-by-step process. Includes preview, confirmation, and undo capability.
-                            </p>
-                            <div className="grid gap-3 md:grid-cols-2">
-                                <div className="rounded-lg border p-3">
-                                    <p className="text-xs text-muted-foreground">Current Academic Year</p>
-                                    <p className="font-semibold">{schoolInfo.current_academic_year || "Not set"}</p>
-                                </div>
-                                <div className="rounded-lg border p-3">
-                                    <p className="text-xs text-muted-foreground">Last Promotion</p>
-                                    <p className="font-semibold">{schoolInfo.last_promotion_year || "Never"}</p>
-                                </div>
-                            </div>
-                            <Link
-                                href="/dashboard/promotion"
-                                className="inline-flex items-center gap-2 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 transition-all duration-200 btn-press px-5 py-2.5 text-sm"
-                            >
-                                <ArrowUpRight className="h-4 w-4" />
-                                Go to Promotion Page
-                            </Link>
-                        </CardContent>
-                    </Card>
+
                 </TabsContent>
 
-                {/* ──── MARK DISTRIBUTION TAB ──── */}
-                <TabsContent value="distribution" className="space-y-4">
-                    <div className="flex items-center justify-between">
-                        <Select value={selectedClass} onValueChange={setSelectedClass}>
-                            <SelectTrigger className="w-[200px]"><SelectValue placeholder="Select class" /></SelectTrigger>
-                            <SelectContent>
-                                {classes.map((c) => (<SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>))}
-                            </SelectContent>
-                        </Select>
-                        <Button variant="outline" asChild>
-                            <Link href="/dashboard/subjects">Edit Subjects</Link>
-                        </Button>
-                    </div>
 
-                    {subjects.length === 0 ? (
-                        <Card className="border-dashed border-2">
-                            <CardContent className="py-12 text-center">
-                                <BookOpen className="h-10 w-10 text-muted-foreground mb-3 mx-auto" />
-                                <h3 className="font-semibold mb-1">No subjects configured</h3>
-                                <p className="text-sm text-muted-foreground">Add subjects to see mark distribution.</p>
-                            </CardContent>
-                        </Card>
-                    ) : (
-                        <Card>
-                            <CardContent className="p-0">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Subject</TableHead>
-                                            <TableHead className="text-center">Full Marks</TableHead>
-                                            <TableHead className="text-center">Pass Marks</TableHead>
-                                            <TableHead className="text-center">Theory</TableHead>
-                                            <TableHead className="text-center">MCQ</TableHead>
-                                            <TableHead className="text-center">Practical</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {subjects.map((s) => (
-                                            <TableRow key={s.id}>
-                                                <TableCell className="font-medium">{s.name}</TableCell>
-                                                <TableCell className="text-center">{s.full_marks}</TableCell>
-                                                <TableCell className="text-center">{s.pass_marks}</TableCell>
-                                                <TableCell className="text-center">
-                                                    {s.has_theory ? <Badge variant="secondary">{s.theory_marks}</Badge> : <span className="text-muted-foreground">-</span>}
-                                                </TableCell>
-                                                <TableCell className="text-center">
-                                                    {s.has_mcq ? <Badge variant="secondary">{s.mcq_marks}</Badge> : <span className="text-muted-foreground">-</span>}
-                                                </TableCell>
-                                                <TableCell className="text-center">
-                                                    {s.has_practical ? <Badge variant="secondary">{s.practical_marks}</Badge> : <span className="text-muted-foreground">-</span>}
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </CardContent>
-                        </Card>
-                    )}
-                </TabsContent>
-
-                {/* ──── GRADING TAB ──── */}
-                <TabsContent value="grading" className="space-y-4">
-                    <div className="flex justify-end">
-                        <Button variant="outline" asChild>
-                            <Link href="/dashboard/exams">Edit Grading Rules</Link>
-                        </Button>
-                    </div>
-
-                    {gradingRules.length === 0 ? (
-                        <Card className="border-dashed border-2">
-                            <CardContent className="py-12 text-center">
-                                <Award className="h-10 w-10 text-muted-foreground mb-3 mx-auto" />
-                                <h3 className="font-semibold mb-1">No grading rules</h3>
-                                <p className="text-sm text-muted-foreground">Configure grading in Exams → Grading System.</p>
-                            </CardContent>
-                        </Card>
-                    ) : (
-                        <Card>
-                            <CardContent className="p-0">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Percentage Range</TableHead>
-                                            <TableHead className="text-center">Grade</TableHead>
-                                            <TableHead className="text-center">Grade Point</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {gradingRules.map((rule) => (
-                                            <TableRow key={rule.id}>
-                                                <TableCell>{rule.min_marks}% — {rule.max_marks}%</TableCell>
-                                                <TableCell className="text-center"><Badge>{rule.grade}</Badge></TableCell>
-                                                <TableCell className="text-center font-mono">{rule.grade_point}</TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </CardContent>
-                        </Card>
-                    )}
-                </TabsContent>
             </Tabs>
         </div>
     );

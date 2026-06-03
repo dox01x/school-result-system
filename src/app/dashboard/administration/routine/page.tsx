@@ -18,10 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import {
-    CalendarClock, Trash2, AlertCircle, Printer,
-    Users, LayoutGrid, AlertTriangle
-} from "lucide-react";
+import { CalendarCheck, Trash2 as Trash, AlertCircle as WarningCircle, Printer, Users, LayoutGrid as GridFour, AlertTriangle as Warning } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { toast } from "sonner";
 
@@ -358,15 +355,13 @@ export default function RoutinePage() {
         <div className="space-y-5">
             {/* Header */}
             <PageHeader
-                icon={CalendarClock}
-                iconBg="bg-blue-50"
-                iconColor="text-blue-600"
+                icon={CalendarCheck}
                 title="Class Routine"
                 subtitle="Weekly class schedule with conflict detection."
                 actions={
                     hasSelection ? (
                         <Button variant="outline" size="sm" onClick={handlePrint} className="gap-1.5">
-                            <Printer className="h-4 w-4" /> Print
+                            <Printer size={16} strokeWidth={1.5} className=" " /> Print
                         </Button>
                     ) : undefined
                 }
@@ -376,7 +371,7 @@ export default function RoutinePage() {
             {globalConflicts.length > 0 && (
                 <div className="rounded-lg border border-amber-200 dark:border-amber-500/30 bg-amber-50/50 dark:bg-amber-500/5 p-3 no-print">
                     <div className="flex items-start gap-2">
-                        <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                        <Warning size={16} strokeWidth={1.5} className=" text-amber-600 shrink-0 mt-0.5" />
                         <div>
                             <p className="text-sm font-medium text-amber-800 dark:text-amber-300">{globalConflicts.length} Conflict{globalConflicts.length > 1 ? "s" : ""} Detected</p>
                             {globalConflicts.slice(0, 3).map((c, i) => (
@@ -391,10 +386,10 @@ export default function RoutinePage() {
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 flex-wrap no-print">
                 <div className="flex items-center rounded-lg border bg-muted/50 p-0.5">
                     <button onClick={() => setViewMode("class")} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${viewMode === "class" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
-                        <LayoutGrid className="h-3.5 w-3.5" /> Class View
+                        <GridFour className="h-3.5 w-3.5" /> Class View
                     </button>
                     <button onClick={() => setViewMode("teacher")} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${viewMode === "teacher" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
-                        <Users className="h-3.5 w-3.5" /> Teacher View
+                        <Users size={12} strokeWidth={1.5} className=".5 .5" /> Teacher View
                     </button>
                 </div>
                 {viewMode === "class" ? (
@@ -405,7 +400,7 @@ export default function RoutinePage() {
                 ) : (
                     <Select value={selectedTeacher} onValueChange={setSelectedTeacher}><SelectTrigger className="w-[220px]"><SelectValue placeholder="Select Teacher" /></SelectTrigger><SelectContent>{teachers.map((t) => (<SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>))}</SelectContent></Select>
                 )}
-                {teachers.length === 0 && (<div className="flex items-center gap-1.5 text-amber-600 text-sm"><AlertCircle className="h-4 w-4" /><span>Add teachers first</span></div>)}
+                {teachers.length === 0 && (<div className="flex items-center gap-1.5 text-amber-600 text-sm"><WarningCircle size={16} strokeWidth={1.5} className=" " /><span>Add teachers first</span></div>)}
             </div>
 
             {/* Print Header with School Info */}
@@ -464,7 +459,7 @@ export default function RoutinePage() {
                                             >
                                                 {entry ? (
                                                     <div className="cell-content">
-                                                        {conflict && <AlertTriangle className="h-3 w-3 text-red-500 absolute top-1 right-1 no-print" />}
+                                                        {conflict && <Warning size={12} strokeWidth={1.5} className=" text-red-500 absolute top-1 right-1 no-print" />}
                                                         {viewMode === "class" ? (
                                                             <>
                                                                 <div className="subject-name">{getName(subjects, entry.subject_id)}</div>
@@ -478,7 +473,7 @@ export default function RoutinePage() {
                                                             </>
                                                         )}
                                                         <button onClick={(e) => { e.stopPropagation(); handleDelete(entry.id); }} className="delete-btn no-print">
-                                                            <Trash2 className="h-3 w-3" />
+                                                            <Trash size={12} strokeWidth={1.5} className=" " />
                                                         </button>
                                                     </div>
                                                 ) : (
@@ -494,7 +489,7 @@ export default function RoutinePage() {
                 </div>
             ) : (
                 <div className="flex flex-col items-center justify-center py-16 text-center border-2 border-dashed rounded-lg no-print">
-                    <CalendarClock className="h-12 w-12 text-muted-foreground mb-4" />
+                    <CalendarCheck className="h-12 w-12 text-muted-foreground mb-4" />
                     <h3 className="font-semibold text-lg mb-1">{viewMode === "class" ? "Select Class & Section" : "Select a Teacher"}</h3>
                     <p className="text-sm text-muted-foreground max-w-sm">{viewMode === "class" ? "Choose a class and section to view or manage the weekly routine." : "Choose a teacher to view their weekly schedule."}</p>
                 </div>
@@ -503,20 +498,20 @@ export default function RoutinePage() {
             {/* Teacher Quick Overview */}
             {viewMode === "class" && !selectedClass && teachers.length > 0 && (
                 <div className="no-print">
-                    <h3 className="text-sm font-semibold mb-3 flex items-center gap-2"><Users className="h-4 w-4 text-muted-foreground" /> Teacher Overview</h3>
+                    <h3 className="text-sm font-semibold mb-3 flex items-center gap-2"><Users size={16} strokeWidth={1.5} className=" text-muted-foreground" /> Teacher Overview</h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                         {teachers.map((t) => {
                             const count = allRoutines.filter((r) => r.teacher_id === t.id).length;
                             const conflict = globalConflicts.some((c) => c.teacherName === t.name);
                             return (
                                 <button key={t.id} onClick={() => { setViewMode("teacher"); setSelectedTeacher(t.id); }}
-                                    className={`text-left rounded-lg p-3 transition-colors ${conflict ? "bg-red-50 dark:bg-red-500/10 border border-red-200 hover:bg-red-100" : "bg-accent/50 hover:bg-accent"}`}>
+                                    className={`text-left rounded-lg p-3 transition-colors ${conflict ? "bg-destructive/10 dark:bg-destructive/100/10 border border-red-200 hover:bg-red-100" : "bg-accent/50 hover:bg-accent"}`}>
                                     <div className="flex items-center justify-between">
                                         <span className="text-sm font-medium truncate">{t.name}</span>
                                         <Badge variant="secondary" className="text-[10px] ml-2 shrink-0">{count}</Badge>
                                     </div>
                                     <div className="text-[11px] text-muted-foreground mt-0.5">{t.designation || t.subject_specialty || "Teacher"}</div>
-                                    {conflict && (<div className="flex items-center gap-1 mt-1"><AlertTriangle className="h-3 w-3 text-red-500" /><span className="text-[10px] text-red-600 font-medium">Has conflicts</span></div>)}
+                                    {conflict && (<div className="flex items-center gap-1 mt-1"><Warning size={12} strokeWidth={1.5} className=" text-red-500" /><span className="text-[10px] text-destructive font-medium">Has conflicts</span></div>)}
                                 </button>
                             );
                         })}
@@ -524,7 +519,7 @@ export default function RoutinePage() {
                 </div>
             )}
 
-            {/* Add/Edit Dialog */}
+            {/* Add/PencilSimple Dialog */}
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                 <DialogContent className="sm:max-w-md">
                     <DialogHeader>
@@ -532,9 +527,9 @@ export default function RoutinePage() {
                     </DialogHeader>
                     <div className="grid gap-4 py-2">
                         {conflictWarnings.length > 0 && (
-                            <div className="rounded-lg border border-red-200 dark:border-red-500/30 bg-red-50 dark:bg-red-500/10 p-3">
-                                <div className="flex items-center gap-1.5 mb-1"><AlertTriangle className="h-4 w-4 text-red-500" /><span className="text-sm font-medium text-red-700 dark:text-red-400">Conflict Warning</span></div>
-                                {conflictWarnings.map((w, i) => (<p key={i} className="text-xs text-red-600 dark:text-red-400/80 mt-0.5">{w}</p>))}
+                            <div className="rounded-lg border border-red-200 dark:border-red-500/30 bg-destructive/10 dark:bg-destructive/100/10 p-3">
+                                <div className="flex items-center gap-1.5 mb-1"><Warning size={16} strokeWidth={1.5} className=" text-red-500" /><span className="text-sm font-medium text-red-700 dark:text-red-400">Conflict Warning</span></div>
+                                {conflictWarnings.map((w, i) => (<p key={i} className="text-xs text-destructive dark:text-red-400/80 mt-0.5">{w}</p>))}
                             </div>
                         )}
 

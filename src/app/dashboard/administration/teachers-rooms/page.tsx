@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Users, Plus, Trash2, Pencil, Search } from "lucide-react";
+import { Users, Plus, Search } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
@@ -104,43 +104,41 @@ export default function TeachersPage() {
         <div className="space-y-6">
             <PageHeader
                 icon={Users}
-                iconBg="bg-teal-50"
-                iconColor="text-teal-600"
                 title="Employees"
                 subtitle="Manage teacher and staff profiles."
             />
 
         <Tabs defaultValue="teachers" className="space-y-4">
             <div className="flex justify-between items-center flex-wrap gap-2">
-                <TabsList className="bg-slate-100/80 rounded-xl p-1 h-auto">
-                    <TabsTrigger value="teachers" className="rounded-lg text-xs font-semibold px-4 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 transition-all">Teachers ({filteredEmployees.filter(e => e.employee_type === 'teacher' || !e.employee_type).length})</TabsTrigger>
-                    <TabsTrigger value="staff" className="rounded-lg text-xs font-semibold px-4 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 transition-all">General Staff ({filteredEmployees.filter(e => e.employee_type === 'staff').length})</TabsTrigger>
+                <TabsList className="bg-muted/80 rounded-xl p-1 h-auto">
+                    <TabsTrigger value="teachers" className="rounded-lg text-xs font-semibold px-4 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary transition-all">Teachers ({filteredEmployees.filter(e => e.employee_type === 'teacher' || !e.employee_type).length})</TabsTrigger>
+                    <TabsTrigger value="staff" className="rounded-lg text-xs font-semibold px-4 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary transition-all">General Staff ({filteredEmployees.filter(e => e.employee_type === 'staff').length})</TabsTrigger>
                 </TabsList>
                 <div className="flex gap-2 items-center flex-wrap">
                     <div className="relative w-full max-w-xs sm:w-56">
-                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Search size={16} strokeWidth={1.5} className="absolute left-2.5 top-2.5 text-muted-foreground" />
                         <Input
                             type="search"
-                            placeholder="Search name or phone..."
+                            placeholder="Search..."
                             className="pl-8 h-9 text-sm"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
                     </div>
-                    <Button size="sm" onClick={() => { setTeacherForm({ id: "", name: "", phone: "", email: "", subject_specialty: "", designation: "", employee_type: "teacher" }); setTeacherDialogOpen(true); }}>
-                        <Plus className="h-4 w-4 mr-1" /> Add Teacher
+                    <Button className="bg-primary text-primary-foreground font-semibold rounded-xl hover:bg-primary/90 transition-all duration-200 btn-press" onClick={() => { setTeacherForm({ id: "", name: "", phone: "", email: "", subject_specialty: "", designation: "", employee_type: "teacher" }); setTeacherDialogOpen(true); }}>
+                        <Plus size={16} strokeWidth={1.5} className=" mr-1" /> Add Teacher
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => { setTeacherForm({ id: "", name: "", phone: "", email: "", subject_specialty: "", designation: "", employee_type: "staff" }); setTeacherDialogOpen(true); }}>
-                        <Plus className="h-4 w-4 mr-1" /> Add Staff
+                    <Button variant="outline" className="border-border/50 text-foreground font-semibold rounded-xl hover:bg-muted transition-all duration-200" onClick={() => { setTeacherForm({ id: "", name: "", phone: "", email: "", subject_specialty: "", designation: "", employee_type: "staff" }); setTeacherDialogOpen(true); }}>
+                        <Plus size={16} strokeWidth={1.5} className=" mr-1" /> Add Staff
                     </Button>
                 </div>
             </div>
 
             <TabsContent value="teachers" className="m-0">
             {filteredEmployees.filter(e => e.employee_type === 'teacher' || !e.employee_type).length === 0 ? (
-                <Card className="border-dashed border-2">
+                <Card className="border-dashed border-2 border-border/50 bg-transparent shadow-none">
                     <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-                        <Users className="h-12 w-12 text-muted-foreground mb-4" />
+                        <Users size={48} strokeWidth={1.2} className=" text-muted-foreground/40 mb-4" />
                         <h3 className="font-semibold text-lg mb-1">No Teachers Added</h3>
                         <p className="text-sm text-muted-foreground max-w-sm">Click &quot;Add Teacher&quot; to register a teacher.</p>
                     </CardContent>
@@ -148,8 +146,8 @@ export default function TeachersPage() {
             ) : (
                 <Card>
                     <CardHeader className="pb-2">
-                        <CardTitle className="text-sm flex items-center gap-2">
-                            <Users className="h-4 w-4 text-muted-foreground" /> Teacher List
+                        <CardTitle className="text-sm flex items-center gap-2 text-foreground">
+                            <Users size={16} strokeWidth={1.5} className=" text-muted-foreground" /> Teacher List
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
@@ -159,7 +157,6 @@ export default function TeachersPage() {
                                     <TableRow>
                                         <TableHead>Teacher Name</TableHead>
                                         <TableHead>Phone Number</TableHead>
-                                        <TableHead className="w-[80px]">Actions</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -169,16 +166,6 @@ export default function TeachersPage() {
                                                 {t.name}
                                             </TableCell>
                                             <TableCell className="text-muted-foreground">{t.phone || "—"}</TableCell>
-                                            <TableCell onClick={(e) => e.stopPropagation()}>
-                                                <div className="flex items-center gap-1">
-                                                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setTeacherForm({ id: t.id, name: t.name, phone: t.phone || "", email: t.email || "", subject_specialty: t.subject_specialty || "", designation: t.designation || "", employee_type: "teacher" }); setTeacherDialogOpen(true); }}>
-                                                        <Pencil className="h-3.5 w-3.5" />
-                                                    </Button>
-                                                    <Button size="icon" variant="ghost" className="h-7 w-7 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 dark:hover:text-red-400" onClick={() => handleDeleteTeacher(t.id)}>
-                                                        <Trash2 className="h-3.5 w-3.5" />
-                                                    </Button>
-                                                </div>
-                                            </TableCell>
                                         </TableRow>
                                     ))}
                                 </TableBody>
@@ -191,9 +178,9 @@ export default function TeachersPage() {
 
             <TabsContent value="staff" className="m-0">
             {filteredEmployees.filter(e => e.employee_type === 'staff').length === 0 ? (
-                <Card className="border-dashed border-2">
+                <Card className="border-dashed border-2 border-border/50 bg-transparent shadow-none">
                     <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-                        <Users className="h-12 w-12 text-muted-foreground mb-4" />
+                        <Users size={48} strokeWidth={1.2} className=" text-muted-foreground/40 mb-4" />
                         <h3 className="font-semibold text-lg mb-1">No Staff Added</h3>
                         <p className="text-sm text-muted-foreground max-w-sm">Click &quot;Add Staff&quot; to register general staff.</p>
                     </CardContent>
@@ -201,8 +188,8 @@ export default function TeachersPage() {
             ) : (
                 <Card>
                     <CardHeader className="pb-2">
-                        <CardTitle className="text-sm flex items-center gap-2">
-                            <Users className="h-4 w-4 text-muted-foreground" /> Staff List
+                        <CardTitle className="text-sm flex items-center gap-2 text-foreground">
+                            <Users size={16} strokeWidth={1.5} className=" text-muted-foreground" /> Staff List
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
@@ -212,7 +199,6 @@ export default function TeachersPage() {
                                     <TableRow>
                                         <TableHead>Staff Name</TableHead>
                                         <TableHead>Phone Number</TableHead>
-                                        <TableHead className="w-[80px]">Actions</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -222,16 +208,6 @@ export default function TeachersPage() {
                                                 {t.name}
                                             </TableCell>
                                             <TableCell className="text-muted-foreground">{t.phone || "—"}</TableCell>
-                                            <TableCell onClick={(e) => e.stopPropagation()}>
-                                                <div className="flex items-center gap-1">
-                                                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setTeacherForm({ id: t.id, name: t.name, phone: t.phone || "", email: t.email || "", subject_specialty: "", designation: t.designation || "", employee_type: "staff" }); setTeacherDialogOpen(true); }}>
-                                                        <Pencil className="h-3.5 w-3.5" />
-                                                    </Button>
-                                                    <Button size="icon" variant="ghost" className="h-7 w-7 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 dark:hover:text-red-400" onClick={() => handleDeleteTeacher(t.id)}>
-                                                        <Trash2 className="h-3.5 w-3.5" />
-                                                    </Button>
-                                                </div>
-                                            </TableCell>
                                         </TableRow>
                                     ))}
                                 </TableBody>
@@ -274,7 +250,7 @@ export default function TeachersPage() {
                                 <Input value={teacherForm.email} onChange={(e) => setTeacherForm((p) => ({ ...p, email: e.target.value }))} placeholder="email@example.com" />
                             </div>
                         </div>
-                        <Button onClick={handleSaveTeacher} disabled={submitting} className="mt-2">
+                        <Button onClick={handleSaveTeacher} disabled={submitting} className="mt-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl font-semibold shadow-none">
                             {submitting ? "Saving..." : teacherForm.id ? "Update" : "Save"}
                         </Button>
                     </div>

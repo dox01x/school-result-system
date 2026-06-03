@@ -39,7 +39,7 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2, ClipboardList, Award, Settings2, Save, RotateCcw } from "lucide-react";
+import { Plus, Pencil, Trash2 as Trash, ClipboardList as ClipboardText, Medal, SlidersHorizontal as Sliders, Save as FloppyDisk, RotateCcw as ArrowCounterClockwise } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -342,7 +342,7 @@ export default function ExamsPage() {
         toast.success("Subject removed from this exam");
     };
 
-    // â”€â”€ Subject Config Save â€” only saves subjects currently in configEdits â”€â”€
+    // â”€â”€ Subject Config FloppyDisk â€” only saves subjects currently in configEdits â”€â”€
     const handleSaveSubjectConfig = async (isSilent = false) => {
         if (!configExam || !configClass) return;
         setSavingConfig(true);
@@ -432,34 +432,30 @@ export default function ExamsPage() {
     const standaloneExams = exams.filter((e) => e.exam_type === "standalone");
 
     const getTypeLabel = (type: string) => type === "mct" ? "MCT" : type === "standalone" ? "Standalone" : "Semester";
-    const getTypeColor = (type: string) => type === "mct"
-        ? "bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400"
-        : type === "standalone"
-            ? "bg-purple-100 text-purple-700 dark:bg-purple-500/10 dark:text-purple-400"
-            : "bg-emerald-100 text-primary dark:bg-emerald-500/10 dark:text-emerald-400";
+    const getTypeColor = (type: string) => "bg-muted text-muted-foreground border-0 rounded-md font-medium uppercase tracking-wider text-[10px]";
 
     return (
         <div className="space-y-6">
             <PageHeader
-                icon={ClipboardList}
-                iconBg="bg-orange-50"
-                iconColor="text-orange-600"
+                icon={ClipboardText}
+                iconBg="bg-primary/10"
+                iconColor="text-primary"
                 title="Exam Configuration"
                 subtitle="Manage exams, grading, and subject config."
             />
 
             <Tabs defaultValue="exams" className="space-y-4">
-                <TabsList className="bg-slate-100/80 rounded-xl p-1 h-auto flex-wrap">
-                    <TabsTrigger value="exams" className="rounded-lg text-xs font-semibold px-4 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 transition-all gap-2">
-                        <ClipboardList className="h-3.5 w-3.5" />
+                <TabsList className="bg-muted rounded-2xl p-1 h-auto flex-wrap border-0 shadow-none">
+                    <TabsTrigger value="exams" className="rounded-xl text-xs font-bold px-4 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground transition-all gap-2">
+                        <ClipboardText className="h-3.5 w-3.5" />
                         Exam Terms
                     </TabsTrigger>
-                    <TabsTrigger value="grading" className="rounded-lg text-xs font-semibold px-4 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 transition-all gap-2">
-                        <Award className="h-3.5 w-3.5" />
+                    <TabsTrigger value="grading" className="rounded-xl text-xs font-bold px-4 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground transition-all gap-2">
+                        <Medal className="h-3.5 w-3.5" />
                         Grading System
                     </TabsTrigger>
-                    <TabsTrigger value="subjectConfig" className="rounded-lg text-xs font-semibold px-4 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 transition-all gap-2">
-                        <Settings2 className="h-3.5 w-3.5" />
+                    <TabsTrigger value="subjectConfig" className="rounded-xl text-xs font-bold px-4 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground transition-all gap-2">
+                        <Sliders className="h-3.5 w-3.5" />
                         Subject Config
                     </TabsTrigger>
                 </TabsList>
@@ -468,16 +464,16 @@ export default function ExamsPage() {
                 <TabsContent value="exams" className="space-y-4">
 
                     <div className="flex justify-end">
-                        <Button className="bg-blue-600 text-white rounded-xl hover:bg-blue-700 btn-press"
+                        <Button className="bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 font-semibold shadow-none transition-all duration-200 btn-press"
                             onClick={() => { setExamForm({ name: "", exam_type: "mct", term: 1 }); setEditingExam(null); setExamDialogOpen(true); }}
                         >
-                            <Plus className="h-4 w-4 mr-2" />Add Exam
+                            <Plus size={16} strokeWidth={1.5} className="mr-2" />Add Exam
                         </Button>
                     </div>
 
                     <Dialog open={examDialogOpen} onOpenChange={(o) => { setExamDialogOpen(o); if (!o) setEditingExam(null); if (o) setTimeout(() => document.getElementById("exam-name-input")?.focus(), 100); }}>
                         <DialogContent>
-                            <DialogHeader><DialogTitle>{editingExam ? "Edit Exam" : "Create Exam"}</DialogTitle></DialogHeader>
+                            <DialogHeader><DialogTitle>{editingExam ? "PencilSimple Exam" : "Create Exam"}</DialogTitle></DialogHeader>
                             <div className="space-y-6 py-6">
                                 <div className="space-y-2">
                                     <Label>Exam Name</Label>
@@ -517,24 +513,23 @@ export default function ExamsPage() {
                                 </div>
                             </div>
                             <DialogFooter>
-                                <DialogClose asChild><Button variant="outline">Cancel</Button></DialogClose>
-                                <Button onClick={handleSaveExam}>{editingExam ? "Update" : "Create"}</Button>
+                                <DialogClose asChild><Button variant="outline" className="border-border/50 text-foreground font-semibold rounded-xl hover:bg-muted transition-all duration-200">Cancel</Button></DialogClose>
+                                <Button className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl font-semibold shadow-none transition-all duration-200" onClick={handleSaveExam}>{editingExam ? "Update" : "Create"}</Button>
                             </DialogFooter>
                         </DialogContent>
                     </Dialog>
 
                     {exams.length === 0 && !loading ? (
-                        <div className="bg-white rounded-2xl border-2 border-dashed border-slate-200 p-12 text-center">
-                            <div className="h-12 w-12 rounded-xl bg-orange-50 flex items-center justify-center mb-4 mx-auto">
-                                <ClipboardList className="h-6 w-6 text-orange-500" />
+                        <div className="bg-transparent rounded-2xl border-2 border-dashed border-border/50 p-12 text-center shadow-none">
+                            <div className="h-12 w-12 rounded-xl flex items-center justify-center mb-4 mx-auto text-muted-foreground/40">
+                                <ClipboardText size={32} strokeWidth={1.2} />
                             </div>
-                            <h3 className="font-semibold text-lg text-slate-800 font-heading mb-1">No exams configured</h3>
-                            <p className="text-sm text-muted-foreground max-w-sm mx-auto">Create MCT and Semester exams for each term.</p>
+                            <h3 className="font-semibold text-lg text-foreground mb-4">No exams configured</h3>
                         </div>
                     ) : (
                         <div className="space-y-4">
                             {termGroups.map(({ term, mct, semester }) => (
-                                <Card key={term}>
+                                <Card key={term} className="bg-card rounded-2xl border-border/50 shadow-none">
                                     <CardHeader className="pb-2">
                                         <CardTitle className="text-sm font-medium text-muted-foreground">
                                             Term {term}
@@ -542,12 +537,12 @@ export default function ExamsPage() {
                                     </CardHeader>
                                     <CardContent className="space-y-2">
                                         {[mct, semester].filter(Boolean).map((exam) => exam && (
-                                                <div key={exam.id} className="flex items-center justify-between rounded-lg border p-3 group hover:bg-muted/30 transition-colors duration-200">
+                                                <div key={exam.id} className="flex items-center justify-between rounded-xl border border-border/50 bg-card p-3 group hover:bg-muted/50 transition-colors duration-200">
                                                 <div className="flex items-center gap-3">
                                                     <Badge className={getTypeColor(exam.exam_type)}>
                                                         {getTypeLabel(exam.exam_type)}
                                                     </Badge>
-                                                    <span className="font-medium">{exam.name}</span>
+                                                    <span className="font-medium text-foreground">{exam.name}</span>
                                                 </div>
                                                 <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => {
@@ -555,10 +550,10 @@ export default function ExamsPage() {
                                                         setExamForm({ name: exam.name, exam_type: exam.exam_type, term: exam.term ?? 1 });
                                                         setExamDialogOpen(true);
                                                     }}>
-                                                        <Pencil className="h-3.5 w-3.5" />
+                                                        <Pencil className="h-3.5 w-3.5" strokeWidth={1.5} />
                                                     </Button>
                                                     <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive active:bg-destructive/20" onClick={() => handleDeleteExam(exam)}>
-                                                        <Trash2 className="h-3.5 w-3.5" />
+                                                        <Trash size={14} strokeWidth={1.5} />
                                                     </Button>
                                                 </div>
                                             </div>
@@ -575,12 +570,12 @@ export default function ExamsPage() {
                             {termGroups.length === 0 && exams.length > 0 && (
                                 <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
                                     {exams.map((exam) => (
-                                        <Card key={exam.id} className="group transition-colors hover:bg-accent">
+                                        <Card key={exam.id} className="group bg-card border-border/50 rounded-2xl shadow-none transition-colors hover:bg-muted/50">
                                             <CardContent className="flex items-center justify-between py-4">
                                                 <div className="flex items-center gap-3">
                                                     <Badge className={getTypeColor(exam.exam_type)}>{getTypeLabel(exam.exam_type)}</Badge>
-                                                    <span className="font-medium">{exam.name}</span>
-                                                    <Badge variant="outline">Term {exam.term}</Badge>
+                                                    <span className="font-medium text-foreground">{exam.name}</span>
+                                                    <Badge variant="outline" className="border-border/50 text-muted-foreground rounded-md bg-muted/50 text-[10px] uppercase tracking-wider font-medium">Term {exam.term}</Badge>
                                                 </div>
                                                 <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => {
@@ -588,10 +583,10 @@ export default function ExamsPage() {
                                                         setExamForm({ name: exam.name, exam_type: exam.exam_type, term: exam.term ?? 1 });
                                                         setExamDialogOpen(true);
                                                     }}>
-                                                        <Pencil className="h-3.5 w-3.5" />
+                                                        <Pencil className="h-3.5 w-3.5" strokeWidth={1.5} />
                                                     </Button>
                                                     <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive active:bg-destructive/20" onClick={() => handleDeleteExam(exam)}>
-                                                        <Trash2 className="h-3.5 w-3.5" />
+                                                        <Trash size={14} strokeWidth={1.5} />
                                                     </Button>
                                                 </div>
                                             </CardContent>
@@ -600,22 +595,22 @@ export default function ExamsPage() {
                                 </div>
                             )}
                             {standaloneExams.length > 0 && (
-                                <Card>
+                                <Card className="bg-card rounded-2xl border-border/50 shadow-none">
                                     <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Standalone Exams</CardTitle></CardHeader>
                                     <CardContent className="space-y-2">
                                         {standaloneExams.map((exam) => (
-                                            <div key={exam.id} className="flex items-center justify-between rounded-lg border p-3 group hover:bg-muted/30 transition-colors">
+                                            <div key={exam.id} className="flex items-center justify-between rounded-xl border border-border/50 bg-card p-3 group hover:bg-muted/50 transition-colors">
                                                 <div className="flex items-center gap-3">
                                                     <Badge className={getTypeColor(exam.exam_type)}>{getTypeLabel(exam.exam_type)}</Badge>
-                                                    <span className="font-medium">{exam.name}</span>
+                                                    <span className="font-medium text-foreground">{exam.name}</span>
                                                 </div>
                                                 <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => {
                                                         setEditingExam(exam);
                                                         setExamForm({ name: exam.name, exam_type: exam.exam_type, term: exam.term ?? 1 });
                                                         setExamDialogOpen(true);
-                                                    }}><Pencil className="h-3.5 w-3.5" /></Button>
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive active:bg-destructive/20" onClick={() => handleDeleteExam(exam)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                                                    }}><Pencil className="h-3.5 w-3.5" strokeWidth={1.5} /></Button>
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive active:bg-destructive/20" onClick={() => handleDeleteExam(exam)}><Trash size={14} strokeWidth={1.5} /></Button>
                                                 </div>
                                             </div>
                                         ))}
@@ -629,20 +624,21 @@ export default function ExamsPage() {
                 {/* â”€â”€â”€â”€ GRADING TAB â”€â”€â”€â”€ */}
                 <TabsContent value="grading" className="space-y-4">
                     <div className="flex justify-end gap-2">
-                        <Button variant="outline" onClick={handleResetGrading}>
-                            <RotateCcw className="h-4 w-4 mr-2" />Reset Defaults
+                        <Button variant="outline" className="border-border/50 text-foreground font-semibold rounded-xl hover:bg-muted transition-all duration-200" onClick={handleResetGrading}>
+                            <ArrowCounterClockwise size={16} strokeWidth={1.5} className="mr-2" />Reset Defaults
                         </Button>
                         <Button
+                            className="bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 font-semibold shadow-none transition-all duration-200 btn-press"
                             onClick={() => { setGradeForm({ marks_category: 100, min_marks: 0, max_marks: 100, grade: "", grade_point: 0 }); setEditingGrade(null); setGradeDialogOpen(true); }}
                             
                         >
-                            <Plus className="h-4 w-4 mr-2" />Add Rule
+                            <Plus size={16} strokeWidth={1.5} className="mr-2" />Add Rule
                         </Button>
                     </div>
 
                     <Dialog open={gradeDialogOpen} onOpenChange={(o) => { setGradeDialogOpen(o); if (!o) setEditingGrade(null); if (o) setTimeout(() => document.getElementById("grade-input")?.focus(), 100); }}>
                         <DialogContent>
-                            <DialogHeader><DialogTitle>{editingGrade ? "Edit Grading Rule" : "Add Grading Rule"}</DialogTitle></DialogHeader>
+                            <DialogHeader><DialogTitle>{editingGrade ? "PencilSimple Grading Rule" : "Add Grading Rule"}</DialogTitle></DialogHeader>
                             <div className="space-y-6 py-6">
                                 <div className="space-y-2">
                                     <Label>Full Marks Category</Label>
@@ -678,24 +674,24 @@ export default function ExamsPage() {
                                 </div>
                             </div>
                             <DialogFooter>
-                                <DialogClose asChild><Button variant="outline">Cancel</Button></DialogClose>
-                                <Button onClick={handleSaveGrade}>{editingGrade ? "Update" : "Add"}</Button>
+                                <DialogClose asChild><Button variant="outline" className="border-border/50 text-foreground font-semibold rounded-xl hover:bg-muted transition-all duration-200">Cancel</Button></DialogClose>
+                                <Button className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl font-semibold shadow-none transition-all duration-200" onClick={handleSaveGrade}>{editingGrade ? "Update" : "Add"}</Button>
                             </DialogFooter>
                         </DialogContent>
                     </Dialog>
 
                     {gradingRules.length === 0 && !loading ? (
-                        <Card className="border-dashed border-2">
+                        <Card className="bg-transparent rounded-2xl border-2 border-dashed border-border/50 shadow-none">
                             <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-                                <Award className="h-10 w-10 text-muted-foreground mb-3" />
-                                <h3 className="font-semibold mb-1">No grading rules</h3>
+                                <Medal size={32} strokeWidth={1.2} className="text-muted-foreground/40 mb-3" />
+                                <h3 className="font-semibold text-lg text-foreground mb-1">No grading rules</h3>
                                 <p className="text-sm text-muted-foreground">Define grade ranges like 80-100 = A+ (5.0).</p>
                             </CardContent>
                         </Card>
                     ) : (
                         <div className="space-y-4">
                             {[100, 75, 50, 25].filter((cat) => gradingRules.some((r) => r.marks_category === cat)).map((cat) => (
-                                <Card key={cat}>
+                                <Card key={cat} className="bg-card rounded-2xl border-border/50 shadow-none">
                                     <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">{cat} Marks Subjects</CardTitle></CardHeader>
                                     <CardContent className="p-0">
                                         <div className="overflow-x-auto">
@@ -712,15 +708,15 @@ export default function ExamsPage() {
                                                 {gradingRules.filter((r) => r.marks_category === cat).map((rule) => (
                                                     <TableRow key={rule.id}>
                                                         <TableCell>{rule.min_marks} - {rule.max_marks}</TableCell>
-                                                        <TableCell><Badge variant="secondary">{rule.grade}</Badge></TableCell>
+                                                        <TableCell><Badge variant="secondary" className="bg-muted text-muted-foreground border-0 rounded-md font-medium">{rule.grade}</Badge></TableCell>
                                                         <TableCell className="font-mono">{rule.grade_point}</TableCell>
                                                         <TableCell className="text-right">
                                                             <div className="flex justify-end gap-1">
                                                                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setEditingGrade(rule); setGradeForm({ marks_category: rule.marks_category, min_marks: rule.min_marks, max_marks: rule.max_marks, grade: rule.grade, grade_point: rule.grade_point }); setGradeDialogOpen(true); }}>
-                                                                    <Pencil className="h-3.5 w-3.5" />
+                                                                    <Pencil className="h-3.5 w-3.5" strokeWidth={1.5} />
                                                                 </Button>
                                                                 <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive active:bg-destructive/20" onClick={() => handleDeleteGrade(rule)}>
-                                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                                    <Trash size={14} strokeWidth={1.5} />
                                                                 </Button>
                                                             </div>
                                                         </TableCell>
@@ -741,55 +737,59 @@ export default function ExamsPage() {
 
                     <div className="flex items-center gap-3 flex-wrap">
                         <Select value={configExam} onValueChange={setConfigExam}>
-                            <SelectTrigger className="w-[200px]"><SelectValue placeholder="Select Exam" /></SelectTrigger>
-                            <SelectContent>
-                                {exams.map((e) => (<SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>))}
+                            <SelectTrigger className="w-[200px] h-11 rounded-xl border-0 bg-muted hover:bg-muted/80 transition-colors text-foreground font-semibold shadow-none focus:ring-1 focus:ring-ring/30">
+                                <SelectValue placeholder="Select Exam" />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-xl border-border/50 shadow-md">
+                                {exams.map((e) => (<SelectItem key={e.id} value={e.id} className="rounded-lg">{e.name}</SelectItem>))}
                             </SelectContent>
                         </Select>
                         <Select value={configClass} onValueChange={setConfigClass}>
-                            <SelectTrigger className="w-[200px]"><SelectValue placeholder="Select Class" /></SelectTrigger>
-                            <SelectContent>
-                                {classes.map((c) => (<SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>))}
+                            <SelectTrigger className="w-[200px] h-11 rounded-xl border-0 bg-muted hover:bg-muted/80 transition-colors text-foreground font-semibold shadow-none focus:ring-1 focus:ring-ring/30">
+                                <SelectValue placeholder="Select Class" />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-xl border-border/50 shadow-md">
+                                {classes.map((c) => (<SelectItem key={c.id} value={c.id} className="rounded-lg">{c.name}</SelectItem>))}
                             </SelectContent>
                         </Select>
                         {configExam && configClass && subjects.length > 0 && (
                             <Button
                                 onClick={() => handleSaveSubjectConfig(false)}
                                 disabled={savingConfig}
-                                className="ml-auto"
+                                className="ml-auto bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 font-semibold shadow-none transition-all duration-200 btn-press"
                             >
-                                <Save className="h-4 w-4 mr-2" />
+                                <FloppyDisk size={16} strokeWidth={1.5} className="mr-2" />
                                 {savingConfig ? "Saving..." : "Save Config"}
                             </Button>
                         )}
                     </div>
 
                     {(!configExam || !configClass) && (
-                        <Card className="border-dashed border-2">
+                        <Card className="bg-transparent rounded-2xl border-2 border-dashed border-border/50 shadow-none">
                             <CardContent className="py-12 text-center">
-                                <Settings2 className="h-10 w-10 text-muted-foreground mb-3 mx-auto" />
-                                <h3 className="font-semibold mb-1">Select an exam and class</h3>
+                                <Sliders size={32} strokeWidth={1.2} className="text-muted-foreground/40 mb-3 mx-auto" />
+                                <h3 className="font-semibold text-lg text-foreground mb-1">Select an exam and class</h3>
                                 <p className="text-sm text-muted-foreground">Choose an exam and class above to configure subject-wise marks and weightage.</p>
                             </CardContent>
                         </Card>
                     )}
 
                     {configExam && configClass && subjects.length === 0 && (
-                        <Card className="border-dashed border-2">
+                        <Card className="bg-transparent rounded-2xl border-2 border-dashed border-border/50 shadow-none">
                             <CardContent className="py-12 text-center">
-                                <Settings2 className="h-10 w-10 text-muted-foreground mb-3 mx-auto" />
-                                <h3 className="font-semibold mb-1">No subjects in this class</h3>
+                                <Sliders size={32} strokeWidth={1.2} className="text-muted-foreground/40 mb-3 mx-auto" />
+                                <h3 className="font-semibold text-lg text-foreground mb-1">No subjects in this class</h3>
                                 <p className="text-sm text-muted-foreground">Add subjects to this class first.</p>
                             </CardContent>
                         </Card>
                     )}
 
                     {configExam && configClass && subjects.length > 0 && (
-                        <Card>
+                        <Card className="bg-card rounded-2xl border-border/50 shadow-none">
                             <CardHeader className="pb-3">
                                 <CardTitle className="text-base">
                                     {exams.find((e) => e.id === configExam)?.name} - {classes.find((c) => c.id === configClass)?.name}
-                                    <Badge variant="outline" className="ml-2">{subjects.length} subjects</Badge>
+                                    <Badge variant="outline" className="ml-2 bg-muted/50 border-border/50 text-muted-foreground rounded-md">{subjects.length} subjects</Badge>
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="p-0">
@@ -855,7 +855,7 @@ export default function ExamsPage() {
                                                             onClick={() => handleRemoveSubjectFromConfig(sub.id)}
                                                             title="Remove from this exam"
                                                         >
-                                                            <Trash2 className="h-3.5 w-3.5" />
+                                                            <Trash size={14} strokeWidth={1.5} />
                                                         </Button>
                                                     </TableCell>
                                                 </TableRow>
@@ -877,7 +877,7 @@ export default function ExamsPage() {
                                                         key={sub.id}
                                                         variant="outline"
                                                         size="sm"
-                                                        className="h-7 text-xs gap-1"
+                                                        className="h-8 text-xs gap-1 border-border/50 text-foreground font-medium rounded-lg hover:bg-muted transition-all duration-200"
                                                         onClick={() => {
                                                             setConfigEdits((prev) => ({
                                                                 ...prev,
@@ -886,7 +886,7 @@ export default function ExamsPage() {
                                                             toast.success(`${sub.name} added back â€” click "Save Config" to persist`);
                                                         }}
                                                     >
-                                                        <Plus className="h-3 w-3" />{sub.name}
+                                                        <Plus size={12} strokeWidth={1.5} />{sub.name}
                                                     </Button>
                                                 ))}
                                             </div>

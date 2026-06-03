@@ -40,7 +40,7 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2, GraduationCap, Upload, RefreshCw, MoveRight } from "lucide-react";
+import { Plus, Pencil, Trash, GraduationCap, Upload, RefreshCw, ArrowRight } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
@@ -495,55 +495,53 @@ function StudentsPageContent() {
         <div className="space-y-6">
             <PageHeader
                 icon={GraduationCap}
-                iconBg="bg-violet-50"
-                iconColor="text-violet-600"
                 title="Students"
                 subtitle="Manage student enrollment and records."
                 actions={
                     <div className="flex items-center gap-2 flex-wrap">
-                        {bgSyncing && <span className="text-xs text-blue-600 flex items-center font-medium"><RefreshCw className="h-3 w-3 mr-1 animate-spin" /> Syncing...</span>}
-                        {lastSyncTime && !bgSyncing && <span className="text-xs text-slate-400 font-medium hidden sm:inline">Synced: {lastSyncTime.toLocaleTimeString()}</span>}
-                        {bgSyncing && <span className="text-xs text-blue-600 flex items-center font-medium"><RefreshCw className="h-3 w-3 mr-1 animate-spin" /> Syncing...</span>}
-                        {lastSyncTime && !bgSyncing && <span className="text-xs text-slate-400 font-medium">Synced: {lastSyncTime.toLocaleTimeString()}</span>}
-                        <Button variant="outline" onClick={() => setImportDialogOpen(true)} disabled={!selectedSection} className="rounded-xl border-slate-200 hover:bg-slate-50">
-                            <Upload className="h-4 w-4 mr-2" />Import
+                        {bgSyncing && <span className="text-xs text-foreground flex items-center font-medium"><RefreshCw className="h-3 w-3 mr-1 animate-spin" strokeWidth={1.2} /> Syncing...</span>}
+                        {lastSyncTime && !bgSyncing && <span className="text-xs text-muted-foreground font-medium hidden sm:inline">Synced: {lastSyncTime.toLocaleTimeString()}</span>}
+                        {bgSyncing && <span className="text-xs text-foreground flex items-center font-medium"><RefreshCw className="h-3 w-3 mr-1 animate-spin" strokeWidth={1.2} /> Syncing...</span>}
+                        {lastSyncTime && !bgSyncing && <span className="text-xs text-muted-foreground font-medium">Synced: {lastSyncTime.toLocaleTimeString()}</span>}
+                        <Button variant="outline" onClick={() => setImportDialogOpen(true)} disabled={!selectedSection} className="rounded-xl border-border/50 hover:bg-muted/50">
+                            <Upload className="h-4 w-4 mr-2" strokeWidth={1.2} />Import
                         </Button>
                         <Button
                             onClick={() => { setForm({ roll: "", name: "", group_name: "None", student_id: "", gender: "", father_name: "", mother_name: "", date_of_birth: "", phone: "", address: "", blood_group: "" }); setEditingStudent(null); setDialogOpen(true); }}
                             disabled={!selectedSection}
-                            className="bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-all duration-200 btn-press"
+                            className="bg-primary text-primary-foreground font-semibold rounded-xl hover:bg-primary/90 transition-all duration-200 btn-press"
                         >
-                            <Plus className="h-4 w-4 mr-2" />Add Student
+                            <Plus size={16} strokeWidth={1.2} className=" mr-2" />Add Student
                         </Button>
                     </div>
                 }
             />
 
-            {/* Filter Card */}
-            <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-4">
-                <div className="flex items-center gap-3 flex-wrap">
-                    <div className="flex-1 min-w-[120px]">
-                        <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold mb-1.5">Class</p>
+            {/* Funnels Card */}
+            <div className="bg-card rounded-2xl border border-border/50 p-5">
+                <div className="flex items-center gap-4 flex-wrap">
+                    <div className="flex-1 min-w-[140px]">
+                        <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-2">Class</p>
                         <Select value={selectedClass} onValueChange={setSelectedClass}>
-                            <SelectTrigger className="w-full h-9 rounded-lg border-slate-200 bg-white text-sm">
+                            <SelectTrigger className="w-full h-11 rounded-xl border-0 bg-muted hover:bg-muted/80 transition-colors text-foreground font-semibold shadow-none focus:ring-1 focus:ring-ring/30">
                                 <SelectValue placeholder="Select class" />
                             </SelectTrigger>
-                            <SelectContent>
+                            <SelectContent className="rounded-xl border-border/50 shadow-md">
                                 {classes.map((c) => (
-                                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                                    <SelectItem key={c.id} value={c.id} className="rounded-lg">{c.name}</SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
                     </div>
-                    <div className="flex-1 min-w-[120px]">
-                        <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold mb-1.5">Section</p>
+                    <div className="flex-1 min-w-[140px]">
+                        <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-2">Section</p>
                         <Select value={selectedSection} onValueChange={setSelectedSection}>
-                            <SelectTrigger className="w-full h-9 rounded-lg border-slate-200 bg-white text-sm">
+                            <SelectTrigger className="w-full h-11 rounded-xl border-0 bg-muted hover:bg-muted/80 transition-colors text-foreground font-semibold shadow-none focus:ring-1 focus:ring-ring/30">
                                 <SelectValue placeholder="Select section" />
                             </SelectTrigger>
-                            <SelectContent>
+                            <SelectContent className="rounded-xl border-border/50 shadow-md">
                                 {sections.map((s) => (
-                                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                    <SelectItem key={s.id} value={s.id} className="rounded-lg">{s.name}</SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
@@ -553,14 +551,14 @@ function StudentsPageContent() {
 
             {/* Auto-sync indicator bar */}
             {autoSyncEnabled && (
-                <Card className="border-emerald-200 bg-emerald-50/50 dark:border-emerald-500/20 dark:bg-emerald-500/5">
+                <Card className="border-border bg-muted/50">
                     <CardContent className="flex items-center justify-between py-3">
                         <div className="flex items-center gap-2">
                             <span className="relative flex h-3 w-3">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-foreground/40 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-3 w-3 bg-muted/500"></span>
                             </span>
-                            <p className="text-sm text-primary dark:text-emerald-400 font-medium">
+                            <p className="text-sm text-foreground font-medium">
                                 Auto-Sync ON â€” every {syncIntervalSec}s
                                 {syncStatus === "syncing" && " (syncing...)"}
                                 {syncStatus === "error" && " (error, retrying...)"}
@@ -645,7 +643,7 @@ function StudentsPageContent() {
                             <Label>Group</Label>
                             <div className="flex w-full gap-2 pt-1 flex-wrap">
                                 {[{ value: "None", label: "None (General)" }, { value: "Science", label: "Science" }, { value: "Arts", label: "Arts" }, { value: "Commerce", label: "Commerce" }].map((opt) => (
-                                    <label key={opt.value} className={`flex-1 flex items-center justify-center px-3 py-2.5 rounded-full border cursor-pointer transition-colors text-center ${form.group_name === opt.value ? "border-primary bg-primary/5 ring-1 ring-primary/30 text-primary font-medium" : "border-slate-200 bg-card hover:bg-slate-50 text-slate-600"}`}>
+                                    <label key={opt.value} className={`flex-1 flex items-center justify-center px-3 py-2.5 rounded-xl border-0 cursor-pointer transition-all text-center ${form.group_name === opt.value ? "bg-primary text-primary-foreground shadow-sm font-semibold" : "bg-muted hover:bg-muted/80 text-muted-foreground font-medium"}`}>
                                         <input type="radio" name="student-group" value={opt.value} checked={form.group_name === opt.value} onChange={() => setForm({ ...form, group_name: opt.value })} className="sr-only" />
                                         <span className="text-xs sm:text-sm whitespace-nowrap">{opt.label}</span>
                                     </label>
@@ -780,7 +778,7 @@ function StudentsPageContent() {
                                                 <input
                                                     type="range" min={5} max={10} value={syncIntervalSec}
                                                     onChange={(e) => setSyncIntervalSec(parseInt(e.target.value))}
-                                                    className="w-20 h-1 bg-muted rounded-full appearance-none cursor-pointer accent-emerald-500"
+                                                    className="w-20 h-1 bg-muted rounded-full appearance-none cursor-pointer accent-primary"
                                                 />
                                                 <span className="text-[10px] text-muted-foreground">{syncIntervalSec}s</span>
                                             </div>
@@ -789,7 +787,7 @@ function StudentsPageContent() {
                                     <Button
                                         variant={autoSyncEnabled ? "secondary" : "outline"}
                                         size="sm"
-                                        className={`h-7 px-2 text-xs ${autoSyncEnabled ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800 border-emerald-200" : ""}`}
+                                        className={`h-7 px-2 text-xs ${autoSyncEnabled ? "bg-muted text-foreground hover:bg-muted/80 border-border" : ""}`}
                                         onClick={async () => {
                                             if (!autoSyncEnabled) {
                                                 if (!sheetsForm.sheetId || !sheetsForm.range) { toast.error("Required for sync"); return; }
@@ -807,7 +805,7 @@ function StudentsPageContent() {
                                             }
                                         }}
                                     >
-                                        <RefreshCw className={`h-3 w-3 mr-1 ${autoSyncEnabled ? "animate-spin text-emerald-600" : "text-muted-foreground"}`} />
+                                        <RefreshCw className={`h-3 w-3 mr-1 ${autoSyncEnabled ? "animate-spin text-foreground" : "text-muted-foreground"}`} strokeWidth={1.2} />
                                         {autoSyncEnabled ? "ON" : "OFF"}
                                     </Button>
                                 </div>
@@ -815,11 +813,11 @@ function StudentsPageContent() {
 
                             <div className="flex items-center justify-between pt-2 border-t border-dashed mt-auto">
                                 <div className="text-xs text-muted-foreground flex gap-1 items-center">
-                                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span> need: roll, name
+                                    <span className="h-1.5 w-1.5 rounded-full bg-muted/500"></span> need: roll, name
                                 </div>
                                 <div className="flex gap-2">
                                     <DialogClose asChild><Button variant="ghost" size="sm">Cancel</Button></DialogClose>
-                                    <Button size="sm" onClick={handleGoogleSheetsFetch} disabled={sheetsLoading}>{sheetsLoading ? "..." : "Import"}</Button>
+                                    <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90" onClick={handleGoogleSheetsFetch} disabled={sheetsLoading}>{sheetsLoading ? "..." : "Import"}</Button>
                                 </div>
                             </div>
                         </TabsContent>
@@ -828,13 +826,12 @@ function StudentsPageContent() {
             </Dialog>
 
             {!loading && students.length === 0 && selectedSection && (
-                <Card className="border-dashed border-2">
-                    <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-                        <GraduationCap className="h-12 w-12 text-muted-foreground mb-4" />
-                        <h3 className="font-semibold text-lg mb-1">No students yet</h3>
-                        <p className="text-sm text-muted-foreground">Add students manually or import from CSV.</p>
-                    </CardContent>
-                </Card>
+                <div className="bg-transparent rounded-2xl border-2 border-dashed border-border/50 p-12 text-center shadow-none">
+                    <div className="h-12 w-12 rounded-xl flex items-center justify-center mb-4 mx-auto text-muted-foreground/40">
+                        <GraduationCap size={32} strokeWidth={1.2} />
+                    </div>
+                    <h3 className="font-semibold text-lg text-foreground mb-4">No students found</h3>
+                </div>
             )}
 
             {students.length > 0 && (
@@ -851,12 +848,11 @@ function StudentsPageContent() {
                                     <TableHead className="text-muted-foreground whitespace-nowrap hidden md:table-cell">Phone</TableHead>
                                     <TableHead className="text-muted-foreground whitespace-nowrap hidden lg:table-cell">Father&apos;s Name</TableHead>
                                     <TableHead className="whitespace-nowrap">Group</TableHead>
-                                    <TableHead className="text-right whitespace-nowrap">Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {students.map((student) => (
-                                    <TableRow key={student.id} className="cursor-pointer hover:bg-slate-50/80 transition-colors" onClick={() => { setProfileStudent(student); setProfileDialogOpen(true); }}>
+                                    <TableRow key={student.id} className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => { setProfileStudent(student); setProfileDialogOpen(true); }}>
                                         <TableCell className="font-mono">{student.roll}</TableCell>
                                         <TableCell className="font-mono text-xs text-muted-foreground">{student.student_id || '-'}</TableCell>
                                         <TableCell className="font-medium">{student.name}</TableCell>
@@ -865,23 +861,10 @@ function StudentsPageContent() {
                                         <TableCell className="text-muted-foreground text-sm hidden lg:table-cell">{student.father_name || '-'}</TableCell>
                                         <TableCell>
                                             {student.group_name ? (
-                                                <Badge variant="secondary" className="font-normal">{student.group_name}</Badge>
+                                                <Badge variant="secondary" className="font-normal bg-muted text-muted-foreground hover:bg-muted/80 border-0">{student.group_name}</Badge>
                                             ) : (
                                                 <span className="text-muted-foreground">-</span>
                                             )}
-                                        </TableCell>
-                                        <TableCell className="text-right">
-                                            <div className="flex justify-end gap-1">
-                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-teal-600 hover:bg-teal-100 hover:text-teal-700 active:bg-teal-200 rounded-full" title="Transfer Student" onClick={(e) => { e.stopPropagation(); setTransferStudent(student); setTransferTargetClass(student.class_id); setTransferRoll(student.roll); setTransferDialogOpen(true); }}>
-                                                    <MoveRight className="h-4 w-4" />
-                                                </Button>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); setEditingStudent(student); setForm({ roll: student.roll, name: student.name, group_name: student.group_name || "None", student_id: student.student_id || "", gender: student.gender || "", father_name: student.father_name || "", mother_name: student.mother_name || "", date_of_birth: student.date_of_birth || "", phone: student.phone || "", address: student.address || "", blood_group: student.blood_group || "" }); setDialogOpen(true); }}>
-                                                    <Pencil className="h-3.5 w-3.5" />
-                                                </Button>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive active:bg-destructive/20" onClick={(e) => { e.stopPropagation(); handleDelete(student); }}>
-                                                    <Trash2 className="h-3.5 w-3.5" />
-                                                </Button>
-                                            </div>
                                         </TableCell>
                                     </TableRow>
                                 ))}

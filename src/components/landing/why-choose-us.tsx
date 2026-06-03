@@ -34,7 +34,7 @@ export function WhyChooseUs() {
             </h2>
             <p className="text-base text-slate-600 leading-relaxed max-w-md">
               We understand the unique challenges schools face. That&apos;s why
-              ResultPro is designed with a laser focus on simplicity,
+              School Management System is designed with a laser focus on simplicity,
               reliability, and real results.
             </p>
           </div>

@@ -32,12 +32,12 @@ interface Conflict {
   }[];
 }
 
-function timeToMinutes(t: string): number {
+export function timeToMinutes(t: string): number {
   const [h, m] = t.split(":").map(Number);
   return h * 60 + m;
 }
 
-function timesOverlap(
+export function timesOverlap(
   s1: string,
   e1: string,
   s2: string,

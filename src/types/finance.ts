@@ -1,4 +1,4 @@
-export type FeeType = 'tuition' | 'admission' | 'sports' | 'library' | 'book' | 'exam' | 'hostel' | 'multiple' | 'other';
+export type FeeType = 'tuition' | 'admission' | 'sports' | 'library' | 'book' | 'exam' | 'mct_exam' | 'semester_exam' | 'hostel' | 'multiple' | 'other';
 export type PaymentMethod = 'cash' | 'bank' | 'mobile_banking';
 export type ExpenseCategory = 'electricity' | 'water' | 'maintenance' | 'stationery' | 'sports' | 'library' | 'exam' | 'cleaning' | 'salary' | 'other';
 export type IncomeCategory = 'tuition' | 'donation' | 'grant' | 'rent' | 'exam_fee' | 'other';

@@ -68,7 +68,7 @@ export function Hero() {
               <div className="w-3 h-3 rounded-full bg-yellow-400/80" />
               <div className="w-3 h-3 rounded-full bg-green-400/80" />
               <div className="flex-1" />
-              <span className="text-xs text-white/40 font-mono">resultpro.app</span>
+              <span className="text-xs text-white/40 font-mono">schoolmanagement.app</span>
             </div>
             {/* Mini stats */}
             <div className="grid grid-cols-3 gap-3">

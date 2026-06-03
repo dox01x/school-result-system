@@ -26,7 +26,7 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2, School, Layers } from "lucide-react";
+import { Plus, Pencil, Trash2 as Trash, Building2 as Buildings, Layers as Stack } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { toast } from "sonner";
 import { ConnectionBanner } from "@/components/connection-banner";
@@ -175,9 +175,7 @@ export default function ClassesPage() {
     return (<>
         <div className="space-y-6">
             <PageHeader
-                icon={School}
-                iconBg="bg-indigo-50"
-                iconColor="text-indigo-600"
+                icon={Buildings}
                 title="Classes"
                 subtitle="Manage classes and sections."
                 actions={
@@ -187,8 +185,8 @@ export default function ClassesPage() {
                         if (open) setTimeout(() => document.getElementById("className")?.focus(), 100);
                     }}>
                         <DialogTrigger asChild>
-                            <Button className="bg-blue-600 text-white rounded-xl hover:bg-blue-700 btn-press">
-                                <Plus className="h-4 w-4 mr-2" />
+                            <Button className="bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 font-semibold shadow-none transition-all duration-200 btn-press">
+                                <Plus size={16} strokeWidth={1.5} className="mr-2" />
                                 Add Class
                             </Button>
                         </DialogTrigger>
@@ -221,15 +219,12 @@ export default function ClassesPage() {
                                     />
                                 </div>
                             </div>
-                            <p className="text-xs text-muted-foreground mt-1">
-                                <strong>Sort Order</strong> determines the display order (e.g., lower numbers appear first). Defaults to 0.
-                            </p>
                         </div>
                         <DialogFooter>
                             <DialogClose asChild>
-                                <Button variant="outline">Cancel</Button>
+                                <Button variant="outline" className="border-border/50 text-foreground font-semibold rounded-xl hover:bg-muted transition-all duration-200">Cancel</Button>
                             </DialogClose>
-                            <Button onClick={editingClass ? handleUpdateClass : handleCreateClass}>
+                            <Button className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl font-semibold shadow-none transition-all duration-200" onClick={editingClass ? handleUpdateClass : handleCreateClass}>
                                 {editingClass ? "Update" : "Create"}
                             </Button>
                         </DialogFooter>
@@ -262,9 +257,9 @@ export default function ClassesPage() {
                     </div>
                     <DialogFooter>
                         <DialogClose asChild>
-                            <Button variant="outline">Cancel</Button>
+                            <Button variant="outline" className="border-border/50 text-foreground font-semibold rounded-xl hover:bg-muted transition-all duration-200">Cancel</Button>
                         </DialogClose>
-                        <Button onClick={handleAddSection}>Add Section</Button>
+                        <Button className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl font-semibold shadow-none transition-all duration-200" onClick={handleAddSection}>Add Section</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
@@ -274,14 +269,11 @@ export default function ClassesPage() {
 
             {/* Empty State */}
             {!loading && classes.length === 0 && (
-                <div className="bg-white rounded-2xl border-2 border-dashed border-slate-200 p-12 text-center">
-                    <div className="h-12 w-12 rounded-xl bg-indigo-50 flex items-center justify-center mb-4 mx-auto">
-                        <School className="h-6 w-6 text-indigo-500" />
+                <div className="bg-transparent rounded-2xl border-2 border-dashed border-border/50 p-12 text-center shadow-none">
+                    <div className="h-12 w-12 rounded-xl flex items-center justify-center mb-4 mx-auto text-muted-foreground/40">
+                        <Buildings size={32} strokeWidth={1.2} />
                     </div>
-                    <h3 className="font-semibold text-lg text-slate-800 font-heading mb-1">No classes yet</h3>
-                    <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-                        Create your first class to get started with managing sections and students.
-                    </p>
+                    <h3 className="font-semibold text-lg text-foreground mb-4">No classes yet</h3>
                 </div>
             )}
 
@@ -291,15 +283,15 @@ export default function ClassesPage() {
                     {classes.map((cls) => (
                         <Card
                             key={cls.id}
-                            className="group hover-lift bg-white border-slate-100 rounded-2xl shadow-sm"
+                            className="group hover-lift bg-card border-border/50 rounded-2xl shadow-none"
                         >
                             <CardHeader className="flex flex-row items-start justify-between pb-3">
                                 <div className="flex items-center gap-3">
-                                    <div className="h-9 w-9 rounded-xl bg-indigo-50 flex items-center justify-center">
-                                        <School className="h-4 w-4 text-indigo-600" />
+                                    <div className="h-9 w-9 rounded-xl bg-muted flex items-center justify-center">
+                                        <Buildings size={16} strokeWidth={1.5} className="text-muted-foreground" />
                                     </div>
                                     <div>
-                                        <CardTitle className="text-base">{cls.name}</CardTitle>
+                                        <CardTitle className="text-base text-foreground">{cls.name}</CardTitle>
                                         <p className="text-xs text-muted-foreground mt-0.5">
                                             {cls.sections.length} section{cls.sections.length !== 1 ? "s" : ""}
                                         </p>
@@ -310,7 +302,7 @@ export default function ClassesPage() {
                                         variant="ghost"
                                         size="icon"
                                         className="h-8 w-8"
-                                        aria-label={`Edit ${cls.name}`}
+                                        aria-label={`PencilSimple ${cls.name}`}
                                         onClick={() => {
                                             setEditingClass(cls);
                                             setClassName(cls.name);
@@ -318,7 +310,7 @@ export default function ClassesPage() {
                                             setDialogOpen(true);
                                         }}
                                     >
-                                        <Pencil className="h-3.5 w-3.5" />
+                                        <Pencil className="h-3.5 w-3.5" strokeWidth={1.5} />
                                     </Button>
                                     <Button
                                         variant="ghost"
@@ -327,7 +319,7 @@ export default function ClassesPage() {
                                         aria-label={`Delete ${cls.name}`}
                                         onClick={() => handleDeleteClass(cls)}
                                     >
-                                        <Trash2 className="h-3.5 w-3.5" />
+                                        <Trash size={14} strokeWidth={1.5} />
                                     </Button>
                                 </div>
                             </CardHeader>
@@ -339,16 +331,16 @@ export default function ClassesPage() {
                                                 <Badge
                                                     key={section.id}
                                                     variant="secondary"
-                                                    className="gap-1.5 pr-1"
+                                                    className="gap-1.5 pr-1 bg-muted text-muted-foreground border-0 rounded-md font-medium"
                                                 >
-                                                    <Layers className="h-3 w-3" />
+                                                    <Stack className="h-3 w-3" strokeWidth={1.5} />
                                                     {section.name}
                                                     <button
-                                                        className="ml-1 h-4 w-4 rounded-full hover:bg-destructive/20 flex items-center justify-center"
+                                                        className="ml-1 h-4 w-4 rounded-full hover:bg-destructive/20 flex items-center justify-center text-muted-foreground hover:text-red-500"
                                                         aria-label={`Delete section ${section.name}`}
                                                         onClick={() => handleDeleteSection(section)}
                                                     >
-                                                        <Trash2 className="h-2.5 w-2.5" />
+                                                        <Trash size={10} strokeWidth={1.5} />
                                                     </button>
                                                 </Badge>
                                             ))}
@@ -361,13 +353,13 @@ export default function ClassesPage() {
                                     <Button
                                         variant="outline"
                                         size="sm"
-                                        className="w-full mt-2"
+                                        className="w-full mt-2 border-border/50 text-foreground font-semibold rounded-xl hover:bg-muted transition-all duration-200"
                                         onClick={() => {
                                             setAddingSectionTo(cls.id);
                                             setSectionDialogOpen(true);
                                         }}
                                     >
-                                        <Plus className="h-3.5 w-3.5 mr-1" />
+                                        <Plus size={14} strokeWidth={1.5} className="mr-1" />
                                         Add Section
                                     </Button>
                                 </div>
@@ -380,7 +372,7 @@ export default function ClassesPage() {
             {loading && (
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {[1, 2, 3].map((i) => (
-                        <Card key={i}>
+                        <Card key={i} className="border-border/50 bg-card rounded-2xl shadow-none">
                             <CardHeader>
                                 <div className="h-6 w-32 bg-muted animate-pulse rounded-lg" />
                             </CardHeader>

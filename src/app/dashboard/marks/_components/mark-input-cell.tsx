@@ -2,7 +2,6 @@
 
 import React, { useState, useCallback, useRef, useEffect } from "react";
 import { useAutoSave, type SaveStatus } from "@/lib/hooks/useAutoSave";
-import { Loader2, AlertCircle } from "lucide-react";
 
 interface MarkInputCellProps {
     /** Unique identifier: `mark-input-{rowIndex}-{colIndex}` */
@@ -217,14 +216,14 @@ const MarkInputCell = React.memo(function MarkInputCell({
                 data-col={colIndex}
                 className={`
                     w-full h-9 px-2 text-center text-sm
-                    rounded-md border bg-transparent
-                    transition-all duration-150
-                    outline-none
+                    rounded-lg border-0 bg-muted
+                    transition-colors duration-150 text-foreground font-medium
+                    outline-none focus:ring-1 focus:ring-ring/30
                     ${isFocused
-                        ? "border-primary/60 ring-[3px] ring-primary/12 z-10 relative"
+                        ? "bg-muted/80 z-10 relative"
                         : hasError
-                            ? "border-destructive bg-destructive/5"
-                            : "border-input hover:border-primary/30"
+                            ? "ring-1 ring-destructive bg-destructive/5"
+                            : "hover:bg-muted/80"
                     }
                     ${hasError ? "error-shake" : ""}
                 `}

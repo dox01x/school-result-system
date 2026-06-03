@@ -8,7 +8,7 @@ import type { AttendanceFilterState } from "./attendance-filters";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Search, Save, Loader2, PenLine, CheckCircle2, RotateCcw } from "lucide-react";
+import { Search as MagnifyingGlass, Save as FloppyDisk, Loader2 as SpinnerGap, Pencil as PencilSimpleLine, CheckCircle, RotateCcw as ArrowCounterClockwise } from "lucide-react";
 
 type CellStatus = "P" | "A" | null;
 type AttendanceGrid = Map<string, Map<number, CellStatus>>; // student_id -> day -> status
@@ -202,7 +202,7 @@ export function AttendanceManualTab({ filters, onSaveComplete }: Props) {
         }
     }, [supabase, grid, selectedClass, selectedSection, year, month, onSaveComplete]);
 
-    // Filter students
+    // Funnels students
     const filtered = useMemo(() => {
         if (!searchQuery.trim()) return students;
         const q = searchQuery.toLowerCase();
@@ -213,8 +213,8 @@ export function AttendanceManualTab({ filters, onSaveComplete }: Props) {
 
     if (!selectedClass || !selectedSection) {
         return (
-            <div className="rounded-2xl border-2 border-dashed border-slate-200 p-12 text-center">
-                <PenLine className="h-10 w-10 text-slate-300 mx-auto mb-3" />
+            <div className="rounded-2xl border-2 border-dashed border-border/50 p-12 text-center">
+                <PencilSimpleLine size={40} strokeWidth={1.5} className="text-muted-foreground/40 mx-auto mb-3" />
                 <p className="text-sm text-slate-400 font-medium">Select a class and section to enter attendance manually</p>
             </div>
         );
@@ -223,15 +223,15 @@ export function AttendanceManualTab({ filters, onSaveComplete }: Props) {
     if (loading) {
         return (
             <div className="space-y-4">
-                <div className="h-10 w-48 rounded-lg bg-slate-100 animate-pulse" />
-                <div className="h-64 rounded-xl bg-slate-100 animate-pulse" />
+                <div className="h-10 w-48 rounded-lg bg-muted animate-pulse" />
+                <div className="h-64 rounded-xl bg-muted animate-pulse" />
             </div>
         );
     }
 
     if (students.length === 0) {
         return (
-            <div className="rounded-2xl border-2 border-dashed border-slate-200 p-12 text-center">
+            <div className="rounded-2xl border-2 border-dashed border-border/50 p-12 text-center">
                 <p className="text-sm text-slate-400">No students found for this class/section</p>
             </div>
         );
@@ -242,45 +242,43 @@ export function AttendanceManualTab({ filters, onSaveComplete }: Props) {
             {/* Toolbar */}
             <div className="flex items-center justify-between gap-3 flex-wrap">
                 <div className="relative max-w-xs flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                    <MagnifyingGlass size={16} strokeWidth={2} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/60" />
                     <Input
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         placeholder="Search student..."
-                        className="pl-9 h-9 rounded-lg bg-white border-slate-200 text-sm"
+                        className="pl-9 h-11 rounded-xl bg-muted border-0 text-sm font-bold text-foreground focus-visible:ring-1 focus-visible:ring-ring/30 shadow-none"
                     />
                 </div>
                 <div className="flex items-center gap-2">
                     {hasChanges && (
-                        <span className="text-[10px] text-amber-600 font-medium flex items-center gap-1 mr-1">
-                            <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                        <span className="text-[10px] text-amber-600 font-bold uppercase tracking-widest flex items-center gap-1.5 mr-2">
+                            <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
                             Unsaved changes
                         </span>
                     )}
                     <Button
                         variant="outline"
-                        size="sm"
                         onClick={() => void loadData()}
                         disabled={saving}
-                        className="h-8 rounded-lg text-xs"
+                        className="h-11 rounded-xl border-border/50 bg-white hover:bg-muted/50 text-muted-foreground font-bold shadow-none"
                     >
-                        <RotateCcw className="h-3 w-3 mr-1.5" />
+                        <ArrowCounterClockwise size={16} strokeWidth={2} className="mr-2" />
                         Reset
                     </Button>
                     <Button
-                        size="sm"
                         onClick={() => void saveChanges()}
                         disabled={saving || !hasChanges}
-                        className="h-8 rounded-lg text-xs bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-sm"
+                        className="h-11 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold shadow-none px-6"
                     >
                         {saving ? (
                             <>
-                                <Loader2 className="h-3 w-3 mr-1.5 animate-spin" />
+                                <SpinnerGap size={16} strokeWidth={2} className="mr-2 animate-spin" />
                                 Saving…
                             </>
                         ) : (
                             <>
-                                <Save className="h-3 w-3 mr-1.5" />
+                                <FloppyDisk size={16} strokeWidth={2} className="mr-2" />
                                 Save All
                             </>
                         )}
@@ -288,28 +286,23 @@ export function AttendanceManualTab({ filters, onSaveComplete }: Props) {
                 </div>
             </div>
 
-            {/* Tip */}
-            <p className="text-[10px] text-muted-foreground">
-                Tip: Click a cell to toggle: <span className="text-emerald-600 font-semibold">Present</span> →{" "}
-                <span className="text-red-600 font-semibold">Absent</span> → Empty. Click a day header to mark all.
-            </p>
 
             {/* Grid */}
-            <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
+            <div className="bg-card rounded-2xl border border-border/50 shadow-none overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-xs">
                         <thead>
-                            <tr className="bg-slate-50/80">
-                                <th className="sticky left-0 z-20 bg-slate-50/95 backdrop-blur-sm text-left py-2.5 px-3 font-semibold text-slate-500 uppercase tracking-wider text-[10px] min-w-[50px] border-r border-slate-100">
+                            <tr className="bg-muted/50">
+                                <th className="sticky left-0 z-20 bg-muted/50 text-left py-3 px-4 font-bold text-muted-foreground uppercase tracking-widest text-[10px] min-w-[50px] border-r border-border/50">
                                     Roll
                                 </th>
-                                <th className="sticky left-[50px] z-20 bg-slate-50/95 backdrop-blur-sm text-left py-2.5 px-3 font-semibold text-slate-500 uppercase tracking-wider text-[10px] min-w-[120px] border-r border-slate-100">
+                                <th className="sticky left-[66px] z-20 bg-muted/50 text-left py-3 px-4 font-bold text-muted-foreground uppercase tracking-widest text-[10px] min-w-[120px] border-r border-border/50">
                                     Name
                                 </th>
                                 {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((d) => (
                                     <th
                                         key={d}
-                                        className="text-center py-2.5 px-0 font-semibold text-slate-400 w-[32px] min-w-[32px] cursor-pointer hover:text-blue-600 transition-colors"
+                                        className="text-center py-3 px-0 font-bold text-muted-foreground/60 w-[32px] min-w-[32px] cursor-pointer hover:text-foreground transition-colors"
                                         title={`Click to mark all Present for day ${d}. Ctrl+Click for all Absent.`}
                                         onClick={(e) => {
                                             markAllForDay(d, e.ctrlKey || e.metaKey ? "A" : "P");
@@ -326,12 +319,12 @@ export function AttendanceManualTab({ filters, onSaveComplete }: Props) {
                                 return (
                                     <tr
                                         key={student.id}
-                                        className={`border-t border-slate-50 hover:bg-blue-50/30 transition-colors ${idx % 2 === 0 ? "bg-white" : "bg-slate-50/30"}`}
+                                        className={`border-t border-border/50 hover:bg-muted/50 transition-colors ${idx % 2 === 0 ? "bg-white" : "bg-muted/50/30"}`}
                                     >
-                                        <td className="sticky left-0 z-10 bg-inherit py-1.5 px-3 font-mono font-semibold text-slate-600 border-r border-slate-50 text-[11px]">
+                                        <td className="sticky left-0 z-10 bg-inherit py-2 px-4 font-mono font-bold text-muted-foreground border-r border-border/50 text-[11px]">
                                             {student.roll}
                                         </td>
-                                        <td className="sticky left-[50px] z-10 bg-inherit py-1.5 px-3 font-medium text-slate-700 truncate max-w-[120px] border-r border-slate-50 text-[11px]">
+                                        <td className="sticky left-[66px] z-10 bg-inherit py-2 px-4 font-bold text-foreground truncate max-w-[120px] border-r border-border/50 text-[11px]">
                                             {student.name}
                                         </td>
                                         {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((d) => {
@@ -341,21 +334,21 @@ export function AttendanceManualTab({ filters, onSaveComplete }: Props) {
                                             return (
                                                 <td
                                                     key={d}
-                                                    className={`text-center py-1.5 px-0 cursor-pointer select-none transition-all duration-100 ${
-                                                        isChanged ? "ring-1 ring-blue-300 ring-inset" : ""
+                                                    className={`text-center py-2 px-0 cursor-pointer select-none transition-all duration-100 ${
+                                                        isChanged ? "bg-blue-50/50" : ""
                                                     }`}
                                                     onClick={() => toggleCell(student.id, d)}
                                                 >
                                                     {status === "P" ? (
-                                                        <span className="inline-flex h-[22px] w-[22px] items-center justify-center rounded-md bg-emerald-100 text-emerald-700 font-bold text-[10px] hover:bg-emerald-200 transition-colors">
+                                                        <span className="inline-flex h-[24px] w-[24px] items-center justify-center rounded-lg bg-muted text-foreground font-black text-[10px] hover:bg-muted/80 transition-colors">
                                                             P
                                                         </span>
                                                     ) : status === "A" ? (
-                                                        <span className="inline-flex h-[22px] w-[22px] items-center justify-center rounded-md bg-red-100 text-red-600 font-bold text-[10px] hover:bg-red-200 transition-colors">
+                                                        <span className="inline-flex h-[24px] w-[24px] items-center justify-center rounded-lg bg-red-100 text-red-600 font-black text-[10px] hover:bg-red-200 transition-colors">
                                                             A
                                                         </span>
                                                     ) : (
-                                                        <span className="inline-flex h-[22px] w-[22px] items-center justify-center rounded-md hover:bg-slate-100 text-slate-200 text-[10px] transition-colors">
+                                                        <span className="inline-flex h-[24px] w-[24px] items-center justify-center rounded-lg hover:bg-muted text-muted-foreground/30 text-[10px] transition-colors">
                                                             ·
                                                         </span>
                                                     )}
@@ -368,22 +361,9 @@ export function AttendanceManualTab({ filters, onSaveComplete }: Props) {
                         </tbody>
                     </table>
                 </div>
-                <div className="border-t border-slate-100 bg-slate-50/50 px-4 py-2 flex items-center justify-between text-[11px] text-slate-400">
+                <div className="border-t border-border/50 bg-muted/50 px-4 py-3 flex items-center justify-between text-[11px] font-bold text-muted-foreground">
                     <span>{filtered.length} student{filtered.length !== 1 ? "s" : ""}</span>
-                    <span className="flex items-center gap-3">
-                        <span className="flex items-center gap-1">
-                            <span className="inline-flex h-4 w-4 items-center justify-center rounded bg-emerald-100 text-emerald-700 font-bold text-[8px]">P</span>
-                            Present
-                        </span>
-                        <span className="flex items-center gap-1">
-                            <span className="inline-flex h-4 w-4 items-center justify-center rounded bg-red-100 text-red-600 font-bold text-[8px]">A</span>
-                            Absent
-                        </span>
-                        <span className="flex items-center gap-1">
-                            <span className="inline-flex h-4 w-4 items-center justify-center rounded bg-slate-100 text-slate-300 font-bold text-[8px]">·</span>
-                            Empty
-                        </span>
-                    </span>
+
                 </div>
             </div>
         </div>

@@ -2,8 +2,8 @@ import { Suspense } from "react";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import {
-    ArrowRight, BookOpen, Clock, Sparkles, School,
-    PenLine, BarChart3, GraduationCap,
+    ArrowRight, BookOpen, Clock, Sparkles, Building2,
+    Pencil, BarChart2, GraduationCap, Settings
 } from "lucide-react";
 
 import { PromotionBanner } from "./_components/promotion-banner";
@@ -44,9 +44,9 @@ async function fetchDashboardData() {
 
     const noticeColor = (priority: string | null | undefined) => {
         const p = (priority || "").toLowerCase();
-        if (p === "high" || p === "urgent") return "bg-red-500";
-        if (p === "medium") return "bg-blue-500";
-        return "bg-emerald-500";
+        if (p === "high" || p === "urgent") return "bg-primary";
+        if (p === "medium") return "bg-muted/500";
+        return "bg-muted";
     };
     const fmt = (iso: string) => new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
     const notices: NoticeItem[] = (noticesRes.data || []).map((n) => ({
@@ -112,8 +112,8 @@ async function fetchDashboardData() {
     const absent = records.filter((r) => (r.status || "").toUpperCase() === "A").length;
     const toPct = (n: number) => (total > 0 ? Math.round((n / total) * 100) : 0);
     const attendanceData: AttendanceItem[] = [
-        { name: "Present", value: toPct(present), count: present, color: "#10B981" },
-        { name: "Absent", value: toPct(absent), count: absent, color: "#EF4444" },
+        { name: "Present", value: toPct(present), count: present, color: "#27272a" },
+        { name: "Absent", value: toPct(absent), count: absent, color: "#d4d4d8" },
     ];
 
     return { stats, school, notices, upcomingExams, sectionRows, attendanceData, attendanceLabel };
@@ -126,26 +126,49 @@ export default async function DashboardPage() {
     const maxCount = Math.max(...sectionRows.map((r) => r.student_count), 1);
 
     return (
-        <div className="space-y-6">
+        <div className="flex flex-col gap-6">
             <PromotionBanner academicYear={school?.current_academic_year} />
 
-            {/* Welcome Banner */}
-            <Suspense fallback={<div className="animate-pulse rounded-2xl bg-muted h-28 w-full" />}>
-                <WelcomeBanner
-                    schoolLogoUrl={school?.logo_url}
-                    academicYear={school?.current_academic_year}
-                />
-            </Suspense>
+            {/* Top Bento Row: Welcome & Quick Actions */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2">
+                    <Suspense fallback={<div className="animate-pulse rounded-2xl bg-muted h-full w-full min-h-[140px]" />}>
+                        <WelcomeBanner
+                            schoolLogoUrl={school?.logo_url}
+                            academicYear={school?.current_academic_year}
+                        />
+                    </Suspense>
+                </div>
+
+                {!isEmpty && (
+                    <div className="grid grid-cols-2 gap-4 lg:col-span-1">
+                        {[
+                            { href: "/dashboard/marks", icon: Pencil, title: "Marks", bg: "bg-muted", text: "text-foreground", iconColor: "text-foreground", hover: "hover:bg-muted/80" },
+                            { href: "/dashboard/students", icon: GraduationCap, title: "Students", bg: "bg-muted", text: "text-foreground", iconColor: "text-foreground", hover: "hover:bg-muted/80" },
+                            { href: "/dashboard/results", icon: BarChart2, title: "Results", bg: "bg-muted", text: "text-foreground", iconColor: "text-foreground", hover: "hover:bg-muted/80" },
+                            { href: "/dashboard/settings", icon: Settings, title: "Settings", bg: "bg-muted", text: "text-foreground", iconColor: "text-foreground", hover: "hover:bg-muted/80" },
+                        ].map((a) => (
+                            <Link key={a.href} href={a.href} className="block h-full">
+                                <div className={`group flex flex-col items-center justify-center h-full rounded-2xl p-4 transition-all duration-300 ${a.bg} ${a.hover} active:scale-95 cursor-pointer`}>
+                                    <a.icon size={22} strokeWidth={1.5} className={`${a.iconColor} mb-2 transition-transform duration-300 group-hover:-translate-y-0.5`} />
+                                    <p className={`text-xs font-semibold ${a.text}`}>{a.title}</p>
+                                </div>
+                            </Link>
+                        ))}
+                    </div>
+                )}
+            </div>
 
             {/* Empty State */}
             {isEmpty && (
-                <div className="bg-card rounded-2xl border-2 border-dashed border-border p-12 text-center">
-                    <div className="h-12 w-12 rounded-xl bg-blue-50 flex items-center justify-center mb-4 mx-auto"><Sparkles className="h-6 w-6 text-blue-500" /></div>
-                    <h2 className="text-lg font-bold text-slate-800 font-heading mb-1">Welcome to ResultPro!</h2>
-                    <p className="text-sm text-slate-500 max-w-md mx-auto mb-5">Your school management system is ready. Start by creating your first class.</p>
-                    <div className="flex gap-3 justify-center">
-                        <Link href="/dashboard/classes" className="inline-flex items-center gap-2 bg-blue-600 text-white font-semibold rounded-xl px-5 py-2.5 hover:bg-blue-700 transition-all btn-press text-sm">
-                            <School className="h-4 w-4" /> Create First Class <ArrowRight className="h-4 w-4" />
+                <div className="bg-transparent rounded-2xl border-2 border-dashed border-border/50 p-12 text-center shadow-none">
+                    <div className="h-12 w-12 rounded-xl flex items-center justify-center mb-4 mx-auto text-muted-foreground/40">
+                        <Sparkles size={28} strokeWidth={1.2} className="text-foreground" />
+                    </div>
+                    <h2 className="text-xl font-bold text-foreground font-heading mb-6">Welcome to School Management System!</h2>
+                    <div className="flex justify-center">
+                        <Link href="/dashboard/classes" className="inline-flex items-center gap-2 bg-primary text-primary-foreground font-semibold rounded-xl px-6 py-3 hover:bg-primary/90 transition-all active:scale-95 text-sm shadow-md">
+                            <Building2 size={18} strokeWidth={1.5} /> Create First Class <ArrowRight size={18} strokeWidth={1.5} />
                         </Link>
                     </div>
                 </div>
@@ -161,49 +184,58 @@ export default async function DashboardPage() {
                 />
             )}
 
-            {/* Middle Row */}
+            {/* Main Content Bento Grid */}
             {!isEmpty && (
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    {/* Student Distribution Table */}
-                    <div className="lg:col-span-2 bg-card rounded-2xl p-5 border border-border shadow-sm">
-                        <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-sm font-semibold text-slate-800 font-heading">Section Distribution</h3>
-                            <Link href="/dashboard/students" className="text-xs font-medium text-blue-600 hover:text-blue-700 transition-colors flex items-center gap-1 btn-press">
-                                View All <ArrowRight className="h-3 w-3" />
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    {/* Section Distribution */}
+                    <div className="lg:col-span-8 bg-card rounded-2xl p-7 border border-border/50 shadow-none flex flex-col">
+                        <div className="flex items-center justify-between mb-6">
+                            <h3 className="text-base font-bold text-foreground font-heading tracking-tight">Section Distribution</h3>
+                            <Link href="/dashboard/students" className="text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1 bg-muted px-3 py-1.5 rounded-full hover:bg-muted/80">
+                                View All <ArrowRight size={14} strokeWidth={2} />
                             </Link>
                         </div>
                         {sectionRows.length === 0 ? (
-                            <p className="text-sm text-slate-400 text-center py-8">No sections yet</p>
+                            <div className="flex-1 flex items-center justify-center text-sm text-muted-foreground/70 py-8">No sections yet</div>
                         ) : (
-                            <div className="overflow-x-auto">
-                                    <table className="w-full">
+                            <div className="overflow-x-auto flex-1">
+                                <table className="w-full">
                                     <thead>
-                                        <tr className="text-[11px] text-slate-400 border-b border-slate-50 uppercase tracking-wider">
-                                            <th className="text-left py-2.5 pr-4 font-medium whitespace-nowrap">Class</th>
-                                            <th className="text-left py-2.5 px-4 font-medium whitespace-nowrap">Count</th>
-                                            <th className="text-left py-2.5 pl-4 font-medium w-1/3 whitespace-nowrap">Distribution</th>
+                                        <tr className="text-[11px] text-muted-foreground/70 border-b border-border/40 uppercase tracking-wider">
+                                            <th className="text-left pb-3 pr-4 font-semibold whitespace-nowrap">Class</th>
+                                            <th className="text-left pb-3 px-4 font-semibold whitespace-nowrap">Students</th>
+                                            <th className="text-left pb-3 pl-4 font-semibold w-1/3 whitespace-nowrap">Capacity</th>
                                         </tr>
                                     </thead>
-                                    <tbody>
-                                        {sectionRows.slice(0, 7).map((row) => {
+                                    <tbody className="divide-y divide-border/40">
+                                        {sectionRows.slice(0, 6).map((row) => {
                                             const pct = maxCount > 0 ? (row.student_count / maxCount) * 100 : 0;
                                             return (
-                                                <tr key={`${row.class_name}-${row.section_name}`} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
-                                                    <td className="py-3 pr-4">
-                                                        <div className="flex items-center gap-2.5">
-                                                            <div className="h-7 w-7 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
-                                                                <span className="text-[10px] font-bold text-blue-600">{row.class_name.replace(/[^0-9]/g, "").slice(0, 2) || "C"}</span>
+                                                <tr key={`${row.class_name}-${row.section_name}`} className="group hover:bg-muted/30 transition-colors">
+                                                    <td className="py-4 pr-4">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="h-10 w-10 rounded-xl bg-muted border border-border/50 flex items-center justify-center shrink-0 group-hover:bg-card group-hover:shadow-sm transition-all">
+                                                                <span className="text-[11px] font-black text-foreground">{row.class_name.replace(/[^0-9]/g, "").slice(0, 2) || "C"}</span>
                                                             </div>
                                                             <div>
-                                                                <p className="text-xs font-medium text-slate-700">{row.class_name}</p>
-                                                                <p className="text-[10px] text-slate-400">{row.section_name}</p>
+                                                                <p className="text-sm font-semibold text-foreground leading-tight">{row.class_name}</p>
+                                                                <p className="text-xs text-muted-foreground/70 mt-0.5">{row.section_name}</p>
                                                             </div>
                                                         </div>
                                                     </td>
-                                                    <td className="py-3 px-4"><span className="text-xs font-semibold text-slate-700 tabular-nums">{row.student_count}</span></td>
-                                                    <td className="py-3 pl-4">
-                                                        <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
-                                                            <div className="h-full rounded-full bg-blue-500 animate-bar-fill" style={{ width: `${Math.max(pct, row.student_count > 0 ? 4 : 0)}%` }} />
+                                                    <td className="py-4 px-4"><span className="text-sm font-bold text-foreground tabular-nums">{row.student_count}</span></td>
+                                                    <td className="py-4 pl-4">
+                                                        <div className="h-2 rounded-full bg-muted overflow-hidden relative">
+                                                            {/* Base bar - animates on load */}
+                                                            <div 
+                                                                className="absolute left-0 top-0 h-full rounded-full bg-foreground animate-bar-fill group-hover:opacity-0" 
+                                                                style={{ width: `${Math.max(pct, row.student_count > 0 ? 4 : 0)}%` }} 
+                                                            />
+                                                            {/* Hover replay bar - animates on hover */}
+                                                            <div 
+                                                                className="absolute left-0 top-0 h-full rounded-full bg-foreground hidden group-hover:block animate-bar-fill" 
+                                                                style={{ width: `${Math.max(pct, row.student_count > 0 ? 4 : 0)}%` }} 
+                                                            />
                                                         </div>
                                                     </td>
                                                 </tr>
@@ -216,76 +248,64 @@ export default async function DashboardPage() {
                     </div>
 
                     {/* Notices */}
-                    <div className="bg-card rounded-2xl p-5 border border-border shadow-sm">
-                        <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-sm font-semibold text-slate-800 font-heading">Latest Notices</h3>
-                            <Link href="/dashboard/administration/notice" className="text-xs font-medium text-blue-600 hover:text-blue-700 transition-colors btn-press">See All</Link>
+                    <div className="lg:col-span-4 bg-muted/30 rounded-2xl p-7 border border-border/50 shadow-none flex flex-col">
+                        <div className="flex items-center justify-between mb-6">
+                            <h3 className="text-base font-bold text-foreground font-heading tracking-tight">Latest Notices</h3>
+                            <Link href="/dashboard/administration/notice" className="text-xs font-semibold text-muted-foreground hover:text-foreground dark:hover:text-foreground transition-colors">See All</Link>
                         </div>
-                        <div className="space-y-0">
+                        <div className="space-y-4 flex-1">
                             {notices.length === 0 ? (
-                                <p className="text-sm text-slate-400 py-8 text-center">No published notices</p>
+                                <div className="h-full flex items-center justify-center text-sm text-muted-foreground/70 py-8">No published notices</div>
                             ) : notices.map((n, i) => (
-                                <div key={i} className={`flex items-start gap-3 py-3 ${i < notices.length - 1 ? "border-b border-slate-50" : ""}`}>
-                                    <div className={`mt-1.5 h-2 w-2 rounded-full shrink-0 ${n.color}`} />
+                                <div key={i} className="flex items-start gap-3.5 group cursor-pointer">
+                                    <div className={`mt-1.5 h-2.5 w-2.5 rounded-full shrink-0 shadow-sm ${n.color}`} />
                                     <div className="min-w-0">
-                                        <p className="text-xs font-medium text-slate-600 leading-snug">{n.title}</p>
-                                        <p className="text-[10px] text-slate-400 mt-0.5">{n.date}</p>
+                                        <p className="text-sm font-semibold text-foreground leading-snug group-hover:text-muted-foreground transition-colors">{n.title}</p>
+                                        <p className="text-[11px] font-medium text-muted-foreground/70 mt-1">{n.date}</p>
                                     </div>
                                 </div>
                             ))}
                         </div>
                     </div>
-                </div>
-            )}
 
-            {/* Bottom Row */}
-            {!isEmpty && (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* Upcoming Exams */}
-                    <div className="bg-card rounded-2xl p-5 border border-border shadow-sm">
-                        <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-sm font-semibold text-slate-800 font-heading">Upcoming Exams</h3>
-                            <Link href="/dashboard/exams" className="text-xs font-medium text-blue-600 hover:text-blue-700 transition-colors flex items-center gap-1 btn-press">View All <ArrowRight className="h-3 w-3" /></Link>
+                    <div className="lg:col-span-4 bg-card rounded-2xl p-7 border border-border/50 shadow-none flex flex-col">
+                        <div className="flex items-center justify-between mb-6">
+                            <h3 className="text-base font-bold text-foreground font-heading tracking-tight">Upcoming Exams</h3>
+                            <Link href="/dashboard/exams" className="text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
+                                View All <ArrowRight size={14} strokeWidth={2} />
+                            </Link>
                         </div>
-                        {upcomingExams.length === 0 ? (
-                            <p className="text-sm text-slate-400 py-8 text-center">No upcoming exam schedule</p>
-                        ) : upcomingExams.map((e, i) => (
-                            <div key={i} className={`flex items-center gap-3 py-3 ${i < upcomingExams.length - 1 ? "border-b border-slate-50" : ""}`}>
-                                <div className="h-9 w-9 rounded-xl bg-violet-50 flex items-center justify-center shrink-0"><BookOpen className="h-4 w-4 text-violet-500" strokeWidth={1.8} /></div>
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-xs font-medium text-slate-700">{e.subject}</p>
-                                    <div className="flex items-center gap-1.5 mt-0.5"><Clock className="h-3 w-3 text-slate-400" /><span className="text-[10px] text-slate-400">{e.date}</span></div>
+                        <div className="space-y-4 flex-1">
+                            {upcomingExams.length === 0 ? (
+                                <div className="h-full flex items-center justify-center text-sm text-muted-foreground/70 py-8">No upcoming exams</div>
+                            ) : upcomingExams.map((e, i) => (
+                                <div key={i} className="flex items-center gap-4 group cursor-pointer bg-muted/30 hover:bg-muted/50 p-3 rounded-2xl transition-colors border border-transparent hover:border-border/50">
+                                    <div className="h-10 w-10 rounded-xl bg-card border border-border/50 flex items-center justify-center shrink-0 shadow-sm group-hover:scale-105 transition-transform"><BookOpen size={18} strokeWidth={1.5} className="text-foreground" /></div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-bold text-foreground truncate">{e.subject}</p>
+                                        <div className="flex items-center gap-1.5 mt-1"><Clock size={12} strokeWidth={2} className="text-muted-foreground/80" /><span className="text-[11px] font-medium text-muted-foreground/80">{e.date}</span></div>
+                                    </div>
+                                    <span className="text-[10px] font-bold bg-muted text-muted-foreground px-2.5 py-1 rounded-md">{e.className}</span>
                                 </div>
-                                <span className="text-[10px] font-medium bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">{e.className}</span>
-                            </div>
-                        ))}
+                            ))}
+                        </div>
                     </div>
 
                     {/* Attendance Chart */}
-                    <Suspense fallback={<div className="bg-card rounded-2xl p-5 border border-border shadow-sm h-48 animate-pulse" />}>
-                        <AttendanceChart data={attendanceData} label={attendanceLabel} />
-                    </Suspense>
-                </div>
-            )}
-
-            {/* Quick Actions */}
-            {!isEmpty && (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    {[
-                        { href: "/dashboard/marks", icon: PenLine, title: "Enter Marks", bg: "bg-blue-50", color: "text-blue-600" },
-                        { href: "/dashboard/results", icon: BarChart3, title: "View Results", bg: "bg-emerald-50", color: "text-emerald-600" },
-                        { href: "/dashboard/students", icon: GraduationCap, title: "Students", bg: "bg-violet-50", color: "text-violet-600" },
-                        { href: "/dashboard/settings", icon: School, title: "Settings", bg: "bg-rose-50", color: "text-rose-500" },
-                    ].map((a) => (
-                        <Link key={a.href} href={a.href}>
-                            <div className="bg-card rounded-2xl p-4 border border-border shadow-sm hover-lift cursor-pointer text-center group">
-                                <div className={`${a.bg} h-9 w-9 rounded-xl flex items-center justify-center mx-auto mb-2`}><a.icon className={`h-4 w-4 ${a.color}`} strokeWidth={1.8} /></div>
-                                <p className="text-xs font-medium text-slate-600 group-hover:text-slate-800">{a.title}</p>
-                            </div>
-                        </Link>
-                    ))}
+                    <div className="lg:col-span-8 bg-card rounded-2xl p-7 border border-border/50 shadow-none flex flex-col">
+                        <div className="flex items-center justify-between mb-2">
+                            <h3 className="text-base font-bold text-foreground font-heading tracking-tight">Attendance Snapshot</h3>
+                        </div>
+                        <div className="flex-1 min-h-[220px]">
+                            <Suspense fallback={<div className="h-full w-full rounded-2xl bg-muted/50 animate-pulse" />}>
+                                <AttendanceChart data={attendanceData} label={attendanceLabel} />
+                            </Suspense>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>
     );
 }
+

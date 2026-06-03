@@ -9,7 +9,7 @@ const testimonials = [
     avatar: "R",
     avatarBg: "from-indigo-500 to-indigo-600",
     rating: 5,
-    text: "ResultPro has completely transformed how I track my child's academic progress. The report cards are detailed and the interface is incredibly easy to use.",
+    text: "School Management System has completely transformed how I track my child's academic progress. The report cards are detailed and the interface is incredibly easy to use.",
   },
   {
     name: "Fatima Akter",
@@ -17,7 +17,7 @@ const testimonials = [
     avatar: "F",
     avatarBg: "from-teal-500 to-teal-600",
     rating: 5,
-    text: "Managing results for 800+ students used to be a nightmare. With ResultPro, we generate report cards in seconds. The class routine feature is a game-changer.",
+    text: "Managing results for 800+ students used to be a nightmare. With School Management System, we generate report cards in seconds. The class routine feature is a game-changer.",
   },
   {
     name: "Arif Hossain",

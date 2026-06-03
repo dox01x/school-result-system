@@ -5,7 +5,8 @@ import {
   STAFF_SALARY_CONFIG_COLUMNS,
   SALARY_PAYMENT_COLUMNS,
 } from '@/lib/supabase/select-columns';
-import { generateSlipNumber } from '@/lib/finance-utils';
+import { generateSlipNumber, getMonthName } from '@/lib/finance-utils';
+import { sendSalaryConfirmationSms } from '@/lib/sms-gateway';
 import { ApiResponse, SalaryPayment } from '@/types/finance';
 
 export async function POST(request: Request) {
@@ -54,7 +55,7 @@ export async function POST(request: Request) {
 
     // Fetch staff info for typing and expense description
     // @ts-ignore
-    const { data: staff } = await supabase.from('teachers').select('name, designation, employee_type').eq('id', staff_id).single();
+    const { data: staff } = await supabase.from('teachers').select('name, designation, employee_type, phone').eq('id', staff_id).single();
     if (!staff) {
         return NextResponse.json({ success: false, error: "Staff not found" }, { status: 404 });
     }
@@ -103,6 +104,24 @@ export async function POST(request: Request) {
     // 7. Fetch School Info
     // @ts-ignore
     const { data: school } = await supabase.from('school_info').select(SCHOOL_INFO_COLUMNS).single();
+
+    // ═══════════════════ SMS CONFIRMATION (fire-and-forget) ═══════════════════
+    try {
+      if (staff.phone) {
+        sendSalaryConfirmationSms({
+          phone: staff.phone,
+          staffName: staff.name,
+          netSalary: net_salary,
+          month: getMonthName(month),
+          year,
+          slipNumber: slip_number,
+          schoolName: school?.name
+        }).catch(() => {}); // silently ignore SMS errors
+      }
+    } catch {
+      // SMS errors must never affect salary flow
+    }
+    // ═══════════════════ END SMS ═══════════════════
 
     return NextResponse.json({ success: true, data: { ...salaryResult, staff, school } } as unknown as ApiResponse<SalaryPayment>);
 

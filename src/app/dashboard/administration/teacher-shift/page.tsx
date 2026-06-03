@@ -15,6 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { PageHeader } from "@/components/layout/page-header";
 import { UserCog, Plus, Trash2, CheckCircle, XCircle } from "lucide-react";
 import { toast } from "sonner";
 
@@ -213,18 +214,18 @@ export default function TeacherShiftPage() {
 
     const dutyTypeBadge = (type: string) => {
         const map: Record<string, string> = {
-            regular: "bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400",
-            exam_duty: "bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400",
-            extra: "bg-purple-100 text-purple-700 dark:bg-purple-500/10 dark:text-purple-400",
+            regular: "bg-muted text-muted-foreground border-0 rounded-md font-medium",
+            exam_duty: "bg-muted text-foreground border-0 rounded-md font-medium",
+            extra: "bg-muted text-foreground border-0 rounded-md font-medium",
         };
         return map[type] || "";
     };
 
     const statusBadge = (status: string) => {
         const map: Record<string, string> = {
-            pending: "bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400",
-            approved: "bg-emerald-100 text-primary dark:bg-emerald-500/10 dark:text-emerald-400",
-            rejected: "bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400",
+            pending: "bg-muted text-muted-foreground border-0 rounded-md font-medium",
+            approved: "bg-primary text-primary-foreground border-0 rounded-md font-medium",
+            rejected: "bg-muted text-muted-foreground line-through border-0 rounded-md font-medium",
         };
         return map[status] || "";
     };
@@ -240,18 +241,19 @@ export default function TeacherShiftPage() {
 
     return (
         <div className="space-y-6">
-            <div>
-                <h1 className="text-2xl font-semibold tracking-tight">Teacher Shift Management</h1>
-                <p className="text-muted-foreground mt-1">Manage duty rosters and handle leave requests.</p>
-            </div>
+            <PageHeader
+                icon={UserCog}
+                title="Teacher Shift Management"
+                subtitle="Manage duty rosters and handle leave requests."
+            />
 
             <Tabs defaultValue="shifts">
-                <TabsList>
-                    <TabsTrigger value="shifts">Duty Roster</TabsTrigger>
-                    <TabsTrigger value="leaves">
+                <TabsList className="bg-muted border-0 rounded-xl p-1 mb-4">
+                    <TabsTrigger value="shifts" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-none">Duty Roster</TabsTrigger>
+                    <TabsTrigger value="leaves" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-none">
                         Leave Requests
                         {leaveRequests.filter((l) => l.status === "pending").length > 0 && (
-                            <Badge variant="destructive" className="ml-1.5 h-5 px-1.5 text-[10px]">
+                            <Badge variant="secondary" className="ml-1.5 h-5 px-1.5 text-[10px] bg-muted text-foreground border-0">
                                 {leaveRequests.filter((l) => l.status === "pending").length}
                             </Badge>
                         )}
@@ -260,29 +262,29 @@ export default function TeacherShiftPage() {
 
                 <TabsContent value="shifts" className="space-y-4">
                     <div className="flex justify-end">
-                        <Button size="sm" onClick={() => {
+                        <Button className="bg-primary text-primary-foreground font-semibold rounded-xl hover:bg-primary/90 transition-all duration-200 btn-press" onClick={() => {
                             setShiftForm({ id: "", teacher_id: "", shift_date: "", start_time: "08:00", end_time: "14:00", duty_type: "regular", notes: "" });
                             setShiftDialogOpen(true);
                         }}>
-                            <Plus className="h-4 w-4 mr-1" /> Add Shift
+                            <Plus size={16} strokeWidth={1.2} className=" mr-1" /> Add Shift
                         </Button>
                     </div>
 
                     {shifts.length === 0 ? (
-                        <Card className="border-dashed border-2">
+                        <Card className="border-dashed border-2 border-border/50 bg-transparent shadow-none">
                             <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-                                <UserCog className="h-12 w-12 text-muted-foreground mb-4" />
-                                <h3 className="font-semibold text-lg mb-1">No Shifts Assigned</h3>
+                                <UserCog className="h-12 w-12 text-muted-foreground/40 mb-4" strokeWidth={1.2} />
+                                <h3 className="font-semibold text-lg text-foreground mb-1">No Shifts Assigned</h3>
                                 <p className="text-sm text-muted-foreground max-w-sm">Click &quot;Add Shift&quot; to assign a duty shift to a teacher.</p>
                             </CardContent>
                         </Card>
                     ) : (
                         <Card>
                             <CardHeader className="pb-2">
-                                <CardTitle className="text-sm flex items-center gap-2">
-                                    <UserCog className="h-4 w-4 text-muted-foreground" />
+                                <CardTitle className="text-sm flex items-center gap-2 text-foreground">
+                                    <UserCog className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
                                     Duty Roster
-                                    <Badge variant="secondary" className="text-[10px] px-1.5">{shifts.length}</Badge>
+                                    <Badge variant="secondary" className="text-[10px] px-1.5 bg-muted text-muted-foreground border-0">{shifts.length}</Badge>
                                 </CardTitle>
                             </CardHeader>
                             <CardContent>
@@ -309,8 +311,8 @@ export default function TeacherShiftPage() {
                                                     </TableCell>
                                                     <TableCell className="text-muted-foreground text-sm max-w-[150px] truncate">{s.notes || "—"}</TableCell>
                                                     <TableCell>
-                                                        <Button size="icon" variant="ghost" className="h-7 w-7 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 dark:hover:text-red-400" onClick={() => handleDeleteShift(s.id)}>
-                                                            <Trash2 className="h-3.5 w-3.5" />
+                                                        <Button size="icon" variant="ghost" className="h-8 w-8 hover:bg-muted/80 text-muted-foreground hover:text-foreground transition-colors" onClick={() => handleDeleteShift(s.id)}>
+                                                            <Trash2 size={16} strokeWidth={1.2} />
                                                         </Button>
                                                     </TableCell>
                                                 </TableRow>
@@ -325,20 +327,20 @@ export default function TeacherShiftPage() {
 
                 <TabsContent value="leaves" className="space-y-4">
                     <div className="flex justify-end">
-                        <Button size="sm" onClick={() => {
+                        <Button className="bg-primary text-primary-foreground font-semibold rounded-xl hover:bg-primary/90 transition-all duration-200 btn-press" onClick={() => {
                             setLeaveForm({ teacher_id: "", start_date: "", end_date: "", reason: "" });
                             setProxyAssignments({});
                             setLeaveDialogOpen(true);
                         }}>
-                            <Plus className="h-4 w-4 mr-1" /> Request Leave
+                            <Plus size={16} strokeWidth={1.2} className=" mr-1" /> Request Leave
                         </Button>
                     </div>
 
                     {leaveRequests.length === 0 ? (
-                        <Card className="border-dashed border-2">
+                        <Card className="border-dashed border-2 border-border/50 bg-transparent shadow-none">
                             <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-                                <UserCog className="h-12 w-12 text-muted-foreground mb-4" />
-                                <h3 className="font-semibold text-lg mb-1">No Leave Requests</h3>
+                                <UserCog className="h-12 w-12 text-muted-foreground/40 mb-4" strokeWidth={1.2} />
+                                <h3 className="font-semibold text-lg text-foreground mb-1">No Leave Requests</h3>
                                 <p className="text-sm text-muted-foreground max-w-sm">No leave requests have been submitted.</p>
                             </CardContent>
                         </Card>
@@ -370,11 +372,11 @@ export default function TeacherShiftPage() {
                                                     <TableCell>
                                                         {l.status === "pending" && (
                                                             <div className="flex items-center gap-1">
-                                                                <Button size="icon" variant="ghost" className="h-7 w-7 text-primary hover:bg-emerald-50 dark:hover:bg-emerald-500/10" onClick={() => handleLeaveAction(l.id, "approved")}>
-                                                                    <CheckCircle className="h-4 w-4" />
+                                                                <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:bg-muted hover:text-foreground" onClick={() => handleLeaveAction(l.id, "approved")}>
+                                                                    <CheckCircle className="h-4 w-4" strokeWidth={1.2} />
                                                                 </Button>
-                                                                <Button size="icon" variant="ghost" className="h-7 w-7 text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10" onClick={() => handleLeaveAction(l.id, "rejected")}>
-                                                                    <XCircle className="h-4 w-4" />
+                                                                <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:bg-muted hover:text-foreground" onClick={() => handleLeaveAction(l.id, "rejected")}>
+                                                                    <XCircle className="h-4 w-4" strokeWidth={1.2} />
                                                                 </Button>
                                                             </div>
                                                         )}
@@ -470,20 +472,20 @@ export default function TeacherShiftPage() {
                         </div>
 
                         {classesToCover.length > 0 && (
-                            <div className="grid gap-2 border-t pt-2 mt-1 max-h-[250px] overflow-y-auto pr-2">
-                                <Label className="text-sm font-semibold text-primary">Proxy Assignments (Classes to be Covered)</Label>
+                            <div className="grid gap-2 border-t border-border/50 pt-3 mt-2 max-h-[250px] overflow-y-auto pr-2">
+                                <Label className="text-sm font-semibold text-foreground mb-1">Proxy Assignments</Label>
                                 {classesToCover.map((c, i) => {
                                     const key = `${c.date}_${c.routine.id}`;
                                     const classItem = (c.routine.classes as any)?.name || "Class";
                                     const subjectItem = (c.routine.subjects as any)?.name || "Subject";
                                     return (
-                                        <div key={i} className="flex flex-col gap-1.5 p-2 border rounded-md bg-muted/20">
+                                        <div key={i} className="flex flex-col gap-2 p-3 rounded-xl bg-muted/50 border-0">
                                             <div className="flex justify-between items-center text-xs text-muted-foreground font-medium">
                                                 <span>{c.date} ({c.routine.start_time} - {c.routine.end_time})</span>
-                                                <Badge variant="outline" className="text-[10px]">{classItem} - {subjectItem}</Badge>
+                                                <Badge variant="outline" className="text-[10px] bg-white border-0 text-muted-foreground">{classItem} - {subjectItem}</Badge>
                                             </div>
                                             <Select value={proxyAssignments[key] || "unassigned"} onValueChange={(v) => setProxyAssignments(p => ({ ...p, [key]: v }))}>
-                                                <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select Proxy Teacher" /></SelectTrigger>
+                                                <SelectTrigger className="h-9 text-xs rounded-lg border-0 bg-white shadow-none font-medium"><SelectValue placeholder="Select Proxy Teacher" /></SelectTrigger>
                                                 <SelectContent>
                                                     <SelectItem value="unassigned" disabled>Select Proxy Teacher</SelectItem>
                                                     {teachers.filter(t => t.id !== leaveForm.teacher_id).map((t) => (

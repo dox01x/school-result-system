@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Teacher } from "@/lib/database.types";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -154,75 +154,81 @@ export function TeacherProfileSheet({
     };
 
     return (
-        <Sheet open={open} onOpenChange={onOpenChange}>
-            <SheetContent side="right" className="w-[96vw] sm:max-w-[980px] p-0 bg-slate-50">
-                <SheetHeader className="border-b bg-white">
-                    <SheetTitle>Teacher Profile</SheetTitle>
-                    <SheetDescription>Detailed profile, routine, leave, payroll and actions.</SheetDescription>
-                </SheetHeader>
-                <ScrollArea className="h-[calc(100vh-80px)]">
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="w-[96vw] sm:max-w-[900px] p-0 gap-0 overflow-hidden bg-background">
+                <DialogHeader className="border-b border-border/50 bg-muted/30 p-6">
+                    <DialogTitle className="text-xl">Teacher Profile</DialogTitle>
+                    <DialogDescription>Detailed profile, routine, leave, payroll and actions.</DialogDescription>
+                </DialogHeader>
+                <ScrollArea className="max-h-[80vh] h-[800px]">
                     {loading || !teacher ? (
                         <div className="p-6 text-sm text-muted-foreground">Loading profile...</div>
                     ) : (
-                        <div className="p-6 space-y-5">
-                            <div className="rounded-xl border border-slate-100 bg-white shadow-sm p-5">
-                                <div className="flex items-start justify-between gap-3">
+                        <div className="p-6 space-y-6">
+                            {/* Header Card */}
+                            <div className="rounded-2xl border-0 bg-muted/50 p-5">
+                                <div className="flex items-start justify-between gap-4 flex-wrap">
                                     <div className="flex items-center gap-4">
-                                        <div className="h-14 w-14 rounded-full bg-teal-50 text-teal-700 border border-teal-100 flex items-center justify-center text-xl font-bold">
+                                        <div className="h-16 w-16 rounded-2xl bg-muted text-foreground flex items-center justify-center text-2xl font-bold">
                                             {teacher.name.charAt(0).toUpperCase()}
                                         </div>
                                         <div>
-                                            <h3 className="text-xl font-semibold text-slate-800">{teacher.name}</h3>
-                                            <div className="flex flex-wrap gap-2 mt-1">
-                                                <Badge variant="secondary" className="bg-slate-100 text-slate-700">{teacher.designation || "Staff"}</Badge>
-                                                <Badge variant="secondary" className="bg-slate-100 text-slate-700">{(teacher.employee_type || "teacher").toUpperCase()}</Badge>
-                                                {teacher.subject_specialty && <Badge variant="secondary" className="bg-teal-50 text-teal-700 border border-teal-100">{teacher.subject_specialty}</Badge>}
+                                            <h3 className="text-2xl font-semibold text-foreground">{teacher.name}</h3>
+                                            <div className="flex flex-wrap gap-2 mt-2">
+                                                <Badge variant="secondary" className="bg-muted/80 text-foreground border-0 rounded-lg font-medium">{teacher.designation || "Staff"}</Badge>
+                                                <Badge variant="secondary" className="bg-muted/80 text-foreground border-0 rounded-lg font-medium">{(teacher.employee_type || "teacher").toUpperCase()}</Badge>
+                                                {teacher.subject_specialty && <Badge variant="secondary" className="bg-muted/80 text-foreground border-0 rounded-lg font-medium">{teacher.subject_specialty}</Badge>}
                                             </div>
                                         </div>
                                     </div>
                                     <div className="flex gap-2">
-                                        <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white" onClick={() => onRequestEdit?.(teacher)}><Pencil className="h-4 w-4 mr-1" />Edit</Button>
+                                        <Button size="sm" onClick={() => onRequestEdit?.(teacher)}>
+                                            <Pencil className="h-4 w-4 mr-1" strokeWidth={1.2} />Edit
+                                        </Button>
                                     </div>
                                 </div>
                             </div>
 
                             <Tabs defaultValue="overview" className="space-y-4">
-                                <TabsList className="w-full justify-start overflow-x-auto bg-white border border-slate-100 shadow-sm rounded-xl p-1">
-                                    <TabsTrigger value="overview">Overview</TabsTrigger>
-                                    <TabsTrigger value="routine">Class Routine</TabsTrigger>
-                                    <TabsTrigger value="attendance">Attendance & Proxy</TabsTrigger>
-                                    <TabsTrigger value="payroll">Payroll</TabsTrigger>
-                                    <TabsTrigger value="actions">Actions</TabsTrigger>
+                                <TabsList className="w-full justify-start overflow-x-auto bg-muted border-0 rounded-xl p-1">
+                                    <TabsTrigger value="overview" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-none">Overview</TabsTrigger>
+                                    <TabsTrigger value="routine" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-none">Class Routine</TabsTrigger>
+                                    <TabsTrigger value="attendance" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-none">Attendance & Proxy</TabsTrigger>
+                                    <TabsTrigger value="payroll" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-none">Payroll</TabsTrigger>
+                                    <TabsTrigger value="actions" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-none">Actions</TabsTrigger>
                                 </TabsList>
 
                                 <TabsContent value="overview" className="space-y-4">
-                                    <Card className="border-slate-100 shadow-sm">
+                                    <Card>
                                         <CardHeader><CardTitle className="text-sm">Contact & Responsibilities</CardTitle></CardHeader>
-                                        <CardContent className="grid md:grid-cols-2 gap-3 text-sm">
-                                            <div><p className="text-xs text-muted-foreground">Phone</p><p>{teacher.phone || "-"}</p></div>
-                                            <div><p className="text-xs text-muted-foreground">Email</p><p>{teacher.email || "-"}</p></div>
-                                            <div><p className="text-xs text-muted-foreground">Designation</p><p>{teacher.designation || "-"}</p></div>
-                                            <div><p className="text-xs text-muted-foreground">Subject</p><p>{teacher.subject_specialty || "-"}</p></div>
-                                            <div><p className="text-xs text-muted-foreground">Proxy Classes Taken</p><p>{teacher.proxy_count || 0}</p></div>
-                                            <div><p className="text-xs text-muted-foreground">Routine Entries</p><p>{routineRows.length}</p></div>
+                                        <CardContent className="grid md:grid-cols-2 gap-4 text-sm">
+                                            <div><p className="text-muted-foreground text-xs uppercase tracking-wider mb-1">Phone</p><p className="font-medium">{teacher.phone || "-"}</p></div>
+                                            <div><p className="text-muted-foreground text-xs uppercase tracking-wider mb-1">Email</p><p className="font-medium">{teacher.email || "-"}</p></div>
+                                            <div><p className="text-muted-foreground text-xs uppercase tracking-wider mb-1">Designation</p><p className="font-medium">{teacher.designation || "-"}</p></div>
+                                            <div><p className="text-muted-foreground text-xs uppercase tracking-wider mb-1">Subject</p><p className="font-medium">{teacher.subject_specialty || "-"}</p></div>
+                                            <div><p className="text-muted-foreground text-xs uppercase tracking-wider mb-1">Proxy Classes Taken</p><p className="font-medium">{teacher.proxy_count || 0}</p></div>
+                                            <div><p className="text-muted-foreground text-xs uppercase tracking-wider mb-1">Routine Entries</p><p className="font-medium">{routineRows.length}</p></div>
                                         </CardContent>
                                     </Card>
                                 </TabsContent>
 
                                 <TabsContent value="routine" className="space-y-4">
-                                    <Card className="border-slate-100 shadow-sm">
+                                    <Card>
                                         <CardHeader><CardTitle className="text-sm">Weekly Timetable</CardTitle></CardHeader>
-                                        <CardContent className="grid md:grid-cols-2 gap-3">
+                                        <CardContent className="grid md:grid-cols-2 gap-4">
                                             {days.map((day) => (
-                                                <div key={day} className="rounded-lg border border-slate-200 bg-white p-3">
-                                                    <p className="font-medium mb-2">{day}</p>
+                                                <div key={day} className="rounded-xl border border-border/50 bg-muted/30 p-4">
+                                                    <p className="font-semibold text-foreground mb-3">{day}</p>
                                                     {timetable[day]?.length ? timetable[day].map((r: any) => (
-                                                        <div key={r.id} className="rounded-md border border-slate-200 bg-slate-50/40 p-2 mb-2 text-sm">
-                                                            <p className="font-medium">{r.start_time} - {r.end_time}</p>
-                                                            <p className="text-muted-foreground">{r.classes?.name} / {r.sections?.name}</p>
-                                                            <p className="text-muted-foreground">{r.subjects?.name} {r.rooms?.name ? `• ${r.rooms.name}` : ""}</p>
+                                                        <div key={r.id} className="rounded-lg border-0 bg-white shadow-sm p-3 mb-2 text-sm flex flex-col gap-1">
+                                                            <p className="font-semibold text-foreground">{r.start_time} - {r.end_time}</p>
+                                                            <div className="flex justify-between items-center text-xs">
+                                                                <span className="text-muted-foreground font-medium">{r.classes?.name} / {r.sections?.name}</span>
+                                                                <span className="bg-muted text-foreground px-2 py-0.5 rounded-md font-medium">{r.subjects?.name}</span>
+                                                            </div>
+                                                            {r.rooms?.name && <p className="text-[10px] uppercase text-muted-foreground/80 mt-1">Room {r.rooms.name}</p>}
                                                         </div>
-                                                    )) : <p className="text-sm text-muted-foreground">No classes.</p>}
+                                                    )) : <p className="text-sm text-muted-foreground font-medium">No classes.</p>}
                                                 </div>
                                             ))}
                                         </CardContent>
@@ -230,29 +236,29 @@ export function TeacherProfileSheet({
                                 </TabsContent>
 
                                 <TabsContent value="attendance" className="space-y-4">
-                                    <Card className="border-slate-100 shadow-sm">
+                                    <Card>
                                         <CardHeader><CardTitle className="text-sm">Leave Records</CardTitle></CardHeader>
                                         <CardContent className="space-y-2">
-                                            {leaveRows.length === 0 && <p className="text-sm text-muted-foreground">No leave records.</p>}
+                                            {leaveRows.length === 0 && <p className="text-sm text-muted-foreground font-medium">No leave records.</p>}
                                             {leaveRows.map((l: any) => (
-                                                <div key={l.id} className="flex items-center justify-between border rounded-lg p-2">
-                                                    <div>
-                                                        <p className="text-sm font-medium">{l.start_date} to {l.end_date}</p>
-                                                        <p className="text-xs text-muted-foreground">{l.reason || "-"}</p>
+                                                <div key={l.id} className="flex items-center justify-between border-b border-border/40 pb-3 last:border-0 last:pb-0">
+                                                    <div className="flex flex-col gap-1">
+                                                        <p className="text-sm font-semibold text-foreground">{l.start_date} to {l.end_date}</p>
+                                                        <p className="text-xs text-muted-foreground font-medium">{l.reason || "-"}</p>
                                                     </div>
-                                                    <Badge variant="secondary">{l.status}</Badge>
+                                                    <Badge variant="secondary" className="bg-muted text-foreground border-0 rounded-md">{l.status}</Badge>
                                                 </div>
                                             ))}
                                         </CardContent>
                                     </Card>
-                                    <Card className="border-slate-100 shadow-sm">
+                                    <Card>
                                         <CardHeader><CardTitle className="text-sm">Proxy Class Log</CardTitle></CardHeader>
                                         <CardContent className="space-y-2">
-                                            {proxyRows.length === 0 && <p className="text-sm text-muted-foreground">No proxy assignments.</p>}
+                                            {proxyRows.length === 0 && <p className="text-sm text-muted-foreground font-medium">No proxy assignments.</p>}
                                             {proxyRows.map((p: any) => (
-                                                <div key={p.id} className="flex items-center justify-between border rounded-lg p-2 text-sm">
-                                                    <span>{p.assignment_date}</span>
-                                                    <span className="text-muted-foreground">Routine: {p.routine_id.slice(0, 8)}</span>
+                                                <div key={p.id} className="flex items-center justify-between border-b border-border/40 pb-3 text-sm last:border-0 last:pb-0">
+                                                    <span className="font-semibold text-foreground">{p.assignment_date}</span>
+                                                    <span className="bg-muted text-muted-foreground px-2 py-1 rounded-md text-xs font-mono font-medium">Routine: {p.routine_id.slice(0, 8)}</span>
                                                 </div>
                                             ))}
                                         </CardContent>
@@ -260,28 +266,40 @@ export function TeacherProfileSheet({
                                 </TabsContent>
 
                                 <TabsContent value="payroll" className="space-y-4">
-                                    <Card className="border-slate-100 shadow-sm">
+                                    <Card>
                                         <CardHeader><CardTitle className="text-sm">Current Salary Structure</CardTitle></CardHeader>
-                                        <CardContent className="grid md:grid-cols-2 gap-3">
-                                            <div className="rounded-lg border border-slate-200 p-3"><p className="text-xs text-muted-foreground">Basic Salary</p><p className="text-xl font-semibold text-slate-800">{salaryNumbers.basic.toFixed(2)}</p></div>
-                                            <div className="rounded-lg border border-slate-200 p-3"><p className="text-xs text-muted-foreground">Estimated Net</p><p className="text-xl font-semibold text-blue-700">{salaryNumbers.net.toFixed(2)}</p></div>
-                                            <div className="rounded-lg border border-slate-200 p-3"><p className="text-xs text-muted-foreground">Allowances</p><p>{salaryNumbers.allowances.toFixed(2)}</p></div>
-                                            <div className="rounded-lg border border-slate-200 p-3"><p className="text-xs text-muted-foreground">Deductions</p><p>{salaryNumbers.deductions.toFixed(2)}</p></div>
+                                        <CardContent className="grid md:grid-cols-2 gap-4">
+                                            <div className="rounded-xl border-0 bg-muted p-5">
+                                                <p className="text-sm font-medium text-muted-foreground mb-1">Basic Salary</p>
+                                                <p className="text-3xl font-bold text-foreground">{salaryNumbers.basic.toFixed(2)}</p>
+                                            </div>
+                                            <div className="rounded-xl border-0 bg-muted p-5">
+                                                <p className="text-sm font-medium text-muted-foreground mb-1">Estimated Net</p>
+                                                <p className="text-3xl font-bold text-foreground">{salaryNumbers.net.toFixed(2)}</p>
+                                            </div>
+                                            <div className="rounded-xl border-0 bg-muted p-5">
+                                                <p className="text-sm font-medium text-muted-foreground mb-1">Allowances</p>
+                                                <p className="text-3xl font-bold text-foreground">{salaryNumbers.allowances.toFixed(2)}</p>
+                                            </div>
+                                            <div className="rounded-xl border-0 bg-muted p-5">
+                                                <p className="text-sm font-medium text-muted-foreground mb-1">Deductions</p>
+                                                <p className="text-3xl font-bold text-foreground">{salaryNumbers.deductions.toFixed(2)}</p>
+                                            </div>
                                         </CardContent>
                                     </Card>
-                                    <Card className="border-slate-100 shadow-sm">
+                                    <Card>
                                         <CardHeader><CardTitle className="text-sm">Recent Payments</CardTitle></CardHeader>
-                                        <CardContent className="space-y-2">
-                                            {salaryPayments.length === 0 && <p className="text-sm text-muted-foreground">No salary history.</p>}
+                                        <CardContent className="space-y-3">
+                                            {salaryPayments.length === 0 && <p className="text-sm text-muted-foreground font-medium">No salary history.</p>}
                                             {salaryPayments.map((s: any) => (
-                                                <div key={s.id} className="flex items-center justify-between border rounded-lg p-2 text-sm">
-                                                    <div>
-                                                        <p className="font-medium">{s.month}/{s.year}</p>
-                                                        <p className="text-xs text-muted-foreground">{s.slip_number}</p>
+                                                <div key={s.id} className="flex items-center justify-between border-b border-border/40 pb-3 last:border-0 last:pb-0 text-sm">
+                                                    <div className="flex flex-col gap-1">
+                                                        <p className="font-semibold text-foreground">{s.month}/{s.year}</p>
+                                                        <p className="text-xs font-mono text-muted-foreground">{s.slip_number}</p>
                                                     </div>
-                                                    <div className="text-right">
-                                                        <p>{Number(s.net_salary || 0).toFixed(2)}</p>
-                                                        <p className="text-xs text-muted-foreground">{s.payment_date || "-"}</p>
+                                                    <div className="text-right flex flex-col gap-1">
+                                                        <p className="font-semibold text-foreground">{Number(s.net_salary || 0).toFixed(2)}</p>
+                                                        <p className="text-[10px] text-muted-foreground uppercase">{s.payment_date || "-"}</p>
                                                     </div>
                                                 </div>
                                             ))}
@@ -290,15 +308,15 @@ export function TeacherProfileSheet({
                                 </TabsContent>
 
                                 <TabsContent value="actions" className="space-y-4">
-                                    <Card className="border-slate-100 shadow-sm">
+                                    <Card>
                                         <CardHeader><CardTitle className="text-sm">Update Profile</CardTitle></CardHeader>
-                                        <CardContent className="grid md:grid-cols-2 gap-3">
-                                            <div><Label>Name</Label><Input value={actionForm.name} onChange={(e) => setActionForm((p) => ({ ...p, name: e.target.value }))} /></div>
-                                            <div><Label>Phone</Label><Input value={actionForm.phone} onChange={(e) => setActionForm((p) => ({ ...p, phone: e.target.value }))} /></div>
-                                            <div><Label>Email</Label><Input value={actionForm.email} onChange={(e) => setActionForm((p) => ({ ...p, email: e.target.value }))} /></div>
-                                            <div><Label>Designation</Label><Input value={actionForm.designation} onChange={(e) => setActionForm((p) => ({ ...p, designation: e.target.value }))} /></div>
-                                            <div><Label>Subject Specialty</Label><Input value={actionForm.subject_specialty} onChange={(e) => setActionForm((p) => ({ ...p, subject_specialty: e.target.value }))} /></div>
-                                            <div>
+                                        <CardContent className="grid md:grid-cols-2 gap-4">
+                                            <div className="space-y-1"><Label>Name</Label><Input value={actionForm.name} onChange={(e) => setActionForm((p) => ({ ...p, name: e.target.value }))} /></div>
+                                            <div className="space-y-1"><Label>Phone</Label><Input value={actionForm.phone} onChange={(e) => setActionForm((p) => ({ ...p, phone: e.target.value }))} /></div>
+                                            <div className="space-y-1"><Label>Email</Label><Input value={actionForm.email} onChange={(e) => setActionForm((p) => ({ ...p, email: e.target.value }))} /></div>
+                                            <div className="space-y-1"><Label>Designation</Label><Input value={actionForm.designation} onChange={(e) => setActionForm((p) => ({ ...p, designation: e.target.value }))} /></div>
+                                            <div className="space-y-1"><Label>Subject Specialty</Label><Input value={actionForm.subject_specialty} onChange={(e) => setActionForm((p) => ({ ...p, subject_specialty: e.target.value }))} /></div>
+                                            <div className="space-y-1">
                                                 <Label>Employee Type</Label>
                                                 <Select value={actionForm.employee_type} onValueChange={(v) => setActionForm((p) => ({ ...p, employee_type: v }))}>
                                                     <SelectTrigger><SelectValue /></SelectTrigger>
@@ -308,21 +326,21 @@ export function TeacherProfileSheet({
                                                     </SelectContent>
                                                 </Select>
                                             </div>
-                                            <div className="md:col-span-2">
+                                            <div className="md:col-span-2 mt-2">
                                                 <Button onClick={handleSaveInline} disabled={saving}>{saving ? "Saving..." : "Save Changes"}</Button>
                                             </div>
                                         </CardContent>
                                     </Card>
-                                    <Card className="border-slate-100 shadow-sm">
+                                    <Card>
                                         <CardHeader><CardTitle className="text-sm">System Access</CardTitle></CardHeader>
                                         <CardContent className="flex gap-2">
-                                            <Button variant="outline"><Shield className="h-4 w-4 mr-1" />Manage Access Controls</Button>
+                                            <Button variant="outline"><Shield className="h-4 w-4 mr-2" strokeWidth={1.5} />Manage Access Controls</Button>
                                         </CardContent>
                                     </Card>
-                                    <Card className="border-red-200 shadow-sm">
-                                        <CardHeader><CardTitle className="text-sm text-red-600">Termination / Deletion</CardTitle></CardHeader>
-                                        <CardContent>
-                                            <Button variant="destructive" onClick={() => onRequestDelete?.(teacher)}><Trash2 className="h-4 w-4 mr-1" />Delete Employee</Button>
+                                    <Card className="border-red-200 bg-red-50/30">
+                                        <CardHeader><CardTitle className="text-sm text-red-600">Danger Zone</CardTitle></CardHeader>
+                                        <CardContent className="flex gap-2">
+                                            <Button variant="destructive" onClick={() => onRequestDelete?.(teacher)}><Trash2 className="h-4 w-4 mr-2" strokeWidth={1.5} />Delete Employee</Button>
                                         </CardContent>
                                     </Card>
                                 </TabsContent>
@@ -330,8 +348,8 @@ export function TeacherProfileSheet({
                         </div>
                     )}
                 </ScrollArea>
-            </SheetContent>
-        </Sheet>
+            </DialogContent>
+        </Dialog>
     );
 }
 

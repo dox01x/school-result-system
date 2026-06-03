@@ -34,20 +34,24 @@ export async function GET(request: Request) {
       // @ts-ignore
       supabase.from('salary_payments').select('net_salary').match({ month, year }),
 
-      // To calculate expected due, we would need to know how many active students are in each class having a fee_structure mapping.
-      // This is a simplified calculation: sum of all amounts from fee_structure * count of students in that class.
+      // Calculate expected tuition: students table has class_id, not class_name.
+      // We must join students → classes → fee_structure by class name.
       (async () => {
          // @ts-ignore
          const { data: fees } = await supabase.from('fee_structure').select('class_name, amount').match({ fee_type: 'tuition', academic_year: yearStr, is_active: true });
+         // Students table has class_id → join with classes to get name
          // @ts-ignore
-         const { data: stds } = await supabase.from('students').select('class_name');
+         const { data: stds } = await supabase.from('students').select('id, classes!inner(name)');
          
          if (!fees || !stds) return 0;
          
          const feeMap = new Map(fees.map((f: any) => [f.class_name, f.amount]));
          let expected = 0;
          stds.forEach((s: any) => {
-             expected += feeMap.get(s.class_name) || 0;
+             const className = s.classes?.name;
+             if (className) {
+               expected += feeMap.get(className) || 0;
+             }
          });
          return expected;
       })()
@@ -56,7 +60,7 @@ export async function GET(request: Request) {
     const sumValues = (arr: any[] | null, key: string) => arr ? arr.reduce((sum, item) => sum + Number(item[key] || 0), 0) : 0;
 
     const tuition_collected = sumValues(tuitionResult.data, 'amount_paid');
-    const total_income = sumValues(incomeResult.data, 'amount'); // Note: tuition might be already recorded in income_entries as per requirement logic.
+    const total_income = sumValues(incomeResult.data, 'amount');
     const total_expense = sumValues(expenseResult.data, 'amount');
     const salary_paid = sumValues(salaryResult.data, 'net_salary');
     const tuition_due = expectedTuitionResult - tuition_collected;

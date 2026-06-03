@@ -26,7 +26,7 @@ const AutoSyncBanner = React.memo(function AutoSyncBanner({
     if (!enabled) return null;
 
     return (
-        <Card className="border-emerald-200 bg-emerald-50/50 dark:border-emerald-500/20 dark:bg-emerald-500/5">
+        <Card className="border-0 bg-emerald-50 shadow-none rounded-xl">
             <CardContent className="flex items-center justify-between py-3">
                 <div className="flex items-center gap-2">
                     <span className="relative flex h-3 w-3">

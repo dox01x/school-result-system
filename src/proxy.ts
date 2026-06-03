@@ -20,13 +20,6 @@ export async function proxy(request: NextRequest) {
     const { supabaseResponse, user } = await updateSession(request);
     const pathname = request.nextUrl.pathname;
 
-    const hiddenDashboard =
-        pathname === "/dashboard/finance" ||
-        pathname.startsWith("/dashboard/finance/");
-    if (hiddenDashboard) {
-        return redirectWithCookies(request, supabaseResponse, "/dashboard");
-    }
-
     if (AUTH_DISABLED) {
         return supabaseResponse;
     }
@@ -56,9 +49,3 @@ export async function proxy(request: NextRequest) {
 
     return supabaseResponse;
 }
-
-export const config = {
-    matcher: [
-        "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
-    ],
-};

@@ -55,7 +55,3 @@ export const TEACHER_SHIFT_COLUMNS =
     "id,teacher_id,shift_date,start_time,end_time,duty_type,notes,created_at";
 export const LEAVE_REQUEST_COLUMNS =
     "id,teacher_id,start_date,end_date,reason,status,created_at";
-export const PROXY_ASSIGNMENT_COLUMNS =
-    "id,leave_request_id,routine_id,assignment_date,original_teacher_id,proxy_teacher_id,created_at";
-
-

@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
-import { Loader2, Search, Download } from 'lucide-react';
+import { Loader2 as SpinnerGap, Search as MagnifyingGlass, Printer as DownloadSimple } from "lucide-react";
 import { formatTaka, getMonthName } from '@/lib/finance-utils';
 import { YearlyReport } from '@/types/finance';
 
@@ -48,54 +48,54 @@ export default function YearlyReportPage() {
   return (
     <div className="space-y-6 print:m-0 print:p-0">
       <div className="print:hidden">
-        <h1 className="text-2xl font-semibold tracking-tight">Yearly Financial Report</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground font-heading mb-1">Yearly Financial Report</h1>
         <p className="text-muted-foreground mt-1">Annual overview of the school's financial performance.</p>
       </div>
 
-      {/* Filter */}
-      <Card className="print:hidden border-dashed">
+      {/* Funnels */}
+      <Card className="print:hidden border border-border/50 rounded-2xl shadow-none">
         <CardContent className="p-4 flex flex-col sm:flex-row items-end gap-4">
-          <div className="space-y-2 w-full sm:w-1/4">
-            <Label>Academic Year</Label>
-            <Input type="number" value={form.year} onChange={e => setForm({...form, year: e.target.value})} />
+          <div className="space-y-1 w-full sm:w-1/4">
+            <Label className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest px-1">Active Academic Year</Label>
+            <Input type="number" value={form.year} onChange={e => setForm({...form, year: e.target.value})} className="h-11 rounded-xl bg-muted border-0 font-bold text-foreground focus-visible:ring-1 focus-visible:ring-ring/30 shadow-none" />
           </div>
-          <Button onClick={loadReport} disabled={loading} className="w-full sm:w-auto">
-            {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Search className="w-4 h-4 mr-2" />}
+          <Button onClick={loadReport} disabled={loading} className="w-full sm:w-auto h-11 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold shadow-none px-6">
+            {loading ? <SpinnerGap size={16} strokeWidth={2} className="mr-2 animate-spin" /> : <MagnifyingGlass size={16} strokeWidth={2} className="mr-2" />}
             Generate Report
           </Button>
-          <Button onClick={() => window.print()} variant="outline" className="w-full sm:w-auto ml-auto" disabled={!report}>
-            <Download className="w-4 h-4 mr-2" /> Print
+          <Button onClick={() => window.print()} variant="outline" className="w-full sm:w-auto ml-auto h-11 rounded-xl border-border/50 bg-white hover:bg-muted/50 text-muted-foreground font-bold shadow-none px-6" disabled={!report}>
+            <DownloadSimple size={16} strokeWidth={2} className="mr-2" /> Print
           </Button>
         </CardContent>
       </Card>
 
       {/* Report View */}
       {loading ? (
-        <div className="flex justify-center p-12"><Loader2 className="w-8 h-8 animate-spin text-muted-foreground" /></div>
+        <div className="flex justify-center p-12"><SpinnerGap size={32} strokeWidth={1.5} className="animate-spin text-muted-foreground/40" /></div>
       ) : report ? (
         <div className="print:block bg-card text-black space-y-6 pt-4 rounded-xl print:rounded-none">
-          <div className="text-center border-b pb-4 mb-6">
-            <h2 className="text-2xl font-bold">ANNUAL FINANCE REPORT</h2>
-            <p className="text-muted-foreground text-lg">Year: {report.year}</p>
+          <div className="text-center border-b border-border/50 pb-4 mb-6">
+            <h2 className="text-xl font-bold text-foreground tracking-wider">ANNUAL FINANCE REPORT</h2>
+            <p className="text-muted-foreground font-bold mt-1 text-sm">Year: {report.year}</p>
           </div>
 
           {/* Top KPI Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-             <div className="bg-muted/50 p-4 rounded-lg text-center">
-                 <p className="text-sm text-muted-foreground">Starting Bal.</p>
-                 <p className="text-lg font-semibold">{formatTaka(report.start_balance)}</p>
+             <div className="bg-muted/50 border border-border/50 p-5 rounded-2xl text-center flex flex-col justify-center items-center shadow-none">
+                 <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-1">Starting Bal.</p>
+                 <p className="text-xl font-black font-mono text-foreground">{formatTaka(report.start_balance)}</p>
              </div>
-             <div className="bg-green-50 p-4 rounded-lg text-center">
-                 <p className="text-sm text-green-700 font-medium">Total Income</p>
-                 <p className="text-lg font-bold text-green-800">{formatTaka(report.total_income)}</p>
+             <div className="bg-muted/50 border border-border/50 p-5 rounded-2xl text-center flex flex-col justify-center items-center shadow-none">
+                 <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-1">Total Income</p>
+                 <p className="text-xl font-black font-mono text-foreground">{formatTaka(report.total_income)}</p>
              </div>
-             <div className="bg-red-50 p-4 rounded-lg text-center">
-                 <p className="text-sm text-red-700 font-medium">Total Expense</p>
-                 <p className="text-lg font-bold text-red-800">{formatTaka(report.total_expense)}</p>
+             <div className="bg-muted/50 border border-border/50 p-5 rounded-2xl text-center flex flex-col justify-center items-center shadow-none">
+                 <p className="text-[10px] uppercase tracking-widest text-red-600 font-bold mb-1">Total Expense</p>
+                 <p className="text-xl font-black font-mono text-red-600">{formatTaka(report.total_expense)}</p>
              </div>
-             <div className={`p-4 rounded-lg text-center ${report.net_balance >= 0 ? 'bg-primary/10' : 'bg-destructive/10'}`}>
-                 <p className="text-sm font-medium">Net Profit / Loss</p>
-                 <p className={`text-lg font-extrabold ${report.net_balance >= 0 ? 'text-primary' : 'text-destructive'}`}>
+             <div className="bg-muted/50 border border-border/50 p-5 rounded-2xl text-center flex flex-col justify-center items-center shadow-none">
+                 <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-1">Net Profit / Loss</p>
+                 <p className={`text-xl font-black font-mono ${report.net_balance >= 0 ? 'text-foreground' : 'text-red-600'}`}>
                     {report.net_balance >= 0 ? '+' : ''}{formatTaka(report.net_balance)}
                  </p>
              </div>
@@ -103,32 +103,32 @@ export default function YearlyReportPage() {
 
           {/* Month by Month Breakdown */}
           <div className="space-y-4">
-              <h3 className="text-xl font-semibold border-b pb-2">Monthly Breakdown</h3>
+              <h3 className="text-[12px] font-bold uppercase tracking-widest text-muted-foreground border-b border-border/50 pb-2">Monthly Breakdown</h3>
               <Table>
                 <TableHeader>
-                  <TableRow>
-                     <TableHead>Month</TableHead>
-                     <TableHead className="text-right text-green-700">Income</TableHead>
-                     <TableHead className="text-right text-red-700">Expense</TableHead>
-                     <TableHead className="text-right font-bold">Net Balance</TableHead>
+                  <TableRow className="border-border/50 hover:bg-transparent">
+                     <TableHead className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold py-3">Month</TableHead>
+                     <TableHead className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold py-3 text-right">Income</TableHead>
+                     <TableHead className="text-[10px] uppercase tracking-widest text-red-600 font-bold py-3 text-right">Expense</TableHead>
+                     <TableHead className="text-[10px] uppercase tracking-widest text-foreground font-bold py-3 text-right">Net Balance</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {report.monthly_summary.map((m, i) => (
-                    <TableRow key={i}>
-                      <TableCell className="font-medium text-muted-foreground">{getMonthName(m.month)}</TableCell>
-                      <TableCell className="text-right text-green-700 font-medium">+{formatTaka(m.income)}</TableCell>
-                      <TableCell className="text-right text-red-700 font-medium">-{formatTaka(m.expense)}</TableCell>
-                      <TableCell className={`text-right font-bold ${m.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    <TableRow key={i} className="border-border/50">
+                      <TableCell className="font-bold text-[11px] text-muted-foreground">{getMonthName(m.month)}</TableCell>
+                      <TableCell className="text-right text-foreground font-mono font-bold">+{formatTaka(m.income)}</TableCell>
+                      <TableCell className="text-right text-red-600 font-mono font-bold">-{formatTaka(m.expense)}</TableCell>
+                      <TableCell className={`text-right font-mono font-bold ${m.balance >= 0 ? 'text-foreground' : 'text-red-600'}`}>
                          {m.balance >= 0 ? '+' : ''}{formatTaka(m.balance)}
                       </TableCell>
                     </TableRow>
                   ))}
-                  <TableRow className="bg-muted/30">
-                      <TableCell className="font-bold">Total</TableCell>
-                      <TableCell className="text-right font-bold text-green-700">{formatTaka(report.total_income)}</TableCell>
-                      <TableCell className="text-right font-bold text-red-700">{formatTaka(report.total_expense)}</TableCell>
-                      <TableCell className={`text-right font-bold text-lg ${report.net_balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  <TableRow className="bg-muted/30 hover:bg-muted/30 border-border/50">
+                      <TableCell className="font-bold text-[11px] text-foreground uppercase tracking-widest">Total</TableCell>
+                      <TableCell className="text-right font-black font-mono text-foreground">{formatTaka(report.total_income)}</TableCell>
+                      <TableCell className="text-right font-black font-mono text-red-600">{formatTaka(report.total_expense)}</TableCell>
+                      <TableCell className={`text-right font-black font-mono text-lg tracking-tight ${report.net_balance >= 0 ? 'text-foreground' : 'text-red-600'}`}>
                          {formatTaka(report.net_balance)}
                       </TableCell>
                   </TableRow>

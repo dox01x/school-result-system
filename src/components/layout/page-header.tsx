@@ -13,8 +13,8 @@ type PageHeaderProps = {
 
 export function PageHeader({
     icon: Icon,
-    iconBg = "bg-blue-50",
-    iconColor = "text-blue-600",
+    iconBg = "bg-muted",
+    iconColor = "text-foreground",
     title,
     subtitle,
     actions,
@@ -23,9 +23,9 @@ export function PageHeader({
     return (
         <div className={cn("flex items-start justify-between gap-4", className)}>
             <div>
-                <h1 className="text-2xl font-bold tracking-tight text-slate-800 font-heading flex items-center gap-2.5">
-                    <div className={cn("h-9 w-9 rounded-xl flex items-center justify-center shrink-0", iconBg)}>
-                        <Icon className={cn("h-5 w-5", iconColor)} strokeWidth={1.8} />
+                <h1 className="text-2xl font-bold tracking-tight text-foreground font-heading flex items-center gap-2.5">
+                    <div className={cn("h-9 w-9 rounded-xl border border-border/50 flex items-center justify-center shrink-0", iconBg)}>
+                        <Icon className={cn("h-5 w-5", iconColor)} strokeWidth={1.2} />
                     </div>
                     {title}
                 </h1>

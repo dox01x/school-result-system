@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { CalendarClock, Printer, ArrowLeft, AlertTriangle } from "lucide-react";
+import { CalendarCheck, Printer, ArrowLeft, AlertTriangle as Warning } from "lucide-react";
 import Link from "next/link";
 
 const DAY_NAMES_EN = ["Saturday", "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday"];
@@ -100,7 +100,7 @@ export default function TeacherRoutinePage({ params }: { params: Promise<{ teach
                         </Link>
                         <span className="text-sm text-muted-foreground">Teacher Routine</span>
                     </div>
-                    <h1 className="text-2xl font-semibold tracking-tight">{teacher.name}</h1>
+                    <h1 className="text-2xl font-bold tracking-tight text-foreground font-heading mb-1">{teacher.name}</h1>
                     <p className="text-muted-foreground mt-0.5 text-sm">
                         {teacher.designation || "Teacher"}
                         {teacher.subject_specialty && ` · ${teacher.subject_specialty}`}
@@ -111,7 +111,7 @@ export default function TeacherRoutinePage({ params }: { params: Promise<{ teach
                     <Badge variant="secondary">{entries.length} classes/week</Badge>
                     {conflicts.size > 0 && (
                         <Badge variant="destructive" className="gap-1">
-                            <AlertTriangle className="h-3 w-3" />
+                            <Warning size={12} strokeWidth={1.5} className=" " />
                             {conflicts.size} conflicts
                         </Badge>
                     )}
@@ -119,7 +119,7 @@ export default function TeacherRoutinePage({ params }: { params: Promise<{ teach
                         document.body.classList.add("printing-routine");
                         setTimeout(() => { window.print(); document.body.classList.remove("printing-routine"); }, 100);
                     }} className="gap-1.5">
-                        <Printer className="h-4 w-4" />
+                        <Printer size={16} strokeWidth={1.5} className=" " />
                         Print
                     </Button>
                 </div>
@@ -142,7 +142,7 @@ export default function TeacherRoutinePage({ params }: { params: Promise<{ teach
                         <Card key={dayIndex}>
                             <CardHeader className="pb-2">
                                 <CardTitle className="text-sm flex items-center gap-2">
-                                    <CalendarClock className="h-4 w-4 text-muted-foreground" />
+                                    <CalendarCheck className="h-4 w-4 text-muted-foreground" />
                                     {dayName}
                                     <Badge variant="secondary" className="text-[10px] px-1.5">{dayEntries.length} classes</Badge>
                                 </CardTitle>
@@ -156,14 +156,14 @@ export default function TeacherRoutinePage({ params }: { params: Promise<{ teach
                                                 key={e.id}
                                                 className={`rounded-lg p-2.5 transition-colors ${
                                                     hasConflict
-                                                        ? "bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30"
+                                                        ? "bg-destructive/10 dark:bg-destructive/100/10 border border-red-200 dark:border-red-500/30"
                                                         : "bg-accent/50"
                                                 }`}
                                             >
                                                 {hasConflict && (
                                                     <div className="flex items-center gap-1 mb-1">
-                                                        <AlertTriangle className="h-3 w-3 text-red-500" />
-                                                        <span className="text-[10px] text-red-600 dark:text-red-400 font-medium">Time Conflict</span>
+                                                        <Warning size={12} strokeWidth={1.5} className=" text-red-500" />
+                                                        <span className="text-[10px] text-destructive dark:text-red-400 font-medium">Time Conflict</span>
                                                     </div>
                                                 )}
                                                 <div className="text-[11px] text-muted-foreground font-medium">
@@ -188,7 +188,7 @@ export default function TeacherRoutinePage({ params }: { params: Promise<{ teach
                 {entries.length === 0 && (
                     <Card className="border-dashed border-2">
                         <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-                            <CalendarClock className="h-12 w-12 text-muted-foreground mb-4" />
+                            <CalendarCheck className="h-12 w-12 text-muted-foreground mb-4" />
                             <h3 className="font-semibold text-lg mb-1">No Schedule</h3>
                             <p className="text-sm text-muted-foreground max-w-sm">This teacher has no classes assigned yet.</p>
                         </CardContent>

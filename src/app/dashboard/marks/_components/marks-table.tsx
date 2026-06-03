@@ -111,9 +111,9 @@ const MarksTableRow = React.memo(function MarksTableRow({
 
     return (
         <tr
-            className={`border-b transition-colors ${
-                rowIndex % 2 === 0 ? "bg-background" : "bg-muted/20"
-            } hover:bg-accent/50`}
+            className={`border-b border-border/50 transition-colors ${
+                rowIndex % 2 === 0 ? "bg-white" : "bg-muted/30"
+            } hover:bg-muted/50`}
         >
             {/* Roll */}
             <td className="p-3 font-mono text-xs text-muted-foreground w-16 text-center">
@@ -196,6 +196,7 @@ const MarksTableRow = React.memo(function MarksTableRow({
                                 ? "default"
                                 : "secondary"
                         }
+                        className={detailedTotal > 0 && detailedTotal <= effectiveFullMarks ? "bg-primary text-primary-foreground border-0 hover:bg-primary/90" : detailedTotal === 0 ? "bg-muted text-muted-foreground border-0 hover:bg-muted/80" : ""}
                     >
                         {detailedTotal || "—"}
                     </Badge>
@@ -234,7 +235,7 @@ const MarksTable = React.memo(function MarksTable({
         <div className="overflow-x-auto max-h-[calc(100vh-320px)] overflow-y-auto relative">
             <table className="w-full text-sm border-collapse">
                 {/* ── Sticky Header ── */}
-                <thead className="sticky top-0 z-10 bg-muted/80 backdrop-blur-sm">
+                <thead className="sticky top-0 z-10 bg-white backdrop-blur-sm">
                     <tr className="border-b">
                         <th className="text-center p-3 font-medium text-xs text-muted-foreground uppercase tracking-wider w-16">
                             Roll
@@ -245,7 +246,7 @@ const MarksTable = React.memo(function MarksTable({
                         {!useDetailed && (
                             <th className="text-center p-3 font-medium text-xs text-muted-foreground uppercase tracking-wider w-28">
                                 Marks{" "}
-                                <Badge variant="outline" className="ml-1 text-[10px]">
+                                <Badge variant="outline" className="ml-1 text-[10px] bg-muted/50 border-border/50 text-muted-foreground rounded-md">
                                     {effectiveFullMarks}
                                 </Badge>
                             </th>
@@ -253,7 +254,7 @@ const MarksTable = React.memo(function MarksTable({
                         {showTheory && (
                             <th className="text-center p-3 font-medium text-xs text-muted-foreground uppercase tracking-wider w-24">
                                 Theory{" "}
-                                <Badge variant="outline" className="ml-1 text-[10px]">
+                                <Badge variant="outline" className="ml-1 text-[10px] bg-muted/50 border-border/50 text-muted-foreground rounded-md">
                                     {maxTheory}
                                 </Badge>
                             </th>
@@ -261,7 +262,7 @@ const MarksTable = React.memo(function MarksTable({
                         {showMcq && (
                             <th className="text-center p-3 font-medium text-xs text-muted-foreground uppercase tracking-wider w-24">
                                 MCQ{" "}
-                                <Badge variant="outline" className="ml-1 text-[10px]">
+                                <Badge variant="outline" className="ml-1 text-[10px] bg-muted/50 border-border/50 text-muted-foreground rounded-md">
                                     {maxMcq}
                                 </Badge>
                             </th>
@@ -269,7 +270,7 @@ const MarksTable = React.memo(function MarksTable({
                         {showPractical && (
                             <th className="text-center p-3 font-medium text-xs text-muted-foreground uppercase tracking-wider w-24">
                                 Practical{" "}
-                                <Badge variant="outline" className="ml-1 text-[10px]">
+                                <Badge variant="outline" className="ml-1 text-[10px] bg-muted/50 border-border/50 text-muted-foreground rounded-md">
                                     {maxPractical}
                                 </Badge>
                             </th>

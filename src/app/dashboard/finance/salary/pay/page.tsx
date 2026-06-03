@@ -10,8 +10,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { createClient } from '@/lib/supabase/client';
 import { SCHOOL_INFO_COLUMNS, STAFF_SALARY_CONFIG_COLUMNS } from '@/lib/supabase/select-columns';
-import { Loader2, Printer, User, Wallet, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { Loader2 as SpinnerGap, Printer, User, Wallet, ArrowRight, CheckCircle } from "lucide-react";
 import { formatTaka, getMonthName } from '@/lib/finance-utils';
+import Link from 'next/link';
+import { Settings } from 'lucide-react';
 
 export default function PaySalaryPage() {
   const [staffList, setStaffList] = useState<any[]>([]);
@@ -35,7 +37,7 @@ export default function PaySalaryPage() {
   const supabase = createClient() as any;
 
   useEffect(() => {
-    const fetchStaffAndSchool = async () => {
+    const fetchStaffAndSchoolInfo = async () => {
       const [staffRes, schoolRes] = await Promise.all([
         supabase.from('teachers').select('id, name, designation, phone').order('name'),
         supabase.from('school_info').select(SCHOOL_INFO_COLUMNS).maybeSingle()
@@ -43,7 +45,7 @@ export default function PaySalaryPage() {
       if (staffRes.data) setStaffList(staffRes.data);
       if (schoolRes.data) setSchoolInfo(schoolRes.data);
     };
-    fetchStaffAndSchool();
+    fetchStaffAndSchoolInfo();
   }, []);
 
   // Load salary config when staff is selected
@@ -121,110 +123,126 @@ export default function PaySalaryPage() {
   const handlePrintSlip = () => {
     if (!lastSlip) return;
     const s = lastSlip;
-    const allowanceRows = Object.entries(s.config.allowances || {}).map(([k, v]: [string, any]) =>
-      `<tr><td style="padding:4px 0;border-bottom:1px solid #f0f0f0;text-transform:capitalize">${k}</td><td style="padding:4px 0;border-bottom:1px solid #f0f0f0;text-align:right;font-family:monospace;color:#059669">+${Number(v).toLocaleString('en-IN')} TK</td></tr>`
-    ).join('');
-    const deductionRows = Object.entries(s.config.deductions || {}).map(([k, v]: [string, any]) =>
-      `<tr><td style="padding:4px 0;border-bottom:1px solid #f0f0f0;text-transform:capitalize">${k}</td><td style="padding:4px 0;border-bottom:1px solid #f0f0f0;text-align:right;font-family:monospace;color:#dc2626">-${Number(v).toLocaleString('en-IN')} TK</td></tr>`
-    ).join('');
 
     const w = window.open('', '_blank');
     if (!w) return;
     w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Salary Slip ${s.slip_number}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-      @page{size:A4 portrait;margin:0}
-      *{margin:0;padding:0;box-sizing:border-box}
-      body{font-family:'Poppins',ui-sans-serif,system-ui,sans-serif;color:#1e293b;font-size:13px;line-height:1.6;-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;background:#fff}
-      .pg{max-width:700px;margin:20mm auto;padding:10mm;background:#fff}
-      .sch-hdr{display:flex;align-items:center;justify-content:center;gap:15px;margin-bottom:30px;text-align:center}
-      .sch-hdr img{max-height:55px;width:auto;object-fit:contain}
-      .sch-txt h1{font-size:20px;font-weight:700;color:#0f172a;letter-spacing:-0.5px;line-height:1.2;text-transform:uppercase}
-      .sch-txt .ad{font-size:11px;color:#64748b;margin-top:2px}
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap');
+      * { margin:0; padding:0; box-sizing:border-box; }
+      body { font-family:'Inter', sans-serif; max-width:800px; margin:0 auto; padding:40px; color:#000; background:#fff; }
       
-      .tbar{margin-bottom:30px;text-align:center}
-      .tbar h2{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:4px;color:#0f172a;margin-bottom:4px}
-      .tbar .en{font-size:11px;color:#94a3b8;font-family:monospace;letter-spacing:1px}
+      .school-info { text-align: center; margin-bottom: 40px; }
+      .school-info h2 { font-size: 24px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; }
+      .school-info p { font-size: 12px; color: #666; margin-top: 4px; }
       
-      .itbl{width:100%;border-collapse:collapse;margin-bottom:30px}
-      .itbl td{padding:12px;border-bottom:1px solid #f1f5f9;border-top:1px solid #f1f5f9}
-      .lb{color:#64748b;width:20%;font-weight:500;text-transform:uppercase;font-size:10px;letter-spacing:1.5px}
-      .vl{font-weight:600;width:30%;color:#0f172a;font-size:13px}
+      .header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 40px; padding-bottom: 20px; border-bottom: 1px solid #e5e5e5; }
+      .header-title h1 { font-size: 28px; font-weight: 900; letter-spacing: -1px; line-height: 1; text-transform: uppercase; }
+      .header-title p { font-size: 12px; font-weight: 600; color: #666; letter-spacing: 2px; text-transform: uppercase; margin-top: 6px; }
+      .header-date { text-align: right; }
+      .header-date .month { font-size: 24px; font-weight: 800; text-transform: capitalize; }
+      .header-date .year { font-size: 12px; font-weight: 600; color: #666; letter-spacing: 2px; text-transform: uppercase; }
       
-      .mtbl{width:100%;border-collapse:collapse;margin-bottom:10px;font-size:13px}
-      .mtbl th{color:#64748b;padding:12px 15px;border-bottom:1px solid #cbd5e1;text-align:left;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:1.5px}
-      .mtbl td{padding:12px 15px;border-bottom:1px solid #f1f5f9;font-size:13px;color:#0f172a}
+      .info-grid { display: grid; grid-template-columns: 1fr 1fr; margin-bottom: 40px; border-top: 1px solid #e5e5e5; }
+      .info-item { padding: 15px 0; border-bottom: 1px solid #e5e5e5; }
+      .info-item:nth-child(odd) { padding-right: 20px; }
+      .info-item:nth-child(even) { padding-left: 20px; }
+      .info-label { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; color: #666; margin-bottom: 4px; }
+      .info-value { font-size: 14px; font-weight: 600; color: #000; text-transform: capitalize; }
       
-      .net-wrap{display:flex;flex-direction:column;align-items:flex-end;margin-top:20px;padding-top:20px;border-top:1px solid #f1f5f9}
-      .grp{display:flex;justify-content:space-between;width:240px;margin-bottom:8px;font-size:12px;color:#64748b}
-      .grp .val{font-family:monospace;font-weight:600;color:#0f172a;font-size:13px}
-      .grp-ded .val{color:#ef4444}
-      .net-box{display:flex;justify-content:space-between;align-items:center;width:280px;margin-top:15px;padding:15px 20px;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0}
-      .net-box .lbl{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:#0f172a}
-      .net-box .val{font-size:20px;font-weight:800;font-family:monospace;color:#0f172a}
+      table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+      th { text-align: left; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; color: #666; padding: 12px 0; border-bottom: 1px solid #e5e5e5; }
+      td { padding: 12px 0; border-bottom: none; font-size: 13px; font-weight: 600; color: #333; text-transform: capitalize; }
+      .col-amount { text-align: right; font-family: monospace; font-weight: 600; font-size: 14px; color: #000; }
+      .deduction-amount { color: #dc2626; }
       
-      .footer-note{text-align:center;font-size:9px;color:#94a3b8;margin-top:60px;text-transform:uppercase;letter-spacing:2px;font-weight:500}
+      .totals-wrap { margin-top: 20px; }
+      .totals-box { width: 100%; }
+      .totals-row { display: flex; justify-content: space-between; padding: 8px 0; font-size: 13px; color: #666; font-weight: 600; }
+      .totals-row .val { font-family: monospace; font-weight: 600; color: #000; font-size: 14px; }
+      .totals-row.deduction .val { color: #dc2626; }
+      
+      .net-pay { display: flex; justify-content: space-between; align-items: center; padding: 20px 0; margin-top: 10px; border-top: 2px solid #000; border-bottom: 2px solid #000; }
+      .net-pay .lbl { font-size: 16px; font-weight: 900; text-transform: uppercase; letter-spacing: 2px; color: #000; }
+      .net-pay .val { font-size: 28px; font-weight: 900; font-family: monospace; letter-spacing: -1px; }
+      
+      .footer { text-align: center; font-size: 10px; color: #999; margin-top: 60px; padding-top: 20px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+      @media print { body { padding: 20px; } }
     </style></head><body>
-    <div class="pg">
-      <div class="sch-hdr">
-        ${s.school?.logo_url ? `<img src="${s.school.logo_url}" alt="Logo" />` : ''}
-        <div class="sch-txt">
-          <h1>${s.school?.name || 'SCHOOL NAME'}</h1>
-          <div class="ad">${s.school?.address ? s.school.address + ' • ' : ''}Phone: ${s.school?.phone || ''}</div>
-        </div>
+    
+    <div class="school-info">
+      <h2>${s.school?.name || 'School Name'}</h2>
+      <p>${s.school?.address || ''} ${s.school?.phone ? '• ' + s.school.phone : ''}</p>
+    </div>
+    
+    <div class="header">
+      <div class="header-title"><h1>Salary Slip</h1><p>${s.slip_number}</p></div>
+      <div class="header-date">
+        <div class="month">${getMonthName(s.month)}</div>
+        <div class="year">${s.year}</div>
       </div>
-      
-      <div class="tbar">
-        <h2>Salary Statement</h2>
-        <div class="en">${s.slip_number}</div>
+    </div>
+    
+    <div class="info-grid">
+      <div class="info-item">
+        <div class="info-label">Employee Name</div>
+        <div class="info-value">${s.staff.name}</div>
       </div>
-      
-      <table class="itbl">
-        <tr>
-          <td class="lb">Employee</td><td class="vl">${s.staff.name}</td>
-          <td class="lb">Designation</td><td class="vl" style="text-transform:capitalize">${s.staff.designation || 'Teacher'}</td>
-        </tr>
-        <tr>
-          <td class="lb">Period</td><td class="vl">${getMonthName(s.month)} ${s.year}</td>
-          <td class="lb">Paid On</td><td class="vl">${s.date}</td>
-        </tr>
-      </table>
+      <div class="info-item">
+        <div class="info-label">Designation</div>
+        <div class="info-value">${s.staff.designation || 'Teacher'}</div>
+      </div>
+      <div class="info-item" style="border-bottom:none">
+        <div class="info-label">Payment Date</div>
+        <div class="info-value">${s.date}</div>
+      </div>
+      <div class="info-item" style="border-bottom:none">
+        <div class="info-label">Payment Method</div>
+        <div class="info-value">${(s.payment_method || 'Cash').replace('_', ' ')}</div>
+      </div>
+    </div>
 
-      <table class="mtbl">
-        <thead>
-          <tr>
-            <th style="width:70%">Description</th>
-            <th style="text-align:right">Amount</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>Basic Salary</td>
-            <td style="text-align:right;font-family:monospace;font-weight:600">${s.config.basic_salary.toLocaleString('en-IN')}</td>
-          </tr>
-          ${allowanceRows}
-          ${deductionRows}
-        </tbody>
-      </table>
+    <table>
+      <thead>
+        <tr>
+          <th>Description</th>
+          <th style="text-align:right">Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Basic Salary</td>
+          <td class="col-amount">${s.config.basic_salary.toLocaleString('en-IN')} TK</td>
+        </tr>
+        ${Object.entries(s.config.allowances || {}).map(([k, v]: [string, any]) =>
+          `<tr><td>${k}</td><td class="col-amount">+${Number(v).toLocaleString('en-IN')} TK</td></tr>`
+        ).join('')}
+        ${Object.entries(s.config.deductions || {}).map(([k, v]: [string, any]) =>
+          `<tr><td>${k}</td><td class="col-amount deduction-amount">-${Number(v).toLocaleString('en-IN')} TK</td></tr>`
+        ).join('')}
+      </tbody>
+    </table>
 
-      <div class="net-wrap">
-        <div class="grp">
+    <div class="totals-wrap">
+      <div class="totals-box">
+        <div class="totals-row">
           <span>Gross Earnings</span>
-          <span class="val">${s.gross.toLocaleString('en-IN')}</span>
+          <span class="val">${s.gross.toLocaleString('en-IN')} TK</span>
         </div>
-        <div class="grp grp-ded">
+        <div class="totals-row deduction">
           <span>Total Deductions</span>
-          <span class="val">-${s.deductions.toLocaleString('en-IN')}</span>
+          <span class="val">-${s.deductions.toLocaleString('en-IN')} TK</span>
         </div>
         
-        <div class="net-box">
+        <div class="net-pay">
           <span class="lbl">Net Pay</span>
-          <span class="val">${s.net.toLocaleString('en-IN')} <span style="font-size:12px;opacity:0.7">BDT</span></span>
+          <span class="val">${s.net.toLocaleString('en-IN')} TK</span>
         </div>
       </div>
+    </div>
 
-      <div class="footer-note">Computer Generated Salary Slip. No Signature Required.</div>
-    </div></body></html>`);
+    <div class="footer">Computer Generated Salary Slip • No Signature Required</div>
+    </body></html>`);
     w.document.close();
     w.focus();
     setTimeout(() => { w.print(); w.close(); }, 400);
@@ -236,97 +254,99 @@ export default function PaySalaryPage() {
     return (
       <div className="space-y-6 max-w-xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold tracking-tight">Salary Slip</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground font-heading mb-1">Salary Slip</h1>
           <div className="flex gap-3">
-            <Button variant="outline" onClick={() => setLastSlip(null)}>Pay Another</Button>
-            <Button onClick={handlePrintSlip} className="shadow-lg">
-              <Printer className="w-4 h-4 mr-2" /> Print Slip
+            <Button variant="outline" onClick={() => setLastSlip(null)} className="h-11 rounded-xl border-border/50 bg-white hover:bg-muted/50 text-muted-foreground font-bold shadow-none px-6">Pay Another</Button>
+            <Button onClick={handlePrintSlip} className="h-11 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold shadow-none px-6">
+              <Printer size={16} strokeWidth={2} className="mr-2" /> Print Slip
             </Button>
           </div>
         </div>
 
-        <Card className="border border-slate-200 shadow-xl rounded-2xl overflow-hidden max-w-2xl mx-auto font-sans bg-card">
-          <div className="flex flex-col items-center justify-center p-8 pb-6 text-center">
-            {s.school?.logo_url && (
-              <img src={s.school.logo_url} alt="Logo" className="h-12 w-auto object-contain mb-4" />
-            )}
-            <h2 className="text-xl font-bold tracking-tight text-slate-900">{s.school?.name || "SCHOOL NAME"}</h2>
-            <p className="text-xs text-slate-500 mt-1">{s.school?.address ? s.school.address + ' • ' : ''}Phone: {s.school?.phone || ''}</p>
+        <Card className="border-0 shadow-sm rounded-none max-w-2xl mx-auto font-sans bg-white p-8 text-black">
+          <div className="flex flex-col items-center justify-center pb-6 border-b border-border/50 text-center mb-6">
+            <h2 className="text-xl font-bold tracking-tight text-black uppercase">{s.school?.name || "SCHOOL NAME"}</h2>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mt-1">{s.school?.address ? s.school.address + ' • ' : ''}Phone: {s.school?.phone || ''}</p>
           </div>
           
-          <div className="text-center pb-6">
-            <h3 className="text-[10px] font-bold uppercase tracking-[0.25em] text-slate-400">Salary Statement</h3>
-            <span className="text-xs text-slate-400 font-mono mt-1 block">{s.slip_number}</span>
+          <div className="flex justify-between items-end border-b border-border/50 pb-4 mb-6">
+            <div>
+              <h1 className="text-lg font-bold uppercase tracking-widest mb-1">Salary Slip</h1>
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">{s.slip_number}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-base font-bold capitalize">{getMonthName(s.month)}</p>
+              <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">{s.year}</p>
+            </div>
           </div>
           
-          <CardContent className="p-0 px-8">
-            <div className="grid grid-cols-2 text-sm border-t border-b border-slate-100 py-4 gap-y-4">
-              <div>
-                <p className="text-[10px] uppercase tracking-widest text-slate-400 font-semibold mb-1">Employee</p>
-                <p className="font-semibold text-slate-900">{s.staff.name}</p>
-                <p className="text-xs text-slate-500 capitalize">{s.staff.designation || s.staff.role || 'Teacher'}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-[10px] uppercase tracking-widest text-slate-400 font-semibold mb-1">Period</p>
-                <p className="font-semibold text-slate-900">{getMonthName(s.month)} {s.year}</p>
-                <p className="text-xs text-slate-500">Paid on {s.date}</p>
-              </div>
+          <div className="grid grid-cols-2 gap-y-4 gap-x-8 border-b border-border/50 pb-6 mb-6">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 mb-1">Employee Name</p>
+              <p className="font-semibold text-sm text-black capitalize">{s.staff.name}</p>
             </div>
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 mb-1">Designation</p>
+              <p className="font-semibold text-sm text-black capitalize">{s.staff.designation || s.staff.role || 'Teacher'}</p>
+            </div>
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 mb-1">Payment Date</p>
+              <p className="font-semibold text-sm text-black">{s.date}</p>
+            </div>
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 mb-1">Payment Method</p>
+              <p className="font-semibold text-sm text-black capitalize">{(s.payment_method || 'Cash').replace('_', ' ')}</p>
+            </div>
+          </div>
 
-            <div className="py-6">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr>
-                    <th className="text-left text-[10px] uppercase tracking-widest text-slate-400 font-semibold pb-3 border-b border-slate-100">Description</th>
-                    <th className="text-right text-[10px] uppercase tracking-widest text-slate-400 font-semibold pb-3 border-b border-slate-100">Amount</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-50">
-                  <tr>
-                    <td className="py-3 text-slate-700">Basic Salary</td>
-                    <td className="text-right font-mono font-medium text-slate-900 py-3">{formatTaka(s.config.basic_salary)}</td>
-                  </tr>
-                  {Object.entries(s.config.allowances || {}).map(([k, v]: [string, any]) => (
-                    <tr key={k}>
-                      <td className="py-3 capitalize text-slate-700">{k}</td>
-                      <td className="text-right font-mono font-medium text-primary py-3">+{formatTaka(Number(v))}</td>
-                    </tr>
-                  ))}
-                  {Object.entries(s.config.deductions || {}).map(([k, v]: [string, any]) => (
-                    <tr key={k}>
-                      <td className="py-3 capitalize text-slate-700">{k}</td>
-                      <td className="text-right font-mono font-medium text-red-500 py-3">-{formatTaka(Number(v))}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+          <table className="w-full text-sm mb-6">
+            <thead>
+              <tr>
+                <th className="text-left text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 pb-3 border-b border-border/50">Description</th>
+                <th className="text-right text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 pb-3 border-b border-border/50">Amount</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-transparent">
+              <tr>
+                <td className="py-3 font-semibold text-black capitalize">Basic Salary</td>
+                <td className="text-right font-mono font-medium text-black py-3 text-sm">{formatTaka(s.config.basic_salary)}</td>
+              </tr>
+              {Object.entries(s.config.allowances || {}).map(([k, v]: [string, any]) => (
+                <tr key={k}>
+                  <td className="py-1.5 font-semibold text-black capitalize">{k}</td>
+                  <td className="text-right font-mono font-medium text-black py-1.5 text-sm">+{formatTaka(Number(v))}</td>
+                </tr>
+              ))}
+              {Object.entries(s.config.deductions || {}).map(([k, v]: [string, any]) => (
+                <tr key={k}>
+                  <td className="py-1.5 font-semibold text-black capitalize">{k}</td>
+                  <td className="text-right font-mono font-medium text-red-600 py-1.5 text-sm">-{formatTaka(Number(v))}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
 
-            <div className="flex justify-end pt-4 pb-8 border-t border-slate-100">
-              <div className="w-64 space-y-3">
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-slate-500">Gross Earnings</span>
-                  <span className="font-mono font-medium">{formatTaka(s.gross)}</span>
-                </div>
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-slate-500">Total Deductions</span>
-                  <span className="font-mono font-medium text-red-500">-{formatTaka(s.deductions)}</span>
-                </div>
-                <div className="flex justify-between items-center bg-slate-50 rounded-xl p-4 mt-4 border border-slate-100">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-slate-900">Net Pay</span>
-                  <span className="text-lg font-bold font-mono text-slate-900">{formatTaka(s.net)}</span>
-                </div>
+          <div className="pt-4 border-t border-border/50 mb-8">
+            <div className="w-full space-y-2">
+              <div className="flex justify-between items-center text-sm">
+                <span className="font-semibold text-muted-foreground">Gross Earnings</span>
+                <span className="font-mono font-medium text-black text-sm">{formatTaka(s.gross)}</span>
+              </div>
+              <div className="flex justify-between items-center text-sm">
+                <span className="font-semibold text-muted-foreground">Total Deductions</span>
+                <span className="font-mono font-medium text-red-600 text-sm">-{formatTaka(s.deductions)}</span>
+              </div>
+              
+              <div className="flex justify-between items-center border-y border-border py-3 mt-4">
+                <span className="font-bold uppercase tracking-widest text-black text-sm">Net Pay</span>
+                <span className="font-bold font-mono text-black text-lg tracking-tight">{formatTaka(s.net)}</span>
               </div>
             </div>
-            
-            <div className="text-center pb-8">
-              <p className="text-[9px] uppercase tracking-widest text-slate-400 font-medium">Computer Generated Salary Slip. No Signature Required.</p>
-            </div>
-
-            <div className="text-center py-4 border-t border-dashed border-slate-300">
-              <p className="text-[10px] text-slate-400">Computer generated slip. No signature required.</p>
-            </div>
-          </CardContent>
+          </div>
+          
+          <div className="text-center pt-4">
+            <p className="text-[10px] font-medium text-muted-foreground/60 uppercase tracking-widest">Computer Generated Salary Slip • No Signature Required</p>
+          </div>
         </Card>
       </div>
     );
@@ -335,27 +355,28 @@ export default function PaySalaryPage() {
   // ═══════ FORM VIEW ═══════
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight bg-gradient-to-r from-violet-600 to-violet-400 bg-clip-text text-transparent">Pay Salary</h1>
-        <p className="text-muted-foreground text-sm mt-1">Disburse monthly salary to teachers & staff.</p>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground font-heading mb-1">Pay Salary</h1>
+          <p className="text-muted-foreground text-sm mt-1">Disburse monthly salary to teachers & staff.</p>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <Card className="lg:col-span-5 border-none shadow-lg h-fit">
-          <div className="h-1.5 bg-violet-500"></div>
-          <CardHeader>
-            <CardTitle className="text-lg">Salary Payment</CardTitle>
-            <CardDescription>Ensure staff has an active salary configuration</CardDescription>
+        <Card className="lg:col-span-5 shadow-none border border-border/50 rounded-2xl h-fit overflow-hidden">
+          <CardHeader className="bg-muted/30 border-b border-border/50">
+            <CardTitle className="text-lg font-bold text-foreground">Salary Payment</CardTitle>
+            <CardDescription className="font-bold text-muted-foreground">Ensure staff has an active salary configuration</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label className="text-xs font-semibold uppercase text-muted-foreground">Select Staff</Label>
+                <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground px-1">Select Staff</Label>
                 <Select value={form.staff_id} onValueChange={v => setForm({...form, staff_id: v})}>
-                  <SelectTrigger className="bg-card"><SelectValue placeholder="Select staff..." /></SelectTrigger>
-                  <SelectContent className="max-h-[300px]">
+                  <SelectTrigger className="h-11 rounded-xl bg-muted border-0 font-bold text-foreground focus:ring-1 focus:ring-ring/30 shadow-none"><SelectValue placeholder="Select staff..." /></SelectTrigger>
+                  <SelectContent className="border-border/50 rounded-xl shadow-md max-h-[300px]">
                     {staffList.map(s => (
-                      <SelectItem key={s.id} value={s.id}>
+                      <SelectItem key={s.id} value={s.id} className="rounded-lg font-medium">
                         {s.name} {s.designation ? `(${s.designation})` : ''}
                       </SelectItem>
                     ))}
@@ -364,40 +385,40 @@ export default function PaySalaryPage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label className="text-xs font-semibold uppercase text-muted-foreground">Month</Label>
+                  <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground px-1">Month</Label>
                   <Select value={form.month} onValueChange={v => setForm({...form, month: v})}>
-                    <SelectTrigger className="bg-card"><SelectValue /></SelectTrigger>
-                    <SelectContent>
+                    <SelectTrigger className="h-11 rounded-xl bg-muted border-0 font-bold text-foreground focus:ring-1 focus:ring-ring/30 shadow-none"><SelectValue /></SelectTrigger>
+                    <SelectContent className="border-border/50 rounded-xl shadow-md">
                       {Array.from({length: 12}, (_, i) => i + 1).map(m => (
-                        <SelectItem key={m} value={m.toString()}>{getMonthName(m)}</SelectItem>
+                        <SelectItem key={m} value={m.toString()} className="rounded-lg font-medium">{getMonthName(m)}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-xs font-semibold uppercase text-muted-foreground">Year</Label>
-                  <Input type="number" value={form.year} onChange={e => setForm({...form, year: e.target.value})} className="bg-card" />
+                  <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground px-1">Year</Label>
+                  <Input type="number" value={form.year} onChange={e => setForm({...form, year: e.target.value})} className="h-11 rounded-xl bg-muted border-0 font-bold text-foreground focus-visible:ring-1 focus-visible:ring-ring/30 shadow-none" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label className="text-xs font-semibold uppercase text-muted-foreground">Method</Label>
+                  <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground px-1">Method</Label>
                   <Select value={form.payment_method} onValueChange={v => setForm({...form, payment_method: v})}>
-                    <SelectTrigger className="bg-card"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="cash">Cash</SelectItem>
-                      <SelectItem value="bank">Bank Transfer</SelectItem>
-                      <SelectItem value="mobile_banking">Mobile Banking</SelectItem>
+                    <SelectTrigger className="h-11 rounded-xl bg-muted border-0 font-bold text-foreground focus:ring-1 focus:ring-ring/30 shadow-none"><SelectValue /></SelectTrigger>
+                    <SelectContent className="border-border/50 rounded-xl shadow-md">
+                      <SelectItem value="cash" className="rounded-lg font-medium">Cash</SelectItem>
+                      <SelectItem value="bank" className="rounded-lg font-medium">Bank Transfer</SelectItem>
+                      <SelectItem value="mobile_banking" className="rounded-lg font-medium">Mobile Banking</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-xs font-semibold uppercase text-muted-foreground">Note</Label>
-                  <Input value={form.note} onChange={e => setForm({...form, note: e.target.value})} placeholder="Optional" className="bg-card" />
+                  <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground px-1">Note</Label>
+                  <Input value={form.note} onChange={e => setForm({...form, note: e.target.value})} placeholder="Optional" className="h-11 rounded-xl bg-muted border-0 font-bold text-foreground placeholder:text-muted-foreground/60 focus-visible:ring-1 focus-visible:ring-ring/30 shadow-none" />
                 </div>
               </div>
-              <Button type="submit" className="w-full shadow-md" disabled={submitting || !salaryConfig}>
-                {submitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <CheckCircle2 className="w-4 h-4 mr-2" />}
+              <Button type="submit" className="w-full h-11 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold shadow-none mt-2" disabled={submitting || !salaryConfig}>
+                {submitting ? <SpinnerGap size={16} strokeWidth={2} className="mr-2 animate-spin" /> : <CheckCircle size={16} strokeWidth={2} className="mr-2" />}
                 Pay & Generate Slip
               </Button>
             </form>
@@ -406,66 +427,66 @@ export default function PaySalaryPage() {
 
         {/* Salary Preview */}
         <div className="lg:col-span-7">
-          <Card className={`border-none shadow-md transition-all duration-300 ${!form.staff_id ? 'opacity-40 grayscale' : ''}`}>
-            <CardHeader className="border-b bg-muted/20 pb-4">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Wallet className="w-5 h-5 text-violet-500" /> Salary Preview
+          <Card className={`shadow-none border border-border/50 rounded-2xl transition-all duration-300 overflow-hidden ${!form.staff_id ? 'opacity-40 grayscale' : ''}`}>
+            <CardHeader className="border-b border-border/50 bg-muted/30 pb-4">
+              <CardTitle className="text-lg font-bold text-foreground flex items-center gap-2">
+                <Wallet size={20} strokeWidth={2.5} /> Salary Preview
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-5">
               {!form.staff_id ? (
-                <div className="text-center py-12 text-muted-foreground text-sm">Select a staff member to see salary breakdown</div>
+                <div className="text-center py-12 text-muted-foreground font-bold text-sm">Select a staff member to see salary breakdown</div>
               ) : loadingConfig ? (
-                <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>
+                <div className="flex justify-center py-12"><SpinnerGap size={24} strokeWidth={2} className="animate-spin text-muted-foreground/40" /></div>
               ) : !salaryConfig ? (
-                <div className="text-center py-12 border-2 border-dashed rounded-xl space-y-2">
-                  <User className="w-10 h-10 mx-auto text-muted-foreground/30" />
-                  <p className="font-semibold text-red-600">No salary configuration found</p>
-                  <p className="text-xs text-muted-foreground">Configure salary for this staff member first</p>
+                <div className="text-center py-12 border-2 border-dashed border-border/50 rounded-2xl space-y-2">
+                  <User size={40} strokeWidth={1.5} className="mx-auto text-muted-foreground/40" />
+                  <p className="font-bold text-red-500">No salary configuration found</p>
+                  <p className="text-xs font-bold text-muted-foreground/60">Configure salary for this staff member first</p>
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <div className="flex items-center gap-3 p-3 bg-violet-50 rounded-xl border border-violet-100">
-                    <div className="w-10 h-10 bg-violet-100 rounded-full flex items-center justify-center">
-                      <User className="w-5 h-5 text-violet-600" />
+                  <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-xl border border-border/50">
+                    <div className="w-10 h-10 bg-white border border-border/50 shadow-sm rounded-full flex items-center justify-center">
+                      <User size={18} strokeWidth={2.5} className="text-muted-foreground" />
                     </div>
                     <div>
-                      <p className="font-bold text-sm">{selectedStaff?.name}</p>
-                      <p className="text-xs text-muted-foreground capitalize">{selectedStaff?.role} • {getMonthName(parseInt(form.month))} {form.year}</p>
+                      <p className="font-bold text-sm text-foreground">{selectedStaff?.name}</p>
+                      <p className="text-xs font-bold text-muted-foreground capitalize">{selectedStaff?.role} • {getMonthName(parseInt(form.month))} {form.year}</p>
                     </div>
                   </div>
 
-                  <div className="bg-card border rounded-xl p-4 space-y-2">
-                    <div className="flex justify-between text-sm border-b pb-2">
-                      <span className="text-muted-foreground">Basic Salary</span>
-                      <span className="font-mono font-bold">{formatTaka(salaryConfig.basic_salary)}</span>
+                  <div className="bg-card border border-border/50 rounded-xl p-4 space-y-2">
+                    <div className="flex justify-between text-sm border-b border-border/50 pb-2">
+                      <span className="text-muted-foreground font-bold">Basic Salary</span>
+                      <span className="font-mono font-black text-foreground">{formatTaka(salaryConfig.basic_salary)}</span>
                     </div>
                     {Object.entries(salaryConfig.allowances || {}).map(([k, v]: [string, any]) => (
                       <div key={k} className="flex justify-between text-sm">
-                        <span className="capitalize text-muted-foreground">{k}</span>
-                        <span className="font-mono font-bold text-primary">+{formatTaka(Number(v))}</span>
+                        <span className="capitalize text-muted-foreground font-bold">{k}</span>
+                        <span className="font-mono font-black text-foreground">+{formatTaka(Number(v))}</span>
                       </div>
                     ))}
                     {Object.entries(salaryConfig.deductions || {}).map(([k, v]: [string, any]) => (
-                      <div key={k} className="flex justify-between text-sm border-t pt-2">
-                        <span className="capitalize text-muted-foreground">{k}</span>
-                        <span className="font-mono font-bold text-red-500">-{formatTaka(Number(v))}</span>
+                      <div key={k} className="flex justify-between text-sm border-t border-border/50 pt-2">
+                        <span className="capitalize text-muted-foreground font-bold">{k}</span>
+                        <span className="font-mono font-black text-red-500">-{formatTaka(Number(v))}</span>
                       </div>
                     ))}
                   </div>
 
-                  <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-xl p-4">
+                  <div className="bg-card border border-border/50 rounded-xl p-4 mt-4">
                     <div className="flex justify-between text-sm mb-1">
-                      <span className="text-muted-foreground">Gross</span>
-                      <span className="font-mono font-semibold">{formatTaka(gross)}</span>
+                      <span className="text-muted-foreground font-bold">Gross</span>
+                      <span className="font-mono font-bold text-foreground">{formatTaka(gross)}</span>
                     </div>
                     <div className="flex justify-between text-sm mb-2">
-                      <span className="text-muted-foreground">Deductions</span>
-                      <span className="font-mono font-semibold text-red-500">-{formatTaka(deductions)}</span>
+                      <span className="text-muted-foreground font-bold">Deductions</span>
+                      <span className="font-mono font-bold text-red-500">-{formatTaka(deductions)}</span>
                     </div>
-                    <div className="flex justify-between pt-2 border-t border-emerald-300">
-                      <span className="font-bold text-emerald-800">Net Salary</span>
-                      <span className="text-xl font-extrabold font-mono text-primary">{formatTaka(net)}</span>
+                    <div className="flex justify-between pt-3 mt-1 border-t border-border/50">
+                      <span className="font-bold text-foreground">Net Salary</span>
+                      <span className="text-xl font-black font-mono text-foreground">{formatTaka(net)}</span>
                     </div>
                   </div>
                 </div>

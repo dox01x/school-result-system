@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Download, Loader2, RefreshCw, Check, AlertCircle, FileSpreadsheet } from "lucide-react";
+import { Download as DownloadSimple, Loader2 as SpinnerGap, RefreshCw as ArrowsClockwise, Check, AlertCircle as WarningCircle, FileSpreadsheet as FileXls } from "lucide-react";
 
 type PreviewInfo = {
     detected_dates: string[];
@@ -199,8 +199,8 @@ export function AttendanceImportTab({ filters, onImportComplete }: Props) {
 
     if (!selectedClass || !selectedSection) {
         return (
-            <div className="rounded-2xl border-2 border-dashed border-slate-200 p-12 text-center">
-                <FileSpreadsheet className="h-10 w-10 text-slate-300 mx-auto mb-3" />
+            <div className="rounded-2xl border-2 border-dashed border-border/50 p-12 text-center">
+                <FileXls className="h-10 w-10 text-slate-300 mx-auto mb-3" />
                 <p className="text-sm text-slate-400 font-medium">Select a class and section to import attendance</p>
             </div>
         );
@@ -209,29 +209,20 @@ export function AttendanceImportTab({ filters, onImportComplete }: Props) {
     return (
         <div className="space-y-5">
             {/* Sheet Format Guide */}
-            <div className="rounded-xl border border-slate-200 bg-gradient-to-br from-blue-50/50 to-slate-50/50 p-4">
+            <div className="rounded-2xl border border-border/50 bg-card p-4 shadow-none">
                 <div className="flex items-center justify-between gap-3 flex-wrap">
                     <div>
-                        <p className="text-sm font-semibold text-slate-800 flex items-center gap-2">
-                            <FileSpreadsheet className="h-4 w-4 text-blue-600" />
+                        <p className="text-sm font-bold text-foreground flex items-center gap-2">
+                            <FileXls size={16} strokeWidth={2} className="text-muted-foreground" />
                             Sheet Format Guide
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                            Headers: <code className="bg-white px-1.5 py-0.5 rounded border text-[10px]">roll</code>,{" "}
-                            <code className="bg-white px-1.5 py-0.5 rounded border text-[10px]">name</code>, then day columns (
-                            <code className="bg-white px-1.5 py-0.5 rounded border text-[10px]">1</code>,{" "}
-                            <code className="bg-white px-1.5 py-0.5 rounded border text-[10px]">2</code>, … or{" "}
-                            <code className="bg-white px-1.5 py-0.5 rounded border text-[10px]">2026-05-01</code>).
-                            Cells: <code className="bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 text-[10px] text-emerald-700">P</code>{" "}
-                            / <code className="bg-red-50 px-1.5 py-0.5 rounded border border-red-200 text-[10px] text-red-700">A</code>
                         </p>
                     </div>
                     <a
                         href="/templates/attendance-sheet-sample.csv"
                         download
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors shadow-sm"
+                        className="inline-flex items-center gap-1.5 rounded-xl border-0 bg-muted px-4 py-2 text-xs font-bold text-foreground hover:bg-muted/80 transition-colors shadow-none"
                     >
-                        <Download className="h-3 w-3" />
+                        <DownloadSimple size={14} strokeWidth={2} />
                         Sample CSV
                     </a>
                 </div>
@@ -240,21 +231,21 @@ export function AttendanceImportTab({ filters, onImportComplete }: Props) {
             {/* Sheet Config */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                    <Label className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">Google Sheet ID or URL</Label>
+                    <Label className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest px-1">Google Sheet ID or URL</Label>
                     <Input
                         value={sheetId}
                         onChange={(e) => setSheetId(extractGoogleSheetId(e.target.value))}
                         placeholder="Paste Sheet URL or ID..."
-                        className="h-9 rounded-lg bg-white border-slate-200 text-sm"
+                        className="h-11 rounded-xl bg-muted border-0 text-sm font-bold text-foreground focus-visible:ring-1 focus-visible:ring-ring/30 shadow-none"
                     />
                 </div>
                 <div className="space-y-1.5">
-                    <Label className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">Range</Label>
+                    <Label className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest px-1">Range</Label>
                     <Input
                         value={range}
                         onChange={(e) => setRange(e.target.value)}
                         placeholder="e.g. Sheet1!A1:AG60"
-                        className="h-9 rounded-lg bg-white border-slate-200 text-sm"
+                        className="h-11 rounded-xl bg-muted border-0 text-sm font-bold text-foreground focus-visible:ring-1 focus-visible:ring-ring/30 shadow-none"
                     />
                 </div>
             </div>
@@ -264,40 +255,39 @@ export function AttendanceImportTab({ filters, onImportComplete }: Props) {
                 <Button
                     onClick={() => void handleImport(false)}
                     disabled={importing || !sheetId.trim() || !range.trim()}
-                    className="rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-sm"
+                    className="h-11 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold shadow-none px-6"
                 >
                     {importing ? (
                         <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            <SpinnerGap size={16} strokeWidth={2} className="mr-2 animate-spin" />
                             Importing…
                         </>
                     ) : (
                         <>
-                            <Download className="h-4 w-4 mr-2" />
+                            <DownloadSimple size={16} strokeWidth={2} className="mr-2" />
                             Import Attendance
                         </>
                     )}
                 </Button>
                 {configLoaded && sheetId && (
-                    <span className="text-[10px] text-emerald-600 flex items-center gap-1">
-                        <Check className="h-3 w-3" />
-                        Config loaded from database
+                    <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest flex items-center gap-1 bg-muted px-3 py-1.5 rounded-lg">
+                        <Check size={14} strokeWidth={2} className="text-muted-foreground" />
+                        Config loaded
                     </span>
                 )}
             </div>
 
             {/* Auto Sync */}
-            <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-3">
+            <div className="rounded-2xl border border-border/50 bg-card p-4 space-y-3 shadow-none">
                 <div className="flex items-center justify-between gap-3">
                     <div>
-                        <p className="text-sm font-semibold text-slate-800">Auto Sync</p>
-                        <p className="text-xs text-muted-foreground">Automatically re-import from the sheet at regular intervals.</p>
+                        <p className="text-sm font-bold text-foreground">Auto Sync</p>
                     </div>
                     <button
                         type="button"
                         onClick={() => setAutoSyncEnabled((v) => !v)}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary/20 ${
-                            autoSyncEnabled ? "bg-primary" : "bg-slate-200"
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-ring/30 ${
+                            autoSyncEnabled ? "bg-primary" : "bg-muted"
                         }`}
                         role="switch"
                         aria-checked={autoSyncEnabled}
@@ -313,27 +303,27 @@ export function AttendanceImportTab({ filters, onImportComplete }: Props) {
                 {autoSyncEnabled && (
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
                         <div className="space-y-1.5">
-                            <Label className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Interval (sec)</Label>
+                            <Label className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest px-1">Interval (sec)</Label>
                             <Input
                                 type="number"
                                 value={syncIntervalSec}
                                 onChange={(e) => setSyncIntervalSec(Math.max(10, Number(e.target.value)))}
                                 min={10}
-                                className="h-8 rounded-lg bg-slate-50 border-slate-200 text-sm"
+                                className="h-10 rounded-xl bg-muted border-0 text-sm font-bold text-foreground focus-visible:ring-1 focus-visible:ring-ring/30 shadow-none"
                             />
                         </div>
                         <div className="space-y-1.5">
-                            <Label className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Status</Label>
-                            <div className="h-8 rounded-lg border border-slate-200 bg-slate-50 px-3 flex items-center gap-2 text-xs">
+                            <Label className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest px-1">Status</Label>
+                            <div className="h-10 rounded-xl border-0 bg-muted px-4 flex items-center gap-2 text-xs font-bold">
                                 {syncStatus === "syncing" ? (
                                     <>
-                                        <RefreshCw className="h-3 w-3 animate-spin text-blue-500" />
-                                        <span className="text-blue-600 font-medium">Syncing…</span>
+                                        <ArrowsClockwise size={14} strokeWidth={2} className="animate-spin text-muted-foreground" />
+                                        <span className="text-foreground">Syncing…</span>
                                     </>
                                 ) : syncStatus === "error" ? (
                                     <>
-                                        <AlertCircle className="h-3 w-3 text-red-500" />
-                                        <span className="text-red-600 font-medium">Error</span>
+                                        <WarningCircle size={14} strokeWidth={2} className="text-red-500" />
+                                        <span className="text-red-700">Error</span>
                                     </>
                                 ) : (
                                     <>
@@ -341,14 +331,14 @@ export function AttendanceImportTab({ filters, onImportComplete }: Props) {
                                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
                                             <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
                                         </span>
-                                        <span className="text-emerald-600 font-medium">Active</span>
+                                        <span className="text-emerald-700">Active</span>
                                     </>
                                 )}
                             </div>
                         </div>
                         <div className="space-y-1.5">
-                            <Label className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Last Sync</Label>
-                            <div className="h-8 rounded-lg border border-slate-200 bg-slate-50 px-3 flex items-center text-xs text-slate-600">
+                            <Label className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest px-1">Last Sync</Label>
+                            <div className="h-10 rounded-xl border-0 bg-muted px-4 flex items-center text-xs font-bold text-muted-foreground">
                                 {lastSyncTime ? lastSyncTime.toLocaleTimeString() : "—"}
                             </div>
                         </div>
@@ -358,33 +348,33 @@ export function AttendanceImportTab({ filters, onImportComplete }: Props) {
 
             {/* Import Results */}
             {lastImport && (
-                <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-3">
-                    <p className="text-sm font-semibold text-slate-800">Import Results</p>
+                <div className="rounded-2xl border border-border/50 bg-card p-4 space-y-3 shadow-none">
+                    <p className="text-sm font-bold text-foreground tracking-tight">Import Results</p>
                     <div className="grid grid-cols-3 gap-3">
-                        <div className="rounded-lg border bg-emerald-50 border-emerald-200 p-3 text-center">
-                            <p className="text-lg font-bold text-emerald-700 tabular-nums">{lastImport.imported_records}</p>
-                            <p className="text-[10px] text-emerald-600 font-medium uppercase tracking-wider">Imported</p>
+                        <div className="rounded-xl border-0 bg-muted p-3 text-center">
+                            <p className="text-xl font-black text-foreground tabular-nums">{lastImport.imported_records}</p>
+                            <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mt-0.5">Imported</p>
                         </div>
-                        <div className="rounded-lg border bg-blue-50 border-blue-200 p-3 text-center">
-                            <p className="text-lg font-bold text-blue-700 tabular-nums">{lastImport.matched_students_rows}</p>
-                            <p className="text-[10px] text-blue-600 font-medium uppercase tracking-wider">Matched</p>
+                        <div className="rounded-xl border-0 bg-muted p-3 text-center">
+                            <p className="text-xl font-black text-foreground tabular-nums">{lastImport.matched_students_rows}</p>
+                            <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mt-0.5">Matched</p>
                         </div>
-                        <div className="rounded-lg border bg-amber-50 border-amber-200 p-3 text-center">
-                            <p className="text-lg font-bold text-amber-700 tabular-nums">{lastImport.skipped_rows}</p>
-                            <p className="text-[10px] text-amber-600 font-medium uppercase tracking-wider">Skipped</p>
+                        <div className="rounded-xl border-0 bg-muted p-3 text-center">
+                            <p className="text-xl font-black text-muted-foreground/60 tabular-nums">{lastImport.skipped_rows}</p>
+                            <p className="text-[10px] text-muted-foreground/60 font-bold uppercase tracking-widest mt-0.5">Skipped</p>
                         </div>
                     </div>
-                    <div className="text-xs text-muted-foreground">
+                    <div className="text-xs font-bold text-muted-foreground px-1">
                         Detected dates: {(lastImport.detected_dates || []).slice(0, 10).join(", ")}
                         {(lastImport.detected_dates || []).length > 10 ? "…" : ""}
                     </div>
                     {lastImport.warnings?.length > 0 && (
-                        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 space-y-1.5">
-                            <p className="text-xs font-semibold text-amber-800 flex items-center gap-1.5">
-                                <AlertCircle className="h-3 w-3" />
+                        <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-4 space-y-2 shadow-none">
+                            <p className="text-xs font-bold text-amber-800 flex items-center gap-2">
+                                <WarningCircle size={16} strokeWidth={2} className="text-amber-600" />
                                 Warnings ({lastImport.warnings.length})
                             </p>
-                            <ul className="space-y-0.5 text-[11px] text-amber-700 max-h-32 overflow-y-auto">
+                            <ul className="space-y-1 text-[11px] font-bold text-amber-700/80 max-h-32 overflow-y-auto pl-1">
                                 {lastImport.warnings.slice(0, 10).map((w, i) => (
                                     <li key={i}>
                                         {w.row ? `Row ${w.row}: ` : ""}
@@ -395,7 +385,7 @@ export function AttendanceImportTab({ filters, onImportComplete }: Props) {
                         </div>
                     )}
                     {lastImport.message && (
-                        <p className="text-xs text-blue-600 font-medium">{lastImport.message}</p>
+                        <p className="text-xs font-bold text-muted-foreground px-1">{lastImport.message}</p>
                     )}
                 </div>
             )}

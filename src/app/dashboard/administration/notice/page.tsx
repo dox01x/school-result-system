@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { Megaphone, Plus, Trash2, Pencil, Printer } from "lucide-react";
+import { Megaphone, Plus, Trash2 as Trash, Pencil, Printer } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { toast } from "sonner";
 
@@ -159,20 +159,20 @@ body{font-family:'Poppins',sans-serif;color:#1a202c;line-height:1.7}
 
     const priorityColor = (p: string) => {
         const map: Record<string, string> = {
-            low: "bg-slate-100 text-slate-600 dark:bg-slate-500/10 dark:text-slate-400",
-            normal: "bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400",
-            high: "bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400",
-            urgent: "bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400",
+            low: "bg-muted text-muted-foreground border-0 rounded-md px-2 py-0.5 font-bold text-[10px] uppercase tracking-widest",
+            normal: "bg-muted text-foreground border-0 rounded-md px-2 py-0.5 font-bold text-[10px] uppercase tracking-widest",
+            high: "bg-muted text-foreground border-0 rounded-md px-2 py-0.5 font-bold text-[10px] uppercase tracking-widest",
+            urgent: "bg-red-100 text-red-700 border-0 rounded-md px-2 py-0.5 font-bold text-[10px] uppercase tracking-widest",
         };
         return map[p] || "";
     };
 
     const audienceColor = (a: string) => {
         const map: Record<string, string> = {
-            all: "bg-purple-100 text-purple-700 dark:bg-purple-500/10 dark:text-purple-400",
-            students: "bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400",
-            parents: "bg-emerald-100 text-primary dark:bg-emerald-500/10 dark:text-emerald-400",
-            teachers: "bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400",
+            all: "bg-muted text-muted-foreground border-0 rounded-md px-2 py-0.5 font-bold text-[10px] uppercase tracking-widest",
+            students: "bg-muted text-muted-foreground border-0 rounded-md px-2 py-0.5 font-bold text-[10px] uppercase tracking-widest",
+            parents: "bg-muted text-muted-foreground border-0 rounded-md px-2 py-0.5 font-bold text-[10px] uppercase tracking-widest",
+            teachers: "bg-muted text-muted-foreground border-0 rounded-md px-2 py-0.5 font-bold text-[10px] uppercase tracking-widest",
         };
         return map[a] || "";
     };
@@ -190,62 +190,64 @@ body{font-family:'Poppins',sans-serif;color:#1a202c;line-height:1.7}
         <div className="space-y-6">
             <PageHeader
                 icon={Megaphone}
-                iconBg="bg-purple-50"
-                iconColor="text-purple-600"
                 title="Notice Board"
                 subtitle="Create and manage notices for students, parents, and teachers."
                 actions={
-                    <Button size="sm" onClick={openAddDialog} className="bg-blue-600 text-white rounded-xl hover:bg-blue-700 btn-press">
-                        <Plus className="h-4 w-4 mr-1" /> New Notice
+                    <Button onClick={openAddDialog} className="bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 font-bold h-11 px-6 shadow-none">
+                        <Plus size={16} strokeWidth={2} className="mr-2" /> New Notice
                     </Button>
                 }
             />
 
-            <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-4">
+            <div className="bg-card rounded-2xl border border-border/50 shadow-none p-4">
                 <div className="flex items-center gap-3">
                     <div>
-                        <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold mb-1.5">Audience</p>
+                        <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold px-1 mb-1.5">Audience</p>
                         <Select value={filterAudience} onValueChange={setFilterAudience}>
-                            <SelectTrigger className="w-[160px] h-9 rounded-lg border-slate-200 bg-white text-sm"><SelectValue placeholder="Filter by audience" /></SelectTrigger>
-                            <SelectContent>{AUDIENCES.map((a) => (<SelectItem key={a.value} value={a.value}>{a.label}</SelectItem>))}</SelectContent>
+                            <SelectTrigger className="w-[160px] h-11 rounded-xl border-0 bg-muted shadow-none font-bold text-foreground focus:ring-1 focus:ring-ring/30">
+                                <SelectValue placeholder="Filter by audience" />
+                            </SelectTrigger>
+                            <SelectContent className="border-border/50 rounded-xl shadow-md">
+                                {AUDIENCES.map((a) => (<SelectItem key={a.value} value={a.value} className="rounded-lg font-medium">{a.label}</SelectItem>))}
+                            </SelectContent>
                         </Select>
                     </div>
                 </div>
             </div>
 
             {notices.length === 0 ? (
-                <Card className="border-dashed border-2">
+                <Card className="border-dashed border-2 rounded-2xl border-border/50 shadow-none">
                     <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-                        <Megaphone className="h-12 w-12 text-muted-foreground mb-4" />
-                        <h3 className="font-semibold text-lg mb-1">No Notices</h3>
-                        <p className="text-sm text-muted-foreground max-w-sm">Click &quot;New Notice&quot; to create an announcement.</p>
+                        <Megaphone size={48} strokeWidth={1.5} className="text-muted-foreground/40 mb-4" />
+                        <h3 className="font-bold text-foreground text-lg mb-1">No Notices</h3>
+                        <p className="text-sm font-bold text-muted-foreground max-w-sm">Click &quot;New Notice&quot; to create an announcement.</p>
                     </CardContent>
                 </Card>
             ) : (
                 <div className="space-y-3">
                     {notices.map((n) => (
-                        <Card key={n.id} className="group">
+                        <Card key={n.id} className="group rounded-2xl border-border/50 shadow-none bg-card hover:bg-muted/30 transition-colors">
                             <CardHeader className="pb-2">
                                 <CardTitle className="text-sm flex items-center gap-2 flex-wrap">
-                                    <span className="flex-1 min-w-0 truncate">{n.title}</span>
-                                    <Badge className={priorityColor(n.priority)}>{n.priority}</Badge>
-                                    <Badge className={audienceColor(n.audience)}>{n.audience}</Badge>
-                                    <span className="text-[11px] text-muted-foreground font-normal">
+                                    <span className="flex-1 min-w-0 truncate font-bold text-foreground">{n.title}</span>
+                                    <span className={priorityColor(n.priority)}>{n.priority}</span>
+                                    <span className={audienceColor(n.audience)}>{n.audience}</span>
+                                    <span className="text-[11px] font-bold text-muted-foreground/60 px-2">
                                         {(() => { const _d = new Date(n.created_at); return `${_d.getDate().toString().padStart(2,'0')}/${(_d.getMonth()+1).toString().padStart(2,'0')}/${_d.getFullYear()}`; })()}
                                     </span>
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="pb-3">
-                                <p className="text-[13px] text-muted-foreground whitespace-pre-wrap line-clamp-3">{n.content}</p>
-                                <div className="flex items-center gap-1 mt-3 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
-                                    <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => openEditDialog(n)}>
-                                        <Pencil className="h-3 w-3 mr-1" /> Edit
+                                <p className="text-[13px] font-medium text-muted-foreground whitespace-pre-wrap line-clamp-3">{n.content}</p>
+                                <div className="flex items-center gap-2 mt-4 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                                    <Button variant="ghost" className="h-8 rounded-lg text-xs font-bold text-muted-foreground hover:text-foreground hover:bg-muted px-3" onClick={() => openEditDialog(n)}>
+                                        <Pencil size={14} strokeWidth={2} className="mr-1.5" /> Edit
                                     </Button>
-                                    <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => handlePrintNotice(n)}>
-                                        <Printer className="h-3 w-3 mr-1" /> Print
+                                    <Button variant="ghost" className="h-8 rounded-lg text-xs font-bold text-muted-foreground hover:text-foreground hover:bg-muted px-3" onClick={() => handlePrintNotice(n)}>
+                                        <Printer size={14} strokeWidth={2} className="mr-1.5" /> Print
                                     </Button>
-                                    <Button size="sm" variant="ghost" className="h-7 text-xs hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 dark:hover:text-red-400" onClick={() => handleDelete(n.id)}>
-                                        <Trash2 className="h-3 w-3 mr-1" /> Delete
+                                    <Button variant="ghost" className="h-8 rounded-lg text-xs font-bold text-red-600 hover:text-red-700 hover:bg-red-50 px-3" onClick={() => handleDelete(n.id)}>
+                                        <Trash size={14} strokeWidth={2} className="mr-1.5" /> Delete
                                     </Button>
                                 </div>
                             </CardContent>
@@ -255,36 +257,36 @@ body{font-family:'Poppins',sans-serif;color:#1a202c;line-height:1.7}
             )}
 
             <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (open) setTimeout(() => document.getElementById("notice-title")?.focus(), 100); }}>
-                <DialogContent className="sm:max-w-lg">
+                <DialogContent className="sm:max-w-lg border-border/50 rounded-2xl shadow-xl">
                     <DialogHeader>
-                        <DialogTitle>{formData.id ? "Edit" : "Create"} Notice</DialogTitle>
+                        <DialogTitle className="font-bold text-xl">{formData.id ? "Edit" : "Create"} Notice</DialogTitle>
                     </DialogHeader>
                     <div className="grid gap-4 py-2">
                         <div className="grid gap-1.5">
-                            <Label>Title *</Label>
-                            <Input id="notice-title" value={formData.title} onChange={(e) => setFormData((p) => ({ ...p, title: e.target.value }))} placeholder="Notice title" onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); document.getElementById("notice-content")?.focus(); }}} />
+                            <Label className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold px-1">Title *</Label>
+                            <Input id="notice-title" value={formData.title} onChange={(e) => setFormData((p) => ({ ...p, title: e.target.value }))} placeholder="Notice title" onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); document.getElementById("notice-content")?.focus(); }}} className="h-11 rounded-xl bg-muted border-0 font-bold text-foreground focus-visible:ring-1 focus-visible:ring-ring/30 shadow-none" />
                         </div>
                         <div className="grid gap-1.5">
-                            <Label>Content *</Label>
-                            <Textarea id="notice-content" value={formData.content} onChange={(e) => setFormData((p) => ({ ...p, content: e.target.value }))} placeholder="Write the notice content..." rows={5} onKeyDown={(e) => { if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { e.preventDefault(); handleSave(); }}} />
+                            <Label className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold px-1">Content *</Label>
+                            <Textarea id="notice-content" value={formData.content} onChange={(e) => setFormData((p) => ({ ...p, content: e.target.value }))} placeholder="Write the notice content..." rows={5} onKeyDown={(e) => { if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { e.preventDefault(); handleSave(); }}} className="min-h-[120px] rounded-xl bg-muted border-0 font-medium text-foreground p-3 focus-visible:ring-1 focus-visible:ring-ring/30 shadow-none resize-none" />
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                             <div className="grid gap-1.5">
-                                <Label>Audience</Label>
+                                <Label className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold px-1">Audience</Label>
                                 <Select value={formData.audience} onValueChange={(v) => setFormData((p) => ({ ...p, audience: v }))}>
-                                    <SelectTrigger><SelectValue /></SelectTrigger>
-                                    <SelectContent>{AUDIENCES.map((a) => (<SelectItem key={a.value} value={a.value}>{a.label}</SelectItem>))}</SelectContent>
+                                    <SelectTrigger className="h-11 rounded-xl border-0 bg-muted font-bold text-foreground focus:ring-1 focus:ring-ring/30 shadow-none"><SelectValue /></SelectTrigger>
+                                    <SelectContent className="border-border/50 rounded-xl shadow-md">{AUDIENCES.map((a) => (<SelectItem key={a.value} value={a.value} className="rounded-lg font-medium">{a.label}</SelectItem>))}</SelectContent>
                                 </Select>
                             </div>
                             <div className="grid gap-1.5">
-                                <Label>Priority</Label>
+                                <Label className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold px-1">Priority</Label>
                                 <Select value={formData.priority} onValueChange={(v) => setFormData((p) => ({ ...p, priority: v }))}>
-                                    <SelectTrigger><SelectValue /></SelectTrigger>
-                                    <SelectContent>{PRIORITIES.map((p) => (<SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>))}</SelectContent>
+                                    <SelectTrigger className="h-11 rounded-xl border-0 bg-muted font-bold text-foreground focus:ring-1 focus:ring-ring/30 shadow-none"><SelectValue /></SelectTrigger>
+                                    <SelectContent className="border-border/50 rounded-xl shadow-md">{PRIORITIES.map((p) => (<SelectItem key={p.value} value={p.value} className="rounded-lg font-medium">{p.label}</SelectItem>))}</SelectContent>
                                 </Select>
                             </div>
                         </div>
-                        <Button onClick={handleSave} disabled={submitting} className="mt-2">
+                        <Button onClick={handleSave} disabled={submitting} className="mt-4 h-11 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold shadow-none">
                             {submitting ? "Saving..." : formData.id ? "Update Notice" : "Create Notice"}
                         </Button>
                     </div>

@@ -4,7 +4,7 @@ import React, { useState, useCallback } from "react";
 import type { Student } from "@/lib/database.types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Upload, Download, RefreshCw } from "lucide-react";
+import { Upload, Download as DownloadSimple, RefreshCw as ArrowsClockwise } from "lucide-react";
 import { toast } from "sonner";
 import {
     Dialog,
@@ -109,7 +109,7 @@ const ImportDialog = React.memo(function ImportDialog({
         [students, useDetailed, onImport, onOpenChange]
     );
 
-    /** Download a sample CSV template */
+    /** DownloadSimple a sample CSV template */
     const downloadSampleCSV = useCallback(() => {
         const header = useDetailed ? "roll,name,theory,mcq,practical" : "roll,name,marks";
         const rows = students.slice(0, 3).map((s) =>
@@ -127,14 +127,14 @@ const ImportDialog = React.memo(function ImportDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent>
+            <DialogContent className="bg-card rounded-3xl border-border/50 shadow-lg sm:max-w-[500px]">
                 <DialogHeader>
                     <DialogTitle>Import Marks</DialogTitle>
                 </DialogHeader>
                 <Tabs defaultValue="csv" className="w-full">
-                    <TabsList className="grid w-full grid-cols-2">
-                        <TabsTrigger value="csv">CSV File</TabsTrigger>
-                        <TabsTrigger value="sheets">Google Sheets</TabsTrigger>
+                    <TabsList className="grid w-full grid-cols-2 bg-muted rounded-xl p-1 h-11">
+                        <TabsTrigger value="csv" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">CSV File</TabsTrigger>
+                        <TabsTrigger value="sheets" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">Google Sheets</TabsTrigger>
                     </TabsList>
 
                     {/* ── CSV Tab ── */}
@@ -152,15 +152,15 @@ const ImportDialog = React.memo(function ImportDialog({
                                 variant="outline"
                                 size="sm"
                                 onClick={downloadSampleCSV}
-                                className="absolute top-4 right-4"
+                                className="absolute top-4 right-4 rounded-lg bg-muted border-0 hover:bg-muted/80"
                                 title="Download a sample CSV with student rolls"
                             >
-                                <Download className="h-4 w-4 mr-1" />
+                                <DownloadSimple size={14} strokeWidth={1.5} className="mr-1" />
                                 Sample CSV
                             </Button>
                             <label className="flex flex-col items-center cursor-pointer w-full text-center mt-6">
-                                <Upload className="h-10 w-10 text-muted-foreground mb-4 mx-auto" />
-                                <span className="font-medium text-sm">Click to select CSV file</span>
+                                <Upload size={40} strokeWidth={1.2} className="text-muted-foreground/40 mb-4 mx-auto" />
+                                <span className="font-medium text-sm text-foreground">Click to select CSV file</span>
                                 <input
                                     type="file"
                                     accept=".csv"
@@ -183,7 +183,7 @@ const ImportDialog = React.memo(function ImportDialog({
                                     if (match) val = match[1];
                                     onSheetsFormChange({ ...sheetsForm, sheetId: val });
                                 }}
-                                className="h-9"
+                                className="h-11 rounded-xl bg-muted border-0 focus-visible:ring-1 focus-visible:ring-ring/30 px-4"
                             />
                             <Input
                                 placeholder="Range (e.g. A1:C50)"
@@ -191,7 +191,7 @@ const ImportDialog = React.memo(function ImportDialog({
                                 onChange={(e) =>
                                     onSheetsFormChange({ ...sheetsForm, range: e.target.value })
                                 }
-                                className="h-9"
+                                className="h-11 rounded-xl bg-muted border-0 focus-visible:ring-1 focus-visible:ring-ring/30 px-4"
                             />
 
                             {/* Auto-sync toggle */}
@@ -224,7 +224,7 @@ const ImportDialog = React.memo(function ImportDialog({
                                     }`}
                                     onClick={onToggleAutoSync}
                                 >
-                                    <RefreshCw
+                                    <ArrowsClockwise
                                         className={`h-3 w-3 mr-1 ${
                                             autoSyncEnabled
                                                 ? "animate-spin text-emerald-600"
@@ -236,16 +236,16 @@ const ImportDialog = React.memo(function ImportDialog({
                             </div>
                         </div>
 
-                        <div className="flex items-center justify-between pt-2 border-t border-dashed mt-auto">
+                        <div className="flex items-center justify-between pt-2 border-t border-dashed border-border/50 mt-auto">
                             <div className="text-xs text-muted-foreground flex gap-1 items-center">
                                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                                 need: roll, name, {useDetailed ? "theory, mcq…" : "marks"}
                             </div>
                             <div className="flex gap-2">
                                 <DialogClose asChild>
-                                    <Button variant="ghost" size="sm">Cancel</Button>
+                                    <Button variant="ghost" size="sm" className="rounded-xl">Cancel</Button>
                                 </DialogClose>
-                                <Button size="sm" onClick={onFetchSheets} disabled={sheetsLoading}>
+                                <Button size="sm" onClick={onFetchSheets} disabled={sheetsLoading} className="bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 shadow-none font-semibold transition-all duration-200">
                                     {sheetsLoading ? "…" : "Import Now"}
                                 </Button>
                             </div>

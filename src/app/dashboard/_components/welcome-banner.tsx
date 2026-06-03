@@ -31,17 +31,17 @@ export function WelcomeBanner({ schoolLogoUrl, academicYear }: Props) {
     const dateStr = now.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
 
     return (
-        <div className="relative rounded-2xl p-6 text-white overflow-hidden shadow-sm bg-blue-600">
+        <div className="relative rounded-3xl p-8 h-full text-foreground border border-border bg-card shadow-sm flex flex-col justify-center">
             <div className="relative z-10 flex items-center justify-between">
                 <div>
-                    <h2 className="text-xl font-bold font-heading tracking-tight">
+                    <h2 className="text-3xl font-black font-heading tracking-tight text-foreground">
                         {greeting}
                         {userName ? `, ${userName}` : ""}
                     </h2>
-                    <p className="text-white/85 text-sm mt-1">{dateStr}</p>
+                    <p className="text-muted-foreground text-sm mt-1.5 font-medium">{dateStr}</p>
                     {academicYear && (
-                        <span className="inline-flex items-center gap-1.5 mt-3 text-xs font-medium bg-white/15 backdrop-blur px-3 py-1 rounded-full">
-                            <CalendarCheck className="h-3 w-3" /> Academic Year: {academicYear}
+                        <span className="inline-flex items-center gap-1.5 mt-5 text-xs font-bold bg-muted text-foreground px-3 py-1.5 rounded-lg">
+                            <CalendarCheck className="h-3.5 w-3.5" strokeWidth={2} /> Active Academic Year: {academicYear}
                         </span>
                     )}
                 </div>
@@ -49,9 +49,9 @@ export function WelcomeBanner({ schoolLogoUrl, academicYear }: Props) {
                     <Image
                         src={schoolLogoUrl}
                         alt="School Logo"
-                        width={64}
-                        height={64}
-                        className="hidden md:block h-16 w-16 rounded-xl object-contain bg-white/10 p-1.5"
+                        width={72}
+                        height={72}
+                        className="hidden md:block h-20 w-20 rounded-2xl object-contain bg-muted/50 dark:bg-primary border border-border p-2 shadow-sm"
                     />
                 )}
             </div>

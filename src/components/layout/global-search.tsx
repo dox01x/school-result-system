@@ -292,10 +292,10 @@ export function GlobalSearch() {
                             <div className="relative overflow-hidden rounded-xl border bg-card shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)]">
                                 <div className="absolute top-0 inset-x-0 h-20 bg-primary" />
                                 <div className="relative pt-10 pb-6 px-6 flex flex-col items-center text-center">
-                                    <div className="h-20 w-20 rounded-full border-4 border-card bg-slate-50 flex items-center justify-center text-primary font-bold text-3xl shadow-sm relative z-10">
+                                    <div className="h-20 w-20 rounded-full border-4 border-card bg-muted flex items-center justify-center text-primary font-bold text-3xl shadow-sm relative z-10">
                                         {student.name.charAt(0).toUpperCase()}
                                     </div>
-                                    <h3 className="mt-3 font-bold text-[19px] text-slate-800 tracking-tight leading-tight">
+                                    <h3 className="mt-3 font-bold text-[19px] text-foreground tracking-tight leading-tight">
                                         {student.name}
                                     </h3>
                                     <div className="mt-2 flex flex-wrap items-center justify-center gap-1.5">
@@ -342,7 +342,7 @@ export function GlobalSearch() {
                             )}
                             <div className="rounded-xl border bg-muted/10 p-4 space-y-3">
                                 <div className="flex items-center justify-between">
-                                    <p className="text-sm font-semibold text-slate-800">Attendance Summary</p>
+                                    <p className="text-sm font-semibold text-foreground">Attendance Summary</p>
                                     {studentAttendanceLoading && <p className="text-xs text-muted-foreground">Loading…</p>}
                                 </div>
                                 {(() => {
@@ -411,10 +411,10 @@ export function GlobalSearch() {
                             <div className="relative overflow-hidden rounded-xl border bg-card shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)]">
                                 <div className="absolute top-0 inset-x-0 h-20 bg-primary" />
                                 <div className="relative pt-10 pb-6 px-6 flex flex-col items-center text-center">
-                                    <div className="h-20 w-20 rounded-full border-4 border-card bg-slate-50 flex items-center justify-center text-primary font-bold text-3xl shadow-sm relative z-10">
+                                    <div className="h-20 w-20 rounded-full border-4 border-card bg-muted flex items-center justify-center text-primary font-bold text-3xl shadow-sm relative z-10">
                                         {teacher.name.charAt(0).toUpperCase()}
                                     </div>
-                                    <h3 className="mt-3 font-bold text-[19px] text-slate-800 tracking-tight leading-tight">
+                                    <h3 className="mt-3 font-bold text-[19px] text-foreground tracking-tight leading-tight">
                                         {teacher.name}
                                     </h3>
                                     <div className="mt-2 flex flex-wrap items-center justify-center gap-1.5">

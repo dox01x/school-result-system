@@ -1,17 +1,7 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { CLASS_ROUTINE_COLUMNS } from "@/lib/supabase/select-columns";
+import { timeToMinutes, timesOverlap } from "@/lib/conflict-detector";
 import { NextRequest, NextResponse } from "next/server";
-
-function timeToMinutes(t: string): number {
-    const [h, m] = t.split(":").map(Number);
-    return h * 60 + m;
-}
-
-function timesOverlap(s1: string, e1: string, s2: string, e2: string): boolean {
-    const a1 = timeToMinutes(s1), b1 = timeToMinutes(e1);
-    const a2 = timeToMinutes(s2), b2 = timeToMinutes(e2);
-    return a1 < b2 && a2 < b1;
-}
 
 export async function GET() {
     try {

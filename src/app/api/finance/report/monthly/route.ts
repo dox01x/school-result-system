@@ -20,8 +20,9 @@ export async function GET(request: Request) {
     const { data: expenseEntries } = await supabase.from('expense_entries').select('category, amount').match({ month, year });
     // @ts-ignore
     const { data: salaryPayments } = await supabase.from('salary_payments').select('staff_type, net_salary').match({ month, year });
+    // Fetch ALL tuition payments for this month/year (including fee_type='multiple' which may contain tuition)
     // @ts-ignore
-    const { data: tuitionPayments } = await supabase.from('tuition_payments').select('amount_due, amount_paid').match({ fee_type: 'tuition', month, year });
+    const { data: tuitionPayments } = await supabase.from('tuition_payments').select('amount_due, amount_paid, fee_type, fee_details').match({ month, year });
 
     const incomeMap = new Map<string, number>();
     const expenseMap = new Map<string, number>();
@@ -46,17 +47,34 @@ export async function GET(request: Request) {
     let expectedTotalTuition = 0;
     // @ts-ignore
     const { data: fees } = await supabase.from('fee_structure').select('class_name, amount').match({ fee_type: 'tuition', academic_year: year.toString(), is_active: true });
+    // Students table has class_id, not class_name — JOIN with classes table
     // @ts-ignore
-    const { data: stds } = await supabase.from('students').select('class_name');
+    const { data: stds } = await supabase.from('students').select('id, classes!inner(name)');
     
     if (fees && stds) {
       const feeMap = new Map(fees.map((f: any) => [f.class_name, f.amount]));
       stds.forEach((s: any) => {
-          expectedTotalTuition += feeMap.get(s.class_name) || 0;
+          const className = s.classes?.name;
+          if (className) {
+            expectedTotalTuition += feeMap.get(className) || 0;
+          }
       });
     }
 
-    const total_collected = (tuitionPayments || []).reduce((sum, p) => sum + Number(p.amount_paid), 0);
+    // Calculate tuition collected — for multi-fee payments, extract only the tuition portion from fee_details
+    let total_collected = 0;
+    (tuitionPayments || []).forEach((p: any) => {
+      if (p.fee_type === 'tuition') {
+        total_collected += Number(p.amount_paid);
+      } else if (p.fee_type === 'multiple' && Array.isArray(p.fee_details)) {
+        // Sum only tuition-type entries from fee_details
+        for (const fd of p.fee_details) {
+          if (fd.type === 'tuition') {
+            total_collected += Number(fd.amount || 0);
+          }
+        }
+      }
+    });
     const total_due = expectedTotalTuition;
     const total_overdue = total_due > total_collected ? total_due - total_collected : 0;
     const collection_rate = total_due > 0 ? (total_collected / total_due) * 100 : 100;

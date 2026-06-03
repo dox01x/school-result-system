@@ -40,7 +40,7 @@ export function Footer() {
                 <GraduationCap className="w-6 h-6 text-white" />
               </div>
               <span className="text-xl font-bold bg-gradient-to-r from-indigo-700 to-teal-600 dark:from-indigo-400 dark:to-teal-400 bg-clip-text text-transparent">
-                ResultPro
+                School Management System
               </span>
             </Link>
             <p className="text-sm text-slate-500 dark:text-slate-400 max-w-sm leading-relaxed">
@@ -113,7 +113,7 @@ export function Footer() {
       <div className="border-t border-slate-100 dark:border-white/5">
         <div className="mx-auto max-w-7xl px-6 py-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-xs text-slate-400 dark:text-slate-500">
-            © {new Date().getFullYear()} ResultPro. All rights reserved.
+            © {new Date().getFullYear()} School Management System. All rights reserved.
           </p>
           <p className="text-xs text-slate-400 dark:text-slate-500 flex items-center gap-1">
             Made with{" "}

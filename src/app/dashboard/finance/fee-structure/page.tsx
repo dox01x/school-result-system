@@ -12,13 +12,18 @@ import { toast } from "sonner";
 import { FeeStructure, FeeType } from '@/types/finance';
 import { createClient } from '@/lib/supabase/client';
 import { CLASS_COLUMNS } from '@/lib/supabase/select-columns';
-import { Settings, Plus, Loader2, Trash2, Pencil, Check, X, CalendarDays, Calendar } from 'lucide-react';
+import { Settings as Gear, Plus, Loader2 as SpinnerGap, Trash, Pencil, Check, X, Calendar as CalendarBlank, ClipboardList as ClipboardText } from "lucide-react";
 import { formatTaka } from '@/lib/finance-utils';
 
 const MONTHLY_TYPES = ['tuition', 'hostel', 'transport', 'boarding'];
+const PER_EXAM_TYPES = ['mct_exam', 'semester_exam'];
 
 function isMonthly(type: string) {
   return MONTHLY_TYPES.includes(type.toLowerCase().trim());
+}
+
+function isPerExam(type: string) {
+  return PER_EXAM_TYPES.includes(type.toLowerCase().trim());
 }
 
 export default function FeeStructurePage() {
@@ -28,6 +33,7 @@ export default function FeeStructurePage() {
   const [submitting, setSubmitting] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editAmount, setEditAmount] = useState('');
+  const [userRole, setUserRole] = useState('');
 
   const [form, setForm] = useState({
     class_name: '',
@@ -54,7 +60,15 @@ export default function FeeStructurePage() {
     }
   };
 
-  useEffect(() => { fetchData(); }, []);
+  const fetchRole = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+      if (data) setUserRole(data.role);
+    }
+  };
+
+  useEffect(() => { fetchData(); fetchRole(); }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -90,7 +104,7 @@ export default function FeeStructurePage() {
     } catch { toast.error("Error"); }
   };
 
-  const handleEdit = async (id: string) => {
+  const handlePencilSimple = async (id: string) => {
     if (!editAmount || isNaN(Number(editAmount))) { toast.error("Invalid amount"); return; }
     try {
       const res = await fetch('/api/finance/fee-structure', {
@@ -114,98 +128,101 @@ export default function FeeStructurePage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">Fee Structure</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground font-heading mb-1">Fee Structure</h1>
         <p className="text-muted-foreground mt-1 text-sm">Configure class-wise fee amounts for the academic year.</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Form */}
-        <Card className="lg:col-span-4 border-none shadow-lg h-fit">
-          <div className="h-1.5 bg-primary"></div>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2"><Plus className="w-5 h-5" /> Add New Fee</CardTitle>
-            <CardDescription>Define fee components for each class</CardDescription>
+        <Card className="lg:col-span-4 border border-border/50 shadow-none rounded-2xl h-fit overflow-hidden">
+          <CardHeader className="bg-muted/30 border-b border-border/50">
+            <CardTitle className="text-lg font-bold text-foreground flex items-center gap-2"><Plus size={20} strokeWidth={2.5} /> Add New Fee</CardTitle>
+            <CardDescription className="font-bold text-muted-foreground">Define fee components for each class</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label className="text-xs font-semibold uppercase text-muted-foreground">Academic Year</Label>
-                <Input value={form.academic_year} onChange={e => setForm({...form, academic_year: e.target.value})} className="bg-card" />
+                <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground px-1">Active Academic Year</Label>
+                <Input value={form.academic_year} onChange={e => setForm({...form, academic_year: e.target.value})} className="h-11 rounded-xl bg-muted border-0 font-bold text-foreground focus-visible:ring-1 focus-visible:ring-ring/30 shadow-none" />
               </div>
               <div className="space-y-2">
-                <Label className="text-xs font-semibold uppercase text-muted-foreground">Class *</Label>
+                <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground px-1">Class *</Label>
                 <Select value={form.class_name} onValueChange={v => setForm({...form, class_name: v})}>
-                  <SelectTrigger className="bg-card"><SelectValue placeholder="Select class" /></SelectTrigger>
-                  <SelectContent>
-                    {classes.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
+                  <SelectTrigger className="h-11 rounded-xl bg-muted border-0 font-bold text-foreground focus:ring-1 focus:ring-ring/30 shadow-none"><SelectValue placeholder="Select class" /></SelectTrigger>
+                  <SelectContent className="border-border/50 rounded-xl shadow-md">
+                    {classes.map(c => <SelectItem key={c.id} value={c.name} className="rounded-lg font-medium">{c.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label className="text-xs font-semibold uppercase text-muted-foreground">Fee Type *</Label>
+                <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground px-1">Fee Type *</Label>
                 <Select value={form.fee_type} onValueChange={v => setForm({...form, fee_type: v as FeeType})}>
-                  <SelectTrigger className="bg-card"><SelectValue placeholder="Select type" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="tuition">Tuition Fee (Monthly)</SelectItem>
-                    <SelectItem value="admission">Admission Fee (Yearly)</SelectItem>
-                    <SelectItem value="exam">Exam Fee (Yearly)</SelectItem>
-                    <SelectItem value="sports">Sports Fee (Yearly)</SelectItem>
-                    <SelectItem value="library">Library Fee (Yearly)</SelectItem>
-                    <SelectItem value="book">Book Fee (Yearly)</SelectItem>
-                    <SelectItem value="hostel">Hostel Fee (Monthly)</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
+                  <SelectTrigger className="h-11 rounded-xl bg-muted border-0 font-bold text-foreground focus:ring-1 focus:ring-ring/30 shadow-none"><SelectValue placeholder="Select type" /></SelectTrigger>
+                  <SelectContent className="border-border/50 rounded-xl shadow-md">
+                    <SelectItem value="tuition" className="rounded-lg font-medium">Tuition Fee (Monthly)</SelectItem>
+                    <SelectItem value="admission" className="rounded-lg font-medium">Admission Fee (Yearly)</SelectItem>
+                    <SelectItem value="mct_exam" className="rounded-lg font-medium">MCT Exam Fee (Per Exam)</SelectItem>
+                    <SelectItem value="semester_exam" className="rounded-lg font-medium">Semester Exam Fee (Per Exam)</SelectItem>
+                    <SelectItem value="sports" className="rounded-lg font-medium">Sports Fee (Yearly)</SelectItem>
+                    <SelectItem value="library" className="rounded-lg font-medium">Library Fee (Yearly)</SelectItem>
+                    <SelectItem value="book" className="rounded-lg font-medium">Book Fee (Yearly)</SelectItem>
+                    <SelectItem value="hostel" className="rounded-lg font-medium">Hostel Fee (Monthly)</SelectItem>
+                    <SelectItem value="other" className="rounded-lg font-medium">Other</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label className="text-xs font-semibold uppercase text-muted-foreground">Amount (TK) *</Label>
-                <Input type="number" step="1" value={form.amount} onChange={e => setForm({...form, amount: e.target.value})} placeholder="0" className="bg-card font-mono" />
+                <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground px-1">Amount (TK) *</Label>
+                <Input type="number" step="1" value={form.amount} onChange={e => setForm({...form, amount: e.target.value})} placeholder="0" className="h-11 rounded-xl bg-muted border-0 font-mono font-bold text-foreground focus-visible:ring-1 focus-visible:ring-ring/30 shadow-none" />
               </div>
               {form.fee_type === 'other' && (
                 <div className="space-y-2">
-                  <Label className="text-xs font-semibold uppercase text-muted-foreground">Fee Name *</Label>
-                  <Input value={form.description} onChange={e => setForm({...form, description: e.target.value})} placeholder="e.g. Field Trip" className="bg-card" />
+                  <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground px-1">Fee Name *</Label>
+                  <Input value={form.description} onChange={e => setForm({...form, description: e.target.value})} placeholder="e.g. Field Trip" className="h-11 rounded-xl bg-muted border-0 font-bold text-foreground placeholder:text-muted-foreground/60 focus-visible:ring-1 focus-visible:ring-ring/30 shadow-none" />
                 </div>
               )}
-              <Button type="submit" className="w-full shadow-md" disabled={submitting}>
-                {submitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
-                Add Fee
-              </Button>
+              <div className="flex flex-col gap-2 mt-4">
+                <Button type="submit" className="w-full h-11 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold shadow-none" disabled={submitting || userRole !== 'admin'}>
+                  {submitting ? <SpinnerGap size={16} strokeWidth={2} className="mr-2 animate-spin" /> : <Plus size={16} strokeWidth={2.5} className="mr-2" />}
+                  Add Fee
+                </Button>
+                {userRole !== 'admin' && <p className="text-[10px] font-bold text-red-500 text-center uppercase tracking-widest mt-1">Only Admin can add fees</p>}
+              </div>
             </form>
           </CardContent>
         </Card>
 
         {/* Fee List */}
         <div className="lg:col-span-8 space-y-4">
-          <Card className="border-none shadow-lg">
-            <CardHeader className="border-b bg-muted/20 pb-4">
-              <CardTitle className="text-lg flex items-center gap-2"><Settings className="w-5 h-5 text-primary" /> Configured Fees ({form.academic_year})</CardTitle>
+          <Card className="border border-border/50 shadow-none rounded-2xl overflow-hidden">
+            <CardHeader className="border-b border-border/50 bg-muted/30 pb-4">
+              <CardTitle className="text-lg font-bold text-foreground flex items-center gap-2"><Gear size={20} strokeWidth={2.5} className="text-foreground" /> Configured Fees ({form.academic_year})</CardTitle>
             </CardHeader>
-            <CardContent className="pt-4">
+            <CardContent className="pt-6">
               {loading ? (
-                <div className="flex justify-center p-8"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>
+                <div className="flex justify-center p-8"><SpinnerGap size={24} strokeWidth={2} className="animate-spin text-muted-foreground/40" /></div>
               ) : Object.keys(grouped).length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground border-2 border-dashed rounded-xl">
-                  <Settings className="w-10 h-10 mx-auto mb-3 opacity-30" />
-                  <p className="font-semibold">No fee structures configured</p>
-                  <p className="text-sm mt-1">Add fees using the form on the left</p>
+                <div className="text-center py-12 text-muted-foreground border-2 border-dashed border-border/50 rounded-2xl">
+                  <Gear size={40} strokeWidth={1.5} className="mx-auto mb-3 text-muted-foreground/40" />
+                  <p className="font-bold">No fee structures configured</p>
+                  <p className="text-xs font-bold text-muted-foreground/60 mt-1">Add fees using the form on the left</p>
                 </div>
               ) : (
-                <div className="space-y-6">
+                <div className="space-y-8">
                   {Object.entries(grouped).map(([className, items]) => (
                     <div key={className}>
-                      <div className="flex items-center gap-2 mb-2">
-                        <h3 className="text-sm font-bold text-slate-700">{className}</h3>
-                        <Badge variant="outline" className="text-[10px] h-5">{items.length} fees</Badge>
+                      <div className="flex items-center gap-2 mb-3">
+                        <h3 className="text-sm font-bold text-foreground">{className}</h3>
+                        <Badge variant="outline" className="bg-muted text-muted-foreground border-border/50 text-[9px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-md shadow-none">{items.length} fees</Badge>
                       </div>
-                      <div className="border rounded-lg overflow-hidden">
+                      <div className="border border-border/50 rounded-xl overflow-hidden">
                         <Table>
                           <TableHeader>
-                            <TableRow className="bg-muted/30">
-                              <TableHead className="text-xs">Fee Type</TableHead>
-                              <TableHead className="text-xs">Frequency</TableHead>
-                              <TableHead className="text-xs text-right">Amount</TableHead>
-                              <TableHead className="text-xs text-right w-24">Actions</TableHead>
+                            <TableRow className="bg-muted/30 border-border/50 hover:bg-muted/30">
+                              <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Fee Type</TableHead>
+                              <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Frequency</TableHead>
+                              <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground text-right">Amount</TableHead>
+                              <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground text-right w-24">Actions</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -213,18 +230,22 @@ export default function FeeStructurePage() {
                               const monthly = isMonthly(f.fee_type);
                               const isEditing = editingId === f.id;
                               return (
-                                <TableRow key={f.id} className="group">
-                                  <TableCell className="font-medium capitalize">
-                                    {f.fee_type === 'other' && f.description ? f.description : f.fee_type} Fee
+                                <TableRow key={f.id} className="group border-border/50 hover:bg-muted/30">
+                                  <TableCell className="font-bold text-foreground text-xs capitalize">
+                                    {f.fee_type === 'other' && f.description ? f.description : f.fee_type.replace('_', ' ')} Fee
                                   </TableCell>
                                   <TableCell>
                                     {monthly ? (
-                                      <Badge className="bg-blue-50 text-blue-700 hover:bg-blue-50 text-[10px] gap-1">
-                                        <CalendarDays className="w-3 h-3" /> Monthly
+                                      <Badge className="bg-muted text-muted-foreground rounded-md font-bold uppercase tracking-widest px-2 py-0.5 text-[9px] shadow-none gap-1 border-0">
+                                        <CalendarBlank className="w-3 h-3" /> Monthly
+                                      </Badge>
+                                    ) : isPerExam(f.fee_type) ? (
+                                      <Badge className="bg-muted text-muted-foreground rounded-md font-bold uppercase tracking-widest px-2 py-0.5 text-[9px] shadow-none gap-1 border-0">
+                                        <ClipboardText className="w-3 h-3" /> Per Exam
                                       </Badge>
                                     ) : (
-                                      <Badge className="bg-amber-50 text-amber-700 hover:bg-amber-50 text-[10px] gap-1">
-                                        <Calendar className="w-3 h-3" /> Yearly
+                                      <Badge className="bg-muted text-muted-foreground rounded-md font-bold uppercase tracking-widest px-2 py-0.5 text-[9px] shadow-none gap-1 border-0">
+                                        <CalendarBlank size={12} strokeWidth={2} /> Yearly
                                       </Badge>
                                     )}
                                   </TableCell>
@@ -234,31 +255,35 @@ export default function FeeStructurePage() {
                                         type="number"
                                         value={editAmount}
                                         onChange={e => setEditAmount(e.target.value)}
-                                        className="w-24 h-7 text-right ml-auto font-mono text-sm"
+                                        className="w-24 h-8 rounded-lg bg-muted border border-border font-mono font-bold text-sm px-2 text-right focus:ring-1 focus:ring-ring/30 shadow-none ml-auto"
                                         autoFocus
                                       />
                                     ) : (
-                                      <span className="font-mono font-bold text-slate-800">{formatTaka(f.amount)}</span>
+                                      <span className="font-mono font-black text-foreground">{formatTaka(f.amount)}</span>
                                     )}
                                   </TableCell>
                                   <TableCell className="text-right">
                                     {isEditing ? (
                                       <div className="flex gap-1 justify-end">
-                                        <Button size="icon" variant="ghost" className="h-7 w-7 text-primary" onClick={() => handleEdit(f.id)}>
-                                          <Check className="w-3.5 h-3.5" />
+                                        <Button size="icon" variant="ghost" className="h-8 w-8 text-foreground hover:bg-muted rounded-lg" onClick={() => handlePencilSimple(f.id)}>
+                                          <Check size={14} strokeWidth={2} />
                                         </Button>
-                                        <Button size="icon" variant="ghost" className="h-7 w-7 text-slate-400" onClick={() => setEditingId(null)}>
-                                          <X className="w-3.5 h-3.5" />
+                                        <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:bg-muted rounded-lg" onClick={() => setEditingId(null)}>
+                                          <X size={14} strokeWidth={2} />
                                         </Button>
                                       </div>
                                     ) : (
                                       <div className="flex gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <Button size="icon" variant="ghost" className="h-7 w-7 text-blue-500" onClick={() => { setEditingId(f.id); setEditAmount(f.amount.toString()); }}>
-                                          <Pencil className="w-3.5 h-3.5" />
-                                        </Button>
-                                        <Button size="icon" variant="ghost" className="h-7 w-7 text-red-500" onClick={() => handleDelete(f.id)}>
-                                          <Trash2 className="w-3.5 h-3.5" />
-                                        </Button>
+                                        {userRole === 'admin' && (
+                                          <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg" onClick={() => { setEditingId(f.id); setEditAmount(f.amount.toString()); }}>
+                                            <Pencil className="w-4 h-4" />
+                                          </Button>
+                                        )}
+                                        {userRole === 'admin' && (
+                                          <Button size="icon" variant="ghost" className="h-8 w-8 text-red-500 hover:bg-red-50 hover:text-red-600 rounded-lg" onClick={() => handleDelete(f.id)}>
+                                            <Trash size={14} strokeWidth={2} />
+                                          </Button>
+                                        )}
                                       </div>
                                     )}
                                   </TableCell>

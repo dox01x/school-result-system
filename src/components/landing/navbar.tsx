@@ -42,7 +42,7 @@ export function Navbar() {
             <GraduationCap className="w-5 h-5 text-white" />
           </div>
           <span className="text-lg font-heading font-bold text-brand">
-            ResultPro
+            School Management System
           </span>
         </Link>
 

@@ -33,9 +33,9 @@ type Props = {
 
 export function AttendanceChart({ data, label }: Props) {
     return (
-        <div className="bg-card rounded-2xl p-5 border border-border shadow-sm">
+        <div className="bg-card rounded-2xl p-5 border border-border">
             <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-semibold text-slate-800 font-heading">Attendance Overview</h3>
+                <h3 className="text-sm font-semibold text-foreground font-heading">Attendance Overview</h3>
                 <span className="text-[10px] text-slate-400 font-medium">{label}</span>
             </div>
             <div className="flex items-center gap-6">
@@ -52,12 +52,12 @@ export function AttendanceChart({ data, label }: Props) {
                 <div className="space-y-3 flex-1">
                     {data.map((item) => (
                         <div key={item.name} className="flex items-center justify-between">
-                            <div className="flex items-center gap-2"><div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: item.color }} /><span className="text-xs text-slate-500">{item.name}</span></div>
-                            <span className="text-xs font-semibold text-slate-700">{item.value}%</span>
+                            <div className="flex items-center gap-2"><div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: item.color }} /><span className="text-xs text-muted-foreground">{item.name}</span></div>
+                            <span className="text-xs font-semibold text-foreground">{item.value}%</span>
                         </div>
                     ))}
-                    <div className="pt-2 border-t border-slate-100">
-                        <div className="flex items-center justify-between"><span className="text-[10px] text-slate-400">Total</span><span className="text-xs font-bold text-slate-700">{data.reduce((acc, row) => acc + row.count, 0)}</span></div>
+                    <div className="pt-2 border-t border-border/30">
+                        <div className="flex items-center justify-between"><span className="text-[10px] text-slate-400">Total</span><span className="text-xs font-bold text-foreground">{data.reduce((acc, row) => acc + row.count, 0)}</span></div>
                     </div>
                 </div>
             </div>

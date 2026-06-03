@@ -47,23 +47,25 @@ export function StatsCards({ students, classes, sections, exams }: Props) {
     const examsCount = useCountUp(exams);
 
     const cards = [
-        { label: "Total Students", val: studentsCount, icon: GraduationCap, iconBg: "bg-blue-50", iconColor: "text-blue-600", href: "/dashboard/students" },
-        { label: "Active Classes", val: classesCount, icon: School, iconBg: "bg-emerald-50", iconColor: "text-emerald-600", href: "/dashboard/classes" },
-        { label: "Sections", val: sectionsCount, icon: Users, iconBg: "bg-violet-50", iconColor: "text-violet-600", href: "/dashboard/classes" },
-        { label: "Total Exams", val: examsCount, icon: ClipboardList, iconBg: "bg-rose-50", iconColor: "text-rose-500", href: "/dashboard/exams" },
+        { label: "Total Students", val: studentsCount, icon: GraduationCap, iconBg: "bg-muted", iconColor: "text-foreground group-hover:scale-110", href: "/dashboard/students" },
+        { label: "Active Classes", val: classesCount, icon: School, iconBg: "bg-muted", iconColor: "text-foreground group-hover:scale-110", href: "/dashboard/classes" },
+        { label: "Sections", val: sectionsCount, icon: Users, iconBg: "bg-muted", iconColor: "text-foreground group-hover:scale-110", href: "/dashboard/classes" },
+        { label: "Total Exams", val: examsCount, icon: ClipboardList, iconBg: "bg-muted", iconColor: "text-foreground group-hover:scale-110", href: "/dashboard/exams" },
     ];
 
     return (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 stagger-children">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 stagger-children">
             {cards.map((c) => (
                 <Link key={c.label} href={c.href}>
-                    <div className="bg-card rounded-2xl p-5 border border-border shadow-sm hover-lift cursor-pointer">
-                        <div className="flex items-start justify-between mb-3">
-                            <div className={`${c.iconBg} rounded-xl p-2.5`}><c.icon className={`h-5 w-5 ${c.iconColor}`} strokeWidth={1.8} /></div>
-                            <TrendingUp className="h-4 w-4 text-emerald-500" />
+                    <div className="group bg-card rounded-2xl p-6 border border-border shadow-sm hover:border-border dark:hover:border-border hover:shadow-md transition-all duration-300 cursor-pointer flex flex-col justify-between h-full">
+                        <div className="flex items-start justify-between mb-6">
+                            <div className={`${c.iconBg} rounded-2xl p-3.5 transition-transform duration-300`}><c.icon className={`h-6 w-6 ${c.iconColor} transition-transform duration-300`} strokeWidth={1.5} /></div>
+                            <TrendingUp className="h-5 w-5 text-muted-foreground/40 dark:text-muted-foreground group-hover:text-foreground dark:group-hover:text-muted-foreground/40 transition-colors" strokeWidth={2} />
                         </div>
-                        <div className="text-2xl font-bold text-slate-800 tabular-nums">{c.val}</div>
-                        <p className="text-xs text-slate-400 mt-1 font-medium">{c.label}</p>
+                        <div>
+                            <div className="text-4xl font-black tracking-tighter text-foreground tabular-nums leading-none">{c.val}</div>
+                            <p className="text-sm text-muted-foreground mt-2 font-semibold">{c.label}</p>
+                        </div>
                     </div>
                 </Link>
             ))}

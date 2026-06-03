@@ -20,7 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { BarChart3, Sparkles, Printer, Eye, AlertCircle, Download, X } from "lucide-react";
+import { BarChart as ChartBar, Sparkles as Sparkle, Printer, Eye, AlertCircle as WarningCircle, Download as DownloadSimple, X } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
@@ -489,11 +489,8 @@ export default function ResultsPage() {
     };
 
     const getGradeColor = (g: string) => {
-        if (g === "A+" || g === "A") return "bg-emerald-100 text-primary dark:bg-emerald-500/10 dark:text-emerald-400";
-        if (g === "A-" || g === "B+") return "bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400";
-        if (g === "B" || g === "B-") return "bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400";
-        if (g === "F" || g === "N/A") return "bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400";
-        return "bg-muted text-muted-foreground";
+        if (g === "F" || g === "N/A") return "bg-red-50 text-red-600 border border-red-200/50 rounded-md shadow-none font-semibold";
+        return "bg-muted/50 border border-border/50 text-foreground rounded-md shadow-none font-semibold";
     };
 
     const filteredResults = results.filter((r) => {
@@ -600,7 +597,7 @@ ${schoolInfo?.logo_url ? `<img src="${escapeHtml(schoolInfo.logo_url)}" alt="Log
 <h1>${schoolName}</h1>
 ${schoolAddress ? `<div class="ad">${schoolAddress}</div>` : ""}
 ${(schoolPhone || schoolEmail) ? `<div class="ct">${[schoolPhone ? "Phone: " + schoolPhone : "", schoolEmail ? "Email: " + schoolEmail : ""].filter(Boolean).join("  |  ")}</div>` : ""}
-<div class="tbar"><h2>${isFinal ? "Final Academic Result" : "Academic Report Card"}</h2><div class="en">${en}</div><div class="en" style="font-size:11px;margin-top:2px">Academic Year: ${escapeHtml(selectedAcademicYear)}</div></div>
+<div class="tbar"><h2>${isFinal ? "Final Academic Result" : "Academic Report Card"}</h2><div class="en">${en}</div><div class="en" style="font-size:11px;margin-top:2px">Active Academic Year: ${escapeHtml(selectedAcademicYear)}</div></div>
 </div>
 <table class="itbl"><tr><td class="lb">Student Name</td><td class="vl">${studentName}</td><td class="lb">Class</td><td class="vl">${cn}</td></tr>
 <tr><td class="lb">Roll No.</td><td class="vl">${studentRoll}</td><td class="lb">Section</td><td class="vl">${sn || "-"}</td></tr>
@@ -714,7 +711,7 @@ ${schoolInfo?.logo_url ? `<img src="${schoolInfo.logo_url}" alt="Logo" style="he
 <h1>${schoolInfo?.name || "School Name"}</h1>
 ${schoolInfo?.address ? `<div class="ad">${schoolInfo.address}</div>` : ""}
 </div>
-<div class="tbar"><h2>Result Sheet</h2><div class="en">${en} — ${cn}${sn ? " (" + sn + ")" : ""}</div><div class="en" style="font-size:11px;margin-top:2px">Academic Year: ${selectedAcademicYear}</div></div>
+<div class="tbar"><h2>Result Sheet</h2><div class="en">${en} — ${cn}${sn ? " (" + sn + ")" : ""}</div><div class="en" style="font-size:11px;margin-top:2px">Active Academic Year: ${selectedAcademicYear}</div></div>
 <div class="info">Total Students: ${sorted.length}</div>
 <table>
 <thead><tr>
@@ -783,89 +780,89 @@ body{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !impor
     return (
         <div className="space-y-6">
             <PageHeader
-                icon={BarChart3}
-                iconBg="bg-amber-50"
-                iconColor="text-amber-600"
+                icon={ChartBar}
+                iconBg="bg-primary/10"
+                iconColor="text-primary"
                 title="Results"
                 subtitle="Generate and view exam results."
             />
 
-            <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-4">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    <div className="flex flex-col">
-                        <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold mb-1.5">Class</p>
+            <div className="bg-card rounded-2xl border border-border/50 shadow-none p-5">
+                <div className="flex items-center gap-4 flex-wrap">
+                    <div className="flex-1 min-w-[140px]">
+                        <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-2 px-1">Class</p>
                         <Select value={selectedClass} onValueChange={(v) => { setSelectedClass(v); setGenerated(false); }}>
-                            <SelectTrigger className="w-full h-9 rounded-lg border-slate-200 bg-white text-sm"><SelectValue placeholder="Select Class" /></SelectTrigger>
-                            <SelectContent>{classes.map((c) => (<SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>))}</SelectContent>
+                            <SelectTrigger className="w-full h-11 rounded-xl border-0 bg-muted hover:bg-muted/80 transition-colors text-foreground font-semibold shadow-none focus:ring-1 focus:ring-ring/30"><SelectValue placeholder="Select Class" /></SelectTrigger>
+                            <SelectContent className="rounded-xl border-border/50 shadow-md">{classes.map((c) => (<SelectItem key={c.id} value={c.id} className="rounded-lg">{c.name}</SelectItem>))}</SelectContent>
                         </Select>
                     </div>
-                    <div className="flex flex-col">
-                        <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold mb-1.5">Section</p>
+                    <div className="flex-1 min-w-[140px]">
+                        <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-2 px-1">Section</p>
                         <Select value={selectedSection} onValueChange={(v) => { setSelectedSection(v); setGenerated(false); }}>
-                            <SelectTrigger className="w-full h-9 rounded-lg border-slate-200 bg-white text-sm"><SelectValue placeholder="All Sections" /></SelectTrigger>
-                            <SelectContent><SelectItem value="all">All Sections</SelectItem>{sections.map((s) => (<SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>))}</SelectContent>
+                            <SelectTrigger className="w-full h-11 rounded-xl border-0 bg-muted hover:bg-muted/80 transition-colors text-foreground font-semibold shadow-none focus:ring-1 focus:ring-ring/30"><SelectValue placeholder="All Sections" /></SelectTrigger>
+                            <SelectContent className="rounded-xl border-border/50 shadow-md"><SelectItem value="all" className="rounded-lg">All Sections</SelectItem>{sections.map((s) => (<SelectItem key={s.id} value={s.id} className="rounded-lg">{s.name}</SelectItem>))}</SelectContent>
                         </Select>
                     </div>
-                    <div className="flex flex-col">
-                        <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold mb-1.5">Exam</p>
+                    <div className="flex-1 min-w-[140px]">
+                        <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-2 px-1">Exam</p>
                         <Select value={selectedExam} onValueChange={(v) => { setSelectedExam(v); setGenerated(false); }}>
-                            <SelectTrigger className="w-full h-9 rounded-lg border-slate-200 bg-white text-sm"><SelectValue placeholder="Select Exam" /></SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value={FINAL_RESULT_ID}>Final Result (Annual)</SelectItem>
-                                {exams.map((e) => (<SelectItem key={e.id} value={e.id}>{e.name}{e.exam_type === "semester" && " (Combined)"}</SelectItem>))}
+                            <SelectTrigger className="w-full h-11 rounded-xl border-0 bg-muted hover:bg-muted/80 transition-colors text-foreground font-semibold shadow-none focus:ring-1 focus:ring-ring/30"><SelectValue placeholder="Select Exam" /></SelectTrigger>
+                            <SelectContent className="rounded-xl border-border/50 shadow-md">
+                                <SelectItem value={FINAL_RESULT_ID} className="rounded-lg">Final Result (Annual)</SelectItem>
+                                {exams.map((e) => (<SelectItem key={e.id} value={e.id} className="rounded-lg">{e.name}{e.exam_type === "semester" && " (Combined)"}</SelectItem>))}
                             </SelectContent>
                         </Select>
                     </div>
-                    <div className="flex flex-col">
-                        <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold mb-1.5">Year</p>
+                    <div className="flex-1 min-w-[140px]">
+                        <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-2 px-1">Year</p>
                         <Select value={selectedAcademicYear} onValueChange={(v) => { setSelectedAcademicYear(v); setGenerated(false); }}>
-                            <SelectTrigger className="w-full h-9 rounded-lg border-slate-200 bg-white text-sm"><SelectValue placeholder="Academic Year" /></SelectTrigger>
-                            <SelectContent>
-                                {academicYearOptions.map((y) => (<SelectItem key={y} value={y}>{y}</SelectItem>))}
+                            <SelectTrigger className="w-full h-11 rounded-xl border-0 bg-muted hover:bg-muted/80 transition-colors text-foreground font-semibold shadow-none focus:ring-1 focus:ring-ring/30"><SelectValue placeholder="Active Academic Year" /></SelectTrigger>
+                            <SelectContent className="rounded-xl border-border/50 shadow-md">
+                                {academicYearOptions.map((y) => (<SelectItem key={y} value={y} className="rounded-lg">{y}</SelectItem>))}
                             </SelectContent>
                         </Select>
                     </div>
                 </div>
-                <div className="mt-4 flex justify-end">
-                    <Button onClick={handleGenerate} disabled={!selectedClass || !selectedExam || processing} className="bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-all duration-200 btn-press h-9 w-full sm:w-auto">
-                        <Sparkles className="h-4 w-4 mr-2" />{processing ? "Generating..." : "Generate Result"}
+                <div className="mt-5 flex justify-end">
+                    <Button onClick={handleGenerate} disabled={!selectedClass || !selectedExam || processing} className="bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 shadow-none font-semibold transition-all duration-200 btn-press h-11 px-6 w-full sm:w-auto">
+                        <Sparkle size={16} strokeWidth={1.5} className="mr-2" />{processing ? "Generating..." : "Generate Result"}
                     </Button>
                 </div>
             </div>
 
-            {isFinal && (<Card className="border-primary/20 bg-primary/5"><CardContent className="py-3"><p className="text-sm text-primary"><strong>Final Result:</strong> 1st Semester (25%) + 2nd Semester (25%) + 3rd Semester (50%)</p></CardContent></Card>)}
+            {isFinal && (<Card className="border-0 bg-muted/50 shadow-none rounded-2xl"><CardContent className="py-4"><p className="text-sm text-muted-foreground font-medium"><strong>Final Result:</strong> 1st Semester (25%) + 2nd Semester (25%) + 3rd Semester (50%)</p></CardContent></Card>)}
 
-            {gradingRules.length === 0 && (<Card className="border-amber-200 bg-amber-50 dark:border-amber-500/30 dark:bg-amber-500/5"><CardContent className="flex items-center gap-3 py-3"><AlertCircle className="h-5 w-5 text-amber-600" /><p className="text-sm text-amber-700 dark:text-amber-400">No grading rules. Go to Exams &gt; Grading System.</p></CardContent></Card>)}
+            {gradingRules.length === 0 && (<Card className="border-0 bg-red-50 shadow-none rounded-2xl"><CardContent className="flex items-center gap-3 py-4"><WarningCircle size={20} strokeWidth={1.5} className="text-red-500" /><p className="text-sm text-red-600 font-medium">No grading rules. Go to Exams &gt; Grading System.</p></CardContent></Card>)}
 
-            {!generated && (<div className="bg-white rounded-2xl border-2 border-dashed border-slate-200 p-12 text-center"><div className="h-12 w-12 rounded-xl bg-amber-50 flex items-center justify-center mb-4 mx-auto"><BarChart3 className="h-6 w-6 text-amber-500" /></div><h3 className="font-semibold text-lg text-slate-800 font-heading mb-1">Generate Results</h3><p className="text-sm text-muted-foreground max-w-sm mx-auto">Select class, section, and exam type.</p></div>)}
+            {!generated && (<div className="bg-transparent rounded-2xl border-2 border-dashed border-border/50 p-12 text-center shadow-none"><div className="h-12 w-12 rounded-xl flex items-center justify-center mb-4 mx-auto text-muted-foreground/40"><ChartBar size={32} strokeWidth={1.2} /></div><h3 className="font-semibold text-lg text-foreground mb-1">Generate Results</h3><p className="text-sm text-muted-foreground max-w-sm mx-auto">Select class, section, and exam type.</p></div>)}
 
             {generated && results.length > 0 && (
-                <Card>
-                    <CardHeader className="pb-3">
+                <Card className="bg-card rounded-2xl border-border/50 shadow-none overflow-hidden">
+                    <CardHeader className="pb-3 bg-white">
                         <CardTitle className="text-base flex items-center gap-2 flex-wrap">
                             {classes.find((c) => c.id === selectedClass)?.name}
-                            {selectedSection && selectedSection !== "all" && <Badge variant="outline">{sections.find((s) => s.id === selectedSection)?.name}</Badge>}
+                            {selectedSection && selectedSection !== "all" && <Badge variant="outline" className="bg-muted/50 border-border/50 text-muted-foreground rounded-md shadow-none">{sections.find((s) => s.id === selectedSection)?.name}</Badge>}
                             <span className="text-muted-foreground">-</span>
                             {isFinal ? "Final Result" : selectedExamObj?.name}
-                            {isFinal && <Badge className="bg-primary/10 text-primary">Annual</Badge>}
-                            {isSemester && <Badge variant="secondary">Combined</Badge>}
-                            <Badge variant="secondary" className="ml-auto">{results.length} students</Badge>
+                            {isFinal && <Badge className="bg-muted text-foreground border-0 rounded-md shadow-none hover:bg-muted/80">Annual</Badge>}
+                            {isSemester && <Badge variant="secondary" className="bg-muted text-foreground border-0 rounded-md shadow-none hover:bg-muted/80">Combined</Badge>}
+                            <Badge variant="secondary" className="ml-auto bg-muted text-muted-foreground border-0 rounded-md font-medium shadow-none hover:bg-muted/80">{results.length} students</Badge>
                         </CardTitle>
                         <div className="flex gap-2 mt-2 flex-wrap">
                             <Input
                                 placeholder="Search by name or roll..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-[220px] h-8"
+                                className="w-[220px] h-9 rounded-lg bg-muted border-0 focus-visible:ring-1 focus-visible:ring-ring/30 px-3"
                             />
-                            <Button variant="outline" size="sm" onClick={handleDownloadCSV}>
-                                <Download className="h-4 w-4 mr-1" />Download CSV
+                            <Button variant="outline" size="sm" className="h-9 rounded-lg bg-muted border-0 hover:bg-muted/80 transition-colors text-foreground font-medium shadow-none" onClick={handleDownloadCSV}>
+                                <DownloadSimple size={14} strokeWidth={1.5} className="mr-1.5" />Download CSV
                             </Button>
-                            <Button variant="outline" size="sm" onClick={handlePrintAll}>
-                                <Printer className="h-4 w-4 mr-1" />Print Summary
+                            <Button variant="outline" size="sm" className="h-9 rounded-lg bg-muted border-0 hover:bg-muted/80 transition-colors text-foreground font-medium shadow-none" onClick={handlePrintAll}>
+                                <Printer size={14} strokeWidth={1.5} className="mr-1.5" />Print Summary
                             </Button>
-                            <Button variant="outline" size="sm" onClick={handlePrintAllCards}>
-                                <Printer className="h-4 w-4 mr-1" />Print All Cards
+                            <Button variant="outline" size="sm" className="h-9 rounded-lg bg-muted border-0 hover:bg-muted/80 transition-colors text-foreground font-medium shadow-none" onClick={handlePrintAllCards}>
+                                <Printer size={14} strokeWidth={1.5} className="mr-1.5" />Print All Cards
                             </Button>
                         </div>
                     </CardHeader>
@@ -881,7 +878,7 @@ body{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !impor
                             </TableRow></TableHeader>
                             <TableBody>
                                 {filteredResults.map((r) => (
-                                    <TableRow key={r.student.id}>
+                                    <TableRow key={r.student.id} className="hover:bg-muted/30 transition-colors border-b-border/50">
                                         <TableCell className="font-mono">{r.student.roll}</TableCell>
                                         <TableCell className="font-medium whitespace-nowrap">{r.student.name}</TableCell>
                                         {(!selectedSection || selectedSection === "all") && <TableCell className="text-muted-foreground hidden sm:table-cell">{sections.find((s) => s.id === r.student.section_id)?.name || "-"}</TableCell>}
@@ -890,7 +887,7 @@ body{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !impor
                                         <TableCell className="text-center font-mono">{r.displayGpa.toFixed(2)}</TableCell>
                                         <TableCell className="text-center"><Badge className={getGradeColor(r.grade)}>{r.grade}</Badge></TableCell>
                                         {(showPosition || isFinal) && <TableCell className="text-center font-semibold hidden md:table-cell">{r.position}{r.position ? posSuffix(r.position) : "-"}</TableCell>}
-                                        <TableCell className="text-center"><Button variant="ghost" size="sm" onClick={() => setReportStudent(r)}><Eye className="h-4 w-4 mr-1 hidden sm:inline" />View</Button></TableCell>
+                                        <TableCell className="text-center"><Button variant="ghost" size="sm" className="rounded-lg hover:bg-muted font-medium" onClick={() => setReportStudent(r)}><Eye size={14} strokeWidth={1.5} className="mr-1.5 hidden sm:inline" />View</Button></TableCell>
                                     </TableRow>
                                 ))}
                             </TableBody>
@@ -901,16 +898,16 @@ body{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !impor
 
             {/* Preview Dialog */}
             <Dialog open={!!reportStudent} onOpenChange={(o) => (!o ? setReportStudent(null) : null)}>
-                <DialogContent className="w-full max-h-[95vh] overflow-y-auto p-0 bg-card outline-none [&::-webkit-scrollbar]:hidden [&>button]:hidden" style={{ msOverflowStyle: "none", scrollbarWidth: "none", maxWidth: "780px", width: "100%" }}>
-                    <div className="flex justify-between items-center px-4 py-2 sticky top-0 bg-card z-10 border-b">
-                        <DialogTitle className="text-lg font-bold">Report Card Preview</DialogTitle>
-                        <div className="flex items-center gap-2">
-                            <Button variant="outline" size="sm" onClick={() => reportStudent && handlePrint(reportStudent)}>
-                                <Printer className="h-4 w-4 mr-1" />Print
+                <DialogContent className="w-full max-h-[95vh] overflow-y-auto p-0 bg-card outline-none rounded-3xl border-border/50 shadow-2xl [&::-webkit-scrollbar]:hidden [&>button]:hidden" style={{ msOverflowStyle: "none", scrollbarWidth: "none", maxWidth: "780px", width: "100%" }}>
+                    <div className="flex justify-between items-center px-6 py-4 sticky top-0 bg-card z-10 border-b border-border/50">
+                        <DialogTitle className="text-lg font-bold text-foreground">Report Card Preview</DialogTitle>
+                        <div className="flex items-center gap-3">
+                            <Button variant="outline" size="sm" className="h-9 rounded-lg bg-muted border-0 hover:bg-muted/80 transition-colors text-foreground font-medium shadow-none px-4" onClick={() => reportStudent && handlePrint(reportStudent)}>
+                                <Printer size={16} strokeWidth={1.5} className="mr-2" />Print
                             </Button>
                             <DialogClose asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
-                                    <X className="h-4 w-4" />
+                                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full shrink-0 hover:bg-muted bg-muted/50 text-muted-foreground">
+                                    <X size={18} strokeWidth={1.5} />
                                 </Button>
                             </DialogClose>
                         </div>

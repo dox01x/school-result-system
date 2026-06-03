@@ -3,7 +3,7 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Save, Check, Loader2 } from "lucide-react";
+import { Save as FloppyDisk, Check, Loader2 as SpinnerGap } from "lucide-react";
 
 interface MarksToolbarProps {
     subjectName: string;
@@ -31,32 +31,32 @@ const MarksToolbar = React.memo(function MarksToolbar({
     onSave,
 }: MarksToolbarProps) {
     return (
-        <div className="flex items-center justify-between px-5 py-3.5 border-b bg-muted/20">
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-border/50 bg-card">
             <div className="flex items-center gap-3">
                 <h2 className="text-base font-semibold text-foreground">
                     {subjectName}
                     <span className="text-muted-foreground font-normal mx-1.5">—</span>
                     <span className="text-muted-foreground font-normal">{examName}</span>
                 </h2>
-                <Badge variant="outline" className="text-xs font-mono">
+                <Badge variant="outline" className="border-border/50 text-muted-foreground rounded-md bg-muted/50 font-mono text-[10px] uppercase tracking-wider">
                     FM: {fullMarks}
                 </Badge>
             </div>
             <div className="flex items-center gap-2.5">
-                <Badge variant="secondary" className="text-xs">
+                <Badge variant="secondary" className="bg-muted text-muted-foreground border-0 rounded-md font-medium text-xs">
                     {studentCount} students
                 </Badge>
 
                 {/* Auto-save status indicator */}
                 {saving && (
-                    <div className="flex items-center gap-1.5 text-xs text-blue-600 font-medium">
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    <div className="flex items-center gap-1.5 text-xs text-primary font-medium">
+                        <SpinnerGap size={12} strokeWidth={1.5} className="animate-spin" />
                         <span>Saving…</span>
                     </div>
                 )}
                 {!saving && !hasUnsaved && (
                     <div className="flex items-center gap-1.5 text-xs text-emerald-600 font-medium">
-                        <Check className="h-3.5 w-3.5" />
+                        <Check size={12} strokeWidth={1.5} />
                         <span>All saved</span>
                     </div>
                 )}
@@ -71,10 +71,9 @@ const MarksToolbar = React.memo(function MarksToolbar({
                     onClick={onSave}
                     disabled={saving || hasErrors}
                     size="sm"
-                    variant={hasUnsaved ? "default" : "outline"}
-                    className="h-8 px-4 text-xs font-medium"
+                    className={hasUnsaved ? "bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 font-semibold shadow-none h-8 px-4 text-xs transition-all duration-200" : "border-border/50 text-foreground font-semibold rounded-lg hover:bg-muted transition-all duration-200 h-8 px-4 text-xs bg-transparent border"}
                 >
-                    <Save className="h-3.5 w-3.5 mr-1.5" />
+                    <FloppyDisk size={14} strokeWidth={1.5} className="mr-1.5" />
                     {saving ? "Saving…" : "Save All"}
                 </Button>
             </div>

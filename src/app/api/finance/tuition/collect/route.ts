@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { generateReceiptNumber } from '@/lib/finance-utils';
+import { generateReceiptNumber, getMonthName } from '@/lib/finance-utils';
+import { sendPaymentConfirmationSms } from '@/lib/sms-gateway';
 import { ApiResponse, TuitionPayment } from '@/types/finance';
 
 export async function POST(request: Request) {
@@ -35,9 +36,14 @@ export async function POST(request: Request) {
         const details = payment.fee_details || [];
         for (const fd of details) {
           if (fd.type === 'arrears') continue; // arrears can be paid multiple times
-          const key = fd.month 
-            ? `${fd.type}__${fd.month}__${fd.year || year}` 
-            : `${fd.type}__yearly__${fd.year || year}`;
+          let key: string;
+          if (fd.month) {
+            key = `${fd.type}__${fd.month}__${fd.year || year}`;
+          } else if (fd.exam_name) {
+            key = `${fd.type}__${fd.exam_name}__${fd.year || year}`;
+          } else {
+            key = `${fd.type}__yearly__${fd.year || year}`;
+          }
           paidItems.add(key);
           paidItemDetails[key] = { 
             receipt: payment.receipt_number, 
@@ -49,20 +55,25 @@ export async function POST(request: Request) {
 
     // Check submitted fee_details against already-paid items
     const conflicts: string[] = [];
-    const monthNames = ['', 'January', 'February', 'March', 'April', 'May', 'June', 
-                        'July', 'August', 'September', 'October', 'November', 'December'];
 
     for (const item of fee_details) {
       if (item.type === 'arrears') continue;
-      const key = item.month 
-        ? `${item.type}__${item.month}__${item.year || year}` 
-        : `${item.type}__yearly__${item.year || year}`;
+      let key: string;
+      if (item.month) {
+        key = `${item.type}__${item.month}__${item.year || year}`;
+      } else if (item.exam_name) {
+        key = `${item.type}__${item.exam_name}__${item.year || year}`;
+      } else {
+        key = `${item.type}__yearly__${item.year || year}`;
+      }
       
       if (paidItems.has(key)) {
         const detail = paidItemDetails[key];
         const label = item.month 
-          ? `${item.type} (${monthNames[item.month]})` 
-          : item.type;
+          ? `${item.type} (${getMonthName(item.month)})` 
+          : item.exam_name
+            ? `${item.type.replace('_', ' ')} (${item.exam_name})`
+            : item.type;
         conflicts.push(`${label} — already paid on ${detail.date} (Receipt: ${detail.receipt})`);
       }
     }
@@ -122,7 +133,7 @@ export async function POST(request: Request) {
 
     // Auto income entry
     await supabase.from('income_entries').insert({
-      category: fee_type === 'arrears' ? 'arrears' : (fee_type === 'tuition' ? 'tuition' : 'other'),
+      category: fee_type === 'arrears' ? 'arrears' : (fee_type === 'tuition' ? 'tuition' : (['mct_exam', 'semester_exam', 'exam'].includes(fee_type as string) ? 'exam_fee' : 'other')),
       amount: amount_paid,
       description: `Fees collected (${feeTypes.join(', ')}) - Receipt: ${receipt_number}`,
       received_from: student_id,
@@ -133,6 +144,36 @@ export async function POST(request: Request) {
       month: primary_month || new Date().getMonth() + 1,
       year: year
     });
+
+    // ═══════════════════ SMS CONFIRMATION (fire-and-forget) ═══════════════════
+    // Send SMS to guardian's phone. This must NEVER block payment completion.
+    try {
+      // Fetch student phone and school name for SMS
+      const { data: studentData } = await supabase
+        .from('students')
+        .select('name, phone')
+        .eq('id', student_id)
+        .single();
+      const { data: schoolData } = await supabase
+        .from('school_info')
+        .select('name')
+        .limit(1)
+        .single();
+
+      if (studentData?.phone) {
+        // Don't await — fire and forget so SMS failure never blocks the response
+        sendPaymentConfirmationSms({
+          phone: studentData.phone,
+          studentName: studentData.name,
+          amount: amount_paid,
+          receiptNumber: receipt_number,
+          schoolName: schoolData?.name
+        }).catch(() => {}); // silently ignore SMS errors
+      }
+    } catch {
+      // SMS errors must never affect payment flow
+    }
+    // ═══════════════════ END SMS ═══════════════════
 
     return NextResponse.json({ success: true, data: tuitionResult } as ApiResponse<TuitionPayment>);
   } catch (error: any) {

@@ -52,7 +52,7 @@ export async function POST(request: Request) {
     // @ts-ignore
     const { data, error } = await supabase
       .from('income_entries')
-      .insert({ category, amount, description, received_from, payment_method, received_by, income_date, month, year })
+      .insert({ category, amount, description, received_from, payment_method, received_by, income_date, academic_year: year.toString(), month, year })
       .select()
       .single();
       

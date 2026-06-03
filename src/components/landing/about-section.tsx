@@ -16,7 +16,7 @@ export function AboutSection() {
             <span className="text-brand-accent">Lifelong Learning</span>
           </h2>
           <p className="text-base font-normal leading-relaxed text-slate-600 max-w-lg">
-            ResultPro is more than a school management tool — it&apos;s an ecosystem
+            School Management System is more than a school management tool — it&apos;s an ecosystem
             designed to nurture academic growth. We combine modern technology
             with proven educational practices to create an environment where
             every student can thrive.

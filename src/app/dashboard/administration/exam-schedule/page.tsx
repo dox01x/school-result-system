@@ -16,10 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-    CalendarCheck, Plus, Trash2, Printer, X, CalendarPlus,
-    AlertCircle, Bold, Italic, Underline, Type, Layers, Pencil
-} from "lucide-react";
+import { CalendarCheck, Plus, Trash2 as Trash, Printer, X, CalendarPlus, AlertCircle as WarningCircle, Bold as TextB, Italic as TextItalic, Underline as TextUnderline, Type as TextT, Layers as Stack, Pencil } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { toast } from "sonner";
 
@@ -367,14 +364,12 @@ export default function ExamSchedulePage() {
             {/* Header */}
             <PageHeader
                 icon={CalendarCheck}
-                iconBg="bg-emerald-50"
-                iconColor="text-emerald-600"
                 title="Exam Schedule"
                 subtitle="Create exam routines with shifts. Manage dates, classes, and print."
                 actions={
                     hasGrid ? (
                         <Button variant="outline" size="sm" onClick={handlePrint} className="gap-1.5">
-                            <Printer className="h-4 w-4" /> Print
+                            <Printer size={16} strokeWidth={1.5} className=" " /> Print
                         </Button>
                     ) : undefined
                 }
@@ -403,7 +398,7 @@ export default function ExamSchedulePage() {
                                     </SelectContent>
                                 </Select>
                                 <Button variant="outline" size="icon" className="h-9 w-9" onClick={openAddShift} title="Add Shift">
-                                    <Plus className="h-4 w-4" />
+                                    <Plus size={16} strokeWidth={1.5} className=" " />
                                 </Button>
                                 {selectedShift && (
                                     <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => openEditShift(selectedShift)} title="Edit Shift">
@@ -481,7 +476,7 @@ export default function ExamSchedulePage() {
                                                             onClick={(e) => { e.stopPropagation(); handleDeleteEntry(entry.id); }}
                                                             className="delete-btn no-print"
                                                         >
-                                                            <X className="h-3 w-3" />
+                                                            <X size={12} strokeWidth={1.5} className=" " />
                                                         </button>
                                                     </div>
                                                 ) : (
@@ -534,7 +529,7 @@ export default function ExamSchedulePage() {
                 return (
                     <div className="mt-3 p-3 rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-700 no-print">
                         <div className="flex items-center gap-1.5 text-amber-700 dark:text-amber-400 font-semibold text-sm mb-2">
-                            <AlertCircle className="h-4 w-4" /> Missing Subjects
+                            <WarningCircle size={16} strokeWidth={1.5} className=" " /> Missing Subjects
                         </div>
                         <div className="space-y-1">
                             {missingByClass.map((item) => (
@@ -551,7 +546,7 @@ export default function ExamSchedulePage() {
             {hasGrid && (
                 <div className="exam-instructions-section">
                     <h3 className="text-sm font-semibold mb-3 no-print flex items-center gap-1.5">
-                        <Type className="h-4 w-4" /> Instructions
+                        <TextT className="h-4 w-4" /> Instructions
                     </h3>
 
                     {/* Add instruction - no-print */}
@@ -564,7 +559,7 @@ export default function ExamSchedulePage() {
                             className="flex-1"
                         />
                         <Button size="sm" onClick={addInstruction} className="gap-1">
-                            <Plus className="h-3.5 w-3.5" /> Add
+                            <Plus size={12} strokeWidth={1.5} className=".5 .5" /> Add
                         </Button>
                     </div>
 
@@ -587,17 +582,17 @@ export default function ExamSchedulePage() {
                                             {inst.text}
                                         </span>
                                         <div className="instruction-actions no-print">
-                                            <button onClick={() => toggleStyle(inst.id, "bold")} className={`action-btn ${inst.bold ? "active" : ""}`} title="Bold">
-                                                <Bold className="h-3 w-3" />
+                                            <button onClick={() => toggleStyle(inst.id, "bold")} className={`action-btn ${inst.bold ? "active" : ""}`} title="TextB">
+                                                <TextB className="h-3 w-3" />
                                             </button>
-                                            <button onClick={() => toggleStyle(inst.id, "italic")} className={`action-btn ${inst.italic ? "active" : ""}`} title="Italic">
-                                                <Italic className="h-3 w-3" />
+                                            <button onClick={() => toggleStyle(inst.id, "italic")} className={`action-btn ${inst.italic ? "active" : ""}`} title="TextItalic">
+                                                <TextItalic className="h-3 w-3" />
                                             </button>
-                                            <button onClick={() => toggleStyle(inst.id, "underline")} className={`action-btn ${inst.underline ? "active" : ""}`} title="Underline">
-                                                <Underline className="h-3 w-3" />
+                                            <button onClick={() => toggleStyle(inst.id, "underline")} className={`action-btn ${inst.underline ? "active" : ""}`} title="TextUnderline">
+                                                <TextUnderline className="h-3 w-3" />
                                             </button>
                                             <button onClick={() => removeInstruction(inst.id)} className="action-btn delete" title="Remove">
-                                                <Trash2 className="h-3 w-3" />
+                                                <Trash size={12} strokeWidth={1.5} className=" " />
                                             </button>
                                         </div>
                                     </li>
@@ -613,7 +608,7 @@ export default function ExamSchedulePage() {
                 <DialogContent className="sm:max-w-md">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
-                            <Layers className="h-4 w-4" />
+                            <Stack className="h-4 w-4" />
                             {shiftForm.id ? "Edit" : "Create"} Shift
                         </DialogTitle>
                     </DialogHeader>
@@ -657,8 +652,8 @@ export default function ExamSchedulePage() {
                                 {shiftForm.id ? "Update Shift" : "Create Shift"}
                             </Button>
                             {shiftForm.id && (
-                                <Button variant="outline" className="text-red-600 hover:text-red-700 hover:bg-red-50" onClick={() => { deleteShift(shiftForm.id); setShiftDialogOpen(false); }}>
-                                    <Trash2 className="h-4 w-4" />
+                                <Button variant="outline" className="text-destructive hover:text-red-700 hover:bg-destructive/10" onClick={() => { deleteShift(shiftForm.id); setShiftDialogOpen(false); }}>
+                                    <Trash size={16} strokeWidth={1.5} className=" " />
                                 </Button>
                             )}
                         </div>
@@ -675,7 +670,7 @@ export default function ExamSchedulePage() {
                     <div className="grid gap-4 py-2">
                         <div className="flex gap-2">
                             <Input type="date" value={newDate} onChange={(e) => setNewDate(e.target.value)} className="flex-1" />
-                            <Button size="sm" onClick={addDate} className="gap-1"><Plus className="h-3.5 w-3.5" /> Add</Button>
+                            <Button size="sm" onClick={addDate} className="gap-1"><Plus size={12} strokeWidth={1.5} className=".5 .5" /> Add</Button>
                         </div>
                         {examDates.length > 0 ? (
                             <div className="space-y-1.5 max-h-[300px] overflow-y-auto">
@@ -687,8 +682,8 @@ export default function ExamSchedulePage() {
                                                 <span className="font-medium">{formatted}</span>
                                                 <span className="text-muted-foreground ml-2">({day})</span>
                                             </div>
-                                            <Button size="icon" variant="ghost" className="h-6 w-6 hover:text-red-600 hover:bg-red-50" onClick={() => removeDate(date)}>
-                                                <Trash2 className="h-3 w-3" />
+                                            <Button size="icon" variant="ghost" className="h-6 w-6 hover:text-destructive hover:bg-destructive/10" onClick={() => removeDate(date)}>
+                                                <Trash size={12} strokeWidth={1.5} className=" " />
                                             </Button>
                                         </div>
                                     );
@@ -701,7 +696,7 @@ export default function ExamSchedulePage() {
                 </DialogContent>
             </Dialog>
 
-            {/* Cell Edit Dialog */}
+            {/* Cell PencilSimple Dialog */}
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                 <DialogContent className="sm:max-w-sm">
                     <DialogHeader>
@@ -723,7 +718,7 @@ export default function ExamSchedulePage() {
                             </Select>
                             {activeSubjects.length === 0 && (
                                 <p className="text-xs text-amber-600 flex items-center gap-1">
-                                    <AlertCircle className="h-3 w-3" /> No subjects found for this class
+                                    <WarningCircle size={12} strokeWidth={1.5} className=" " /> No subjects found for this class
                                 </p>
                             )}
                         </div>

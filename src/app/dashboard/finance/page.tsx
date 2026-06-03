@@ -7,10 +7,11 @@ import { formatTaka, getMonthName } from '@/lib/finance-utils';
 import { FinanceSummary } from '@/types/finance';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
-import { 
-  Loader2, Receipt, Wallet, TrendingUp, TrendingDown, AlertTriangle, 
-  CreditCard, Users, ArrowUpRight, ArrowDownRight, Banknote, FileText, 
-  Settings, BarChart3, Clock 
+import { PageHeader } from '@/components/layout/page-header';
+import {
+  Loader2 as SpinnerGap, Receipt, Wallet, TrendingUp as TrendUp, TrendingDown as TrendDown, AlertCircle as Warning,
+  CreditCard, Users, ArrowUpRight, ArrowDownRight, Banknote as Money, FileText,
+  Settings as Gear, BarChart as ChartBar, Clock
 } from 'lucide-react';
 
 export default function FinanceDashboard() {
@@ -66,91 +67,105 @@ export default function FinanceDashboard() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <SpinnerGap size={32} strokeWidth={1.5} className="animate-spin text-foreground" />
       </div>
     );
   }
 
   const quickLinks = [
-    { href: '/dashboard/finance/tuition/collect', icon: Receipt, label: 'Collect Fees', desc: 'Record student payments', color: 'bg-emerald-500' },
-    { href: '/dashboard/finance/fee-structure', icon: Settings, label: 'Fee Structure', desc: 'Configure class-wise fees', color: 'bg-blue-500' },
-    { href: '/dashboard/finance/tuition/overdue', icon: AlertTriangle, label: 'Overdue Fees', desc: 'View defaulter list', color: 'bg-amber-500' },
-    { href: '/dashboard/finance/income', icon: TrendingUp, label: 'Other Income', desc: 'Donations, grants, rent', color: 'bg-primary' },
-    { href: '/dashboard/finance/expense', icon: TrendingDown, label: 'Expenses', desc: 'Bills, purchases, maintenance', color: 'bg-red-500' },
-    { href: '/dashboard/finance/salary/pay', icon: Users, label: 'Pay Salary', desc: 'Teachers & staff salary', color: 'bg-violet-500' },
-    { href: '/dashboard/finance/report/monthly', icon: BarChart3, label: 'Monthly Report', desc: 'Financial breakdown', color: 'bg-primary/80' },
-    { href: '/dashboard/finance/report/yearly', icon: FileText, label: 'Yearly Report', desc: 'Annual overview', color: 'bg-slate-500' },
+    { href: '/dashboard/finance/tuition/collect', icon: Receipt, label: 'Collect Fees', desc: 'Record student payments' },
+    { href: '/dashboard/finance/fee-structure', icon: Gear, label: 'Fee Structure', desc: 'Configure class-wise fees' },
+    { href: '/dashboard/finance/tuition/overdue', icon: Warning, label: 'Overdue Fees', desc: 'View defaulter list' },
+    { href: '/dashboard/finance/daily-closing', icon: CreditCard, label: 'Daily Closing', desc: 'End-of-day cash reconciliation' },
+    { href: '/dashboard/finance/income', icon: TrendUp, label: 'Other Income', desc: 'Donations, grants, rent' },
+    { href: '/dashboard/finance/expense', icon: TrendDown, label: 'Expenses', desc: 'Bills, purchases, maintenance' },
+    { href: '/dashboard/finance/salary/pay', icon: Users, label: 'Pay Salary', desc: 'Teachers & staff salary' },
+    { href: '/dashboard/finance/report/monthly', icon: ChartBar, label: 'Monthly Report', desc: 'Financial breakdown' },
   ];
 
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">Finance Management</h1>
-          <p className="text-muted-foreground text-sm mt-1">Overview for {getMonthName(currentMonth)} {currentYear}</p>
-        </div>
-        <Badge variant="outline" className="px-4 py-2 text-sm font-semibold">
-          <Clock className="w-3.5 h-3.5 mr-1.5" /> {currentDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-        </Badge>
-      </div>
+      <PageHeader
+        icon={Wallet}
+        title="Finance Management"
+        subtitle={`Overview for ${getMonthName(currentMonth)} ${currentYear}`}
+        actions={
+          <Badge variant="outline" className="px-4 py-2 text-sm font-medium bg-muted border-0 text-foreground rounded-md">
+            <Clock size={14} strokeWidth={1.5} className="mr-2" /> {currentDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+          </Badge>
+        }
+      />
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         {/* Today's Collection */}
-        <Card className="border-none shadow-lg bg-gradient-to-br from-emerald-500 to-emerald-600 text-white relative overflow-hidden">
-          <div className="absolute top-2 right-2 opacity-20"><Banknote className="w-16 h-16" /></div>
-          <CardContent className="pt-5">
-            <p className="text-xs font-bold uppercase tracking-wider text-emerald-100">Today's Collection</p>
-            <p className="text-2xl font-extrabold mt-1 font-mono">{formatTaka(todayCollection)}</p>
-            <p className="text-[11px] text-emerald-200 mt-1">{todayCount} payment(s) today</p>
+        <Card className="group bg-card rounded-2xl p-6 border border-border hover:border-border hover:bg-muted/30 transition-all duration-300 cursor-pointer shadow-none">
+          <CardContent className="p-0">
+            <div className="flex items-start justify-between mb-4">
+              <div className="bg-muted rounded-xl p-3">
+                <Money className="h-6 w-6 text-foreground group-hover:text-foreground transition-colors" strokeWidth={1.2} />
+              </div>
+              <TrendUp className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" strokeWidth={1.2} />
+            </div>
+            <div className="text-4xl font-black tracking-tighter text-foreground tabular-nums">{formatTaka(todayCollection).replace('৳', '')}</div>
+            <p className="text-sm text-muted-foreground mt-1.5 font-medium">Today's Collection</p>
           </CardContent>
         </Card>
 
         {/* Monthly Income */}
-        <Card className="border-none shadow-md bg-card relative overflow-hidden group hover:shadow-lg transition-shadow">
-          <div className="absolute top-0 left-0 w-1 h-full bg-emerald-400"></div>
-          <CardContent className="pt-5">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-              <ArrowUpRight className="w-3 h-3 text-primary" /> Monthly Income
-            </p>
-            <p className="text-xl font-extrabold mt-1 font-mono text-primary">{formatTaka(summary?.total_income || 0)}</p>
+        <Card className="group bg-card rounded-2xl p-6 border border-border hover:border-border hover:bg-muted/30 transition-all duration-300 cursor-pointer shadow-none">
+          <CardContent className="p-0">
+            <div className="flex items-start justify-between mb-4">
+              <div className="bg-muted rounded-xl p-3">
+                <TrendUp className="h-6 w-6 text-foreground group-hover:text-foreground transition-colors" strokeWidth={1.2} />
+              </div>
+              <TrendUp className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" strokeWidth={1.2} />
+            </div>
+            <div className="text-4xl font-black tracking-tighter text-foreground tabular-nums">{formatTaka(summary?.total_income || 0).replace('৳', '')}</div>
+            <p className="text-sm text-muted-foreground mt-1.5 font-medium">Monthly Income</p>
           </CardContent>
         </Card>
 
         {/* Monthly Expense */}
-        <Card className="border-none shadow-md bg-card relative overflow-hidden group hover:shadow-lg transition-shadow">
-          <div className="absolute top-0 left-0 w-1 h-full bg-red-400"></div>
-          <CardContent className="pt-5">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-              <ArrowDownRight className="w-3 h-3 text-red-500" /> Monthly Expense
-            </p>
-            <p className="text-xl font-extrabold mt-1 font-mono text-red-600">{formatTaka(summary?.total_expense || 0)}</p>
+        <Card className="group bg-card rounded-2xl p-6 border border-border hover:border-border hover:bg-muted/30 transition-all duration-300 cursor-pointer shadow-none">
+          <CardContent className="p-0">
+            <div className="flex items-start justify-between mb-4">
+              <div className="bg-muted rounded-xl p-3">
+                <TrendDown className="h-6 w-6 text-foreground group-hover:text-foreground transition-colors" strokeWidth={1.2} />
+              </div>
+              <TrendUp className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" strokeWidth={1.2} />
+            </div>
+            <div className="text-4xl font-black tracking-tighter text-foreground tabular-nums">{formatTaka(summary?.total_expense || 0).replace('৳', '')}</div>
+            <p className="text-sm text-muted-foreground mt-1.5 font-medium">Monthly Expense</p>
           </CardContent>
         </Card>
 
         {/* Net Balance */}
-        <Card className="border-none shadow-md bg-card relative overflow-hidden group hover:shadow-lg transition-shadow">
-          <div className="absolute top-0 left-0 w-1 h-full bg-blue-400"></div>
-          <CardContent className="pt-5">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-              <Wallet className="w-3 h-3 text-blue-500" /> Net Balance
-            </p>
-            <p className={`text-xl font-extrabold mt-1 font-mono ${(summary?.net_balance || 0) >= 0 ? 'text-blue-700' : 'text-red-600'}`}>
-              {formatTaka(summary?.net_balance || 0)}
-            </p>
+        <Card className="group bg-card rounded-2xl p-6 border border-border hover:border-border hover:bg-muted/30 transition-all duration-300 cursor-pointer shadow-none">
+          <CardContent className="p-0">
+            <div className="flex items-start justify-between mb-4">
+              <div className="bg-muted rounded-xl p-3">
+                <Wallet className="h-6 w-6 text-foreground group-hover:text-foreground transition-colors" strokeWidth={1.2} />
+              </div>
+              <TrendUp className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" strokeWidth={1.2} />
+            </div>
+            <div className={`text-4xl font-black tracking-tighter tabular-nums ${(summary?.net_balance || 0) >= 0 ? 'text-foreground' : 'text-red-600'}`}>{formatTaka(summary?.net_balance || 0).replace('৳', '')}</div>
+            <p className="text-sm text-muted-foreground mt-1.5 font-medium">Net Balance</p>
           </CardContent>
         </Card>
 
         {/* Tuition Due */}
-        <Card className="border-none shadow-md bg-card relative overflow-hidden group hover:shadow-lg transition-shadow">
-          <div className="absolute top-0 left-0 w-1 h-full bg-amber-400"></div>
-          <CardContent className="pt-5">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-              <AlertTriangle className="w-3 h-3 text-amber-500" /> Tuition Due
-            </p>
-            <p className="text-xl font-extrabold mt-1 font-mono text-amber-700">{formatTaka(summary?.tuition_due || 0)}</p>
-            <p className="text-[10px] text-muted-foreground mt-0.5">Collected: {formatTaka(summary?.tuition_collected || 0)}</p>
+        <Card className="group bg-card rounded-2xl p-6 border border-border hover:border-border hover:bg-muted/30 transition-all duration-300 cursor-pointer shadow-none">
+          <CardContent className="p-0">
+            <div className="flex items-start justify-between mb-4">
+              <div className="bg-muted rounded-xl p-3">
+                <Warning className="h-6 w-6 text-foreground group-hover:text-foreground transition-colors" strokeWidth={1.2} />
+              </div>
+              <TrendUp className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" strokeWidth={1.2} />
+            </div>
+            <div className="text-4xl font-black tracking-tighter text-foreground tabular-nums">{formatTaka(summary?.tuition_due || 0).replace('৳', '')}</div>
+            <p className="text-sm text-muted-foreground mt-1.5 font-medium">Tuition Due</p>
           </CardContent>
         </Card>
       </div>
@@ -159,15 +174,18 @@ export default function FinanceDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Quick Actions */}
         <div className="lg:col-span-8">
-          <h2 className="text-sm font-bold uppercase text-muted-foreground tracking-wider mb-3">Quick Actions</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="flex items-center justify-between mb-4 px-1">
+              <h3 className="text-base font-bold text-foreground font-heading tracking-tight">Quick Actions</h3>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {quickLinks.map(link => (
-              <Link key={link.href} href={link.href} className="group p-4 bg-card border rounded-xl hover:shadow-lg transition-all hover:border-primary/30">
-                <div className={`w-9 h-9 ${link.color} rounded-lg flex items-center justify-center mb-3 group-hover:scale-110 transition-transform`}>
-                  <link.icon className="w-4.5 h-4.5 text-white" />
+              <Link key={link.href} href={link.href}>
+                <div className="group bg-card rounded-2xl p-6 border border-border hover:border-border hover:bg-muted/30 cursor-pointer text-center transition-all h-full flex flex-col justify-center">
+                  <div className="h-12 w-12 rounded-xl bg-muted flex items-center justify-center mx-auto mb-4 group-hover:bg-muted/80 transition-colors">
+                    <link.icon size={24} strokeWidth={1.2} className="text-foreground group-hover:text-foreground transition-colors" />
+                  </div>
+                  <h3 className="text-sm font-medium text-foreground tracking-tight">{link.label}</h3>
                 </div>
-                <h3 className="font-bold text-sm text-slate-800">{link.label}</h3>
-                <p className="text-[11px] text-muted-foreground mt-0.5">{link.desc}</p>
               </Link>
             ))}
           </div>
@@ -175,25 +193,26 @@ export default function FinanceDashboard() {
 
         {/* Recent Payments */}
         <div className="lg:col-span-4">
-          <h2 className="text-sm font-bold uppercase text-muted-foreground tracking-wider mb-3">Recent Payments</h2>
-          <Card className="border-none shadow-md">
-            <CardContent className="pt-4 space-y-2">
+          <div className="bg-card rounded-2xl p-6 border border-border/50 h-full">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-bold text-foreground font-heading tracking-tight">Recent Collections</h3>
+            </div>
+            <div className="space-y-0">
               {recentPayments.length === 0 ? (
-                <p className="text-center text-muted-foreground text-sm py-8">No payments recorded yet</p>
+                <p className="text-sm text-muted-foreground/70 py-8 text-center">No payments recorded yet</p>
               ) : (
                 recentPayments.map((p, i) => (
-                  <div key={i} className="flex justify-between items-center p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
+                  <div key={i} className={`flex justify-between items-center py-3 ${i < recentPayments.length - 1 ? 'border-b border-border/40' : ''}`}>
                     <div>
-                      <p className="text-sm font-semibold text-slate-800">{p.students?.name || 'Student'}</p>
-                      <p className="text-[10px] text-muted-foreground">{p.class_name} • {p.receipt_number}</p>
-                      <p className="text-[10px] text-muted-foreground">{new Date(p.payment_date).toLocaleDateString('en-GB')}</p>
+                      <p className="text-xs font-medium text-foreground leading-snug">{p.students?.name || 'Student'}</p>
+                      <p className="text-[10px] text-muted-foreground/70 mt-0.5">{p.class_name} • {p.receipt_number}</p>
                     </div>
-                    <span className="font-mono font-bold text-primary text-sm">+{formatTaka(p.amount_paid)}</span>
+                    <span className="font-mono text-xs text-foreground font-semibold">+{formatTaka(p.amount_paid)}</span>
                   </div>
                 ))
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
       </div>
     </div>

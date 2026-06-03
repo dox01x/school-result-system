@@ -66,7 +66,12 @@ export default function PrintReceipt({ data }: PrintReceiptProps) {
               data.fee_details.map((item, idx) => (
                 <tr key={idx}>
                   <td className="py-1 capitalize">
-                    {item.type} {item.month ? `(${getMonthName(item.month)})` : ''}
+                    {item.type === 'arrears' 
+                      ? 'Previous Arrears'
+                      : (item as any).exam_name 
+                        ? `${item.type.replace('_', ' ')} (${(item as any).exam_name})`
+                        : `${item.type} ${item.month ? `(${getMonthName(item.month)})` : ''}`
+                    }
                   </td>
                   <td className="text-right py-1">{formatTaka(item.amount)}</td>
                 </tr>

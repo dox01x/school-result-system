@@ -10,6 +10,11 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover";
 import { toast } from "sonner";
 import { GlobalSearch } from "@/components/layout/global-search";
 
@@ -57,6 +62,7 @@ export function Header() {
     const [email, setEmail] = useState<string | null>(null);
     const [displayName, setDisplayName] = useState<string | null>(null);
     const [hasNotices, setHasNotices] = useState(false);
+    const [noticesList, setNoticesList] = useState<any[]>([]);
     const supabase = useMemo(() => createClient(), []);
 
     useEffect(() => {
@@ -69,11 +75,14 @@ export function Header() {
         })();
         // Check for recent notices
         void (async () => {
-            const { count } = await supabase
+            const { data } = await supabase
                 .from("notices")
-                .select("id", { count: "exact", head: true })
-                .eq("is_published", true);
-            setHasNotices((count ?? 0) > 0);
+                .select("id, title, content, created_at, priority")
+                .eq("is_published", true)
+                .order("created_at", { ascending: false })
+                .limit(5);
+            setNoticesList(data || []);
+            setHasNotices((data?.length ?? 0) > 0);
         })();
     }, [supabase]);
 
@@ -96,12 +105,55 @@ export function Header() {
             <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0 justify-end">
                 <GlobalSearch />
 
-                <button type="button" className="relative p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-all duration-200 btn-press" aria-label="Notifications">
-                    <Bell className="h-[18px] w-[18px]" strokeWidth={1.8} />
-                    {hasNotices && (
-                        <span className="absolute top-1.5 right-1.5 h-2 w-2 bg-red-500 rounded-full ring-2 ring-card" />
-                    )}
-                </button>
+                <Popover>
+                    <PopoverTrigger asChild>
+                        <button type="button" className="relative p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-all duration-200 btn-press" aria-label="Notifications">
+                            <Bell size={20} strokeWidth={1.5} />
+                            {hasNotices && (
+                                <span className="absolute top-1.5 right-1.5 h-2 w-2 bg-red-500 rounded-full ring-2 ring-card" />
+                            )}
+                        </button>
+                    </PopoverTrigger>
+                    <PopoverContent align="end" className="w-80 p-0 border-border/50 shadow-xl rounded-xl">
+                        <div className="flex items-center justify-between px-4 py-3 border-b border-border/50 bg-muted/20">
+                            <h3 className="font-bold text-sm">Notifications</h3>
+                            <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold">
+                                {noticesList.length} New
+                            </span>
+                        </div>
+                        <div className="max-h-[300px] overflow-y-auto">
+                            {noticesList.length === 0 ? (
+                                <div className="p-4 text-center text-sm text-muted-foreground font-medium">
+                                    No new notifications
+                                </div>
+                            ) : (
+                                <div className="flex flex-col">
+                                    {noticesList.map(n => (
+                                        <div key={n.id} className="p-4 border-b border-border/50 hover:bg-muted/30 transition-colors last:border-0">
+                                            <div className="flex justify-between gap-2 mb-1">
+                                                <h4 className="text-sm font-bold leading-tight text-foreground">{n.title}</h4>
+                                                <span className="text-[10px] font-semibold text-muted-foreground whitespace-nowrap shrink-0">
+                                                    {new Date(n.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
+                                                </span>
+                                            </div>
+                                            <p className="text-[13px] text-muted-foreground line-clamp-2 mb-2 leading-relaxed">
+                                                {n.content}
+                                            </p>
+                                            <div className="flex items-center gap-1.5">
+                                                <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center">
+                                                    <User size={10} strokeWidth={2.5} className="text-primary" />
+                                                </div>
+                                                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                                                    Admin
+                                                </p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </PopoverContent>
+                </Popover>
 
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -110,7 +162,7 @@ export function Header() {
                             className="h-9 min-w-9 rounded-full bg-primary/10 flex items-center justify-center text-primary px-2 gap-1 text-xs font-semibold hover:ring-2 hover:ring-primary/20 transition-all duration-200 btn-press"
                             aria-label="Account menu"
                         >
-                            <User className="h-4 w-4 shrink-0" strokeWidth={2} />
+                            <User size={18} strokeWidth={2.5} className="shrink-0" />
                             <span className="hidden sm:inline max-w-[120px] truncate">
                                 {headerLabel}
                             </span>
@@ -124,7 +176,7 @@ export function Header() {
                             </div>
                         )}
                         <DropdownMenuItem onClick={() => void handleSignOut()} className="gap-2 cursor-pointer">
-                            <LogOut className="h-4 w-4" />
+                            <LogOut size={16} strokeWidth={2.5} />
                             Sign out
                         </DropdownMenuItem>
                     </DropdownMenuContent>

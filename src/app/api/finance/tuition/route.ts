@@ -17,7 +17,7 @@ export async function GET(request: Request) {
     let query = supabase.from('tuition_payments').select(`
       *,
       students!inner(
-        name, roll_no
+        name, roll
       )
     `);
     

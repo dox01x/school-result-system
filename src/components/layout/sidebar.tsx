@@ -3,29 +3,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import type { LucideIcon } from "lucide-react";
 import {
-    LayoutDashboard,
-    GraduationCap,
-    Users,
-    Megaphone,
-    BarChart3,
-    Settings,
-    Menu,
-    X,
-    ChevronsLeft,
-    ChevronsRight,
-    School,
-    BookOpen,
-    ClipboardList,
-    PenLine,
-    CalendarClock,
-    CalendarDays,
-    CalendarCheck,
-    ArrowUpCircle,
-    Bell,
-    User,
+    LayoutGrid, GraduationCap, Users, Megaphone, BarChart2, Settings,
+    Menu, X, ChevronsLeft, ChevronsRight, Building2, BookOpen,
+    ClipboardList, PenLine, CalendarPlus, CalendarDays,
+    CalendarCheck, ArrowUpCircle, Bell, User, Wallet, Receipt, Coins,
+    CircleDollarSign, TrendingUp, ListChecks, Sun, FileText
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 
 type NavItem = { title: string; icon: LucideIcon; href: string; exact?: boolean };
@@ -35,30 +20,55 @@ const navGroups: NavGroup[] = [
     {
         label: "MAIN MENU",
         items: [
-            { title: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
-            { title: "Students", icon: GraduationCap, href: "/dashboard/students" },
-            { title: "Teachers", icon: Users, href: "/dashboard/administration/teachers-rooms" },
-            { title: "Notice Board", icon: Megaphone, href: "/dashboard/administration/notice" },
+            { title: "Dashboard", icon: LayoutGrid, href: "/dashboard" },
         ],
     },
     {
-        label: "MANAGEMENT",
+        label: "ACADEMIC",
         items: [
-            { title: "Classes", icon: School, href: "/dashboard/classes" },
+            { title: "Students", icon: GraduationCap, href: "/dashboard/students" },
+            { title: "Teachers", icon: Users, href: "/dashboard/administration/teachers-rooms" },
+            { title: "Classes", icon: Building2, href: "/dashboard/classes" },
             { title: "Subjects", icon: BookOpen, href: "/dashboard/subjects" },
             { title: "Routine", icon: CalendarDays, href: "/dashboard/administration/routine" },
+        ],
+    },
+    {
+        label: "EXAMINATION",
+        items: [
             { title: "Exams", icon: ClipboardList, href: "/dashboard/exams" },
             { title: "Marks Entry", icon: PenLine, href: "/dashboard/marks" },
+            { title: "Results", icon: BarChart2, href: "/dashboard/results" },
+            { title: "Exam Schedule", icon: CalendarPlus, href: "/dashboard/administration/exam-schedule" },
+        ],
+    },
+    {
+        label: "FINANCE",
+        items: [
+            { title: "Finance Overview", icon: Wallet, href: "/dashboard/finance", exact: true },
+            { title: "Tuition Collection", icon: Receipt, href: "/dashboard/finance/tuition/collect" },
+            { title: "Overdue Tuition", icon: ListChecks, href: "/dashboard/finance/tuition/overdue" },
+            { title: "Salary", icon: Coins, href: "/dashboard/finance/salary" },
+            { title: "Expense", icon: TrendingUp, href: "/dashboard/finance/expense" },
+            { title: "Income", icon: TrendingUp, href: "/dashboard/finance/income" },
+            { title: "Daily Closing", icon: Sun, href: "/dashboard/finance/daily-closing" },
+            { title: "Finance Report", icon: FileText, href: "/dashboard/finance/report" },
+        ],
+    },
+    {
+        label: "ADMINISTRATION",
+        items: [
+            { title: "Notice Board", icon: Megaphone, href: "/dashboard/administration/notice" },
             { title: "Attendance", icon: CalendarCheck, href: "/dashboard/attendance" },
-            { title: "Results", icon: BarChart3, href: "/dashboard/results" },
-            { title: "Exam Schedule", icon: CalendarClock, href: "/dashboard/administration/exam-schedule" },
+            { title: "Promotion", icon: ArrowUpCircle, href: "/dashboard/promotion" },
         ],
     },
     {
         label: "SYSTEM",
         items: [
-            { title: "Promotion", icon: ArrowUpCircle, href: "/dashboard/promotion" },
             { title: "Settings", icon: Settings, href: "/dashboard/settings" },
+            { title: "Fee Structure", icon: CircleDollarSign, href: "/dashboard/finance/fee-structure" },
+            { title: "Salary Config", icon: Settings, href: "/dashboard/finance/salary/config" },
         ],
     },
 ];
@@ -100,22 +110,19 @@ export function Sidebar() {
                     onClick={closeMobile}
                     title={collapsed ? item.title : undefined}
                     className={cn(
-                        "group relative flex items-center gap-3 rounded-xl text-[13px] font-medium transition-all duration-200 btn-press",
+                        "group relative flex items-center gap-3 rounded-xl text-[13px] font-medium tracking-wide transition-all duration-200 btn-press",
                         collapsed ? "justify-center p-2.5 mx-1" : "px-3 py-2.5 mx-2",
                         active
-                            ? "bg-primary/10 text-primary"
+                            ? "bg-muted/50 text-foreground font-semibold"
                             : "text-muted-foreground hover:bg-muted/80 hover:text-foreground"
                     )}
                 >
                     {/* Active indicator */}
-                    {active && (
-                        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-primary rounded-r-full transition-all duration-300" />
-                    )}
-                    <Icon className={cn("h-[18px] w-[18px] shrink-0 transition-colors", active ? "text-primary" : "text-muted-foreground group-hover:text-foreground")} strokeWidth={active ? 2.2 : 1.8} />
+                    <Icon size={20} strokeWidth={active ? 2.2 : 1.5} className={cn("shrink-0 transition-colors", active ? "text-primary" : "text-muted-foreground group-hover:text-foreground")} />
                     {!collapsed && <span className="truncate">{item.title}</span>}
                     {/* Tooltip for collapsed */}
                     {collapsed && (
-                        <div className="absolute left-full ml-2 px-2.5 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50 pointer-events-none shadow-lg">
+                        <div className="absolute left-full ml-2 px-2.5 py-1 bg-popover text-popover-foreground border border-border text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50 pointer-events-none shadow-lg">
                             {item.title}
                         </div>
                     )}
@@ -146,12 +153,11 @@ export function Sidebar() {
                 collapsed ? "justify-center px-2 h-16" : "px-5 h-16"
             )}>
                 <div className="h-9 w-9 rounded-xl bg-primary flex items-center justify-center shadow-[var(--shadow-sm)] shrink-0">
-                    <GraduationCap className="h-5 w-5 text-white" strokeWidth={2.2} />
+                    <GraduationCap size={20} strokeWidth={2} className="text-primary-foreground" />
                 </div>
                 {!collapsed && (
                     <div className="flex flex-col min-w-0">
-                        <h1 className="font-bold text-base text-foreground tracking-tight leading-tight truncate font-heading">ResultPro</h1>
-                        <p className="text-[10px] font-medium text-muted-foreground leading-none tracking-wide">School Management</p>
+                        <h1 className="font-bold text-base text-foreground tracking-tight leading-tight truncate font-heading">School Management System</h1>
                     </div>
                 )}
             </div>
@@ -169,7 +175,7 @@ export function Sidebar() {
                     className="hidden lg:flex items-center justify-center w-full gap-2 px-3 py-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-all duration-200 text-xs btn-press"
                     title={collapsed ? "Expand" : "Collapse"}
                 >
-                    {collapsed ? <ChevronsRight className="h-4 w-4" /> : <><ChevronsLeft className="h-4 w-4" /><span className="font-medium">Collapse</span></>}
+                    {collapsed ? <ChevronsRight size={16} strokeWidth={2.5} /> : <><ChevronsLeft size={16} strokeWidth={2.5} /><span className="font-medium">Collapse</span></>}
                 </button>
                 {!collapsed && (
                     <div className="flex items-center gap-3 mt-2 px-2">
@@ -190,19 +196,19 @@ export function Sidebar() {
             <header className="lg:hidden fixed top-0 left-0 right-0 z-50 flex items-center justify-between h-14 px-4 bg-card border-b border-border shadow-[var(--shadow-sm)]">
                 <div className="flex items-center gap-3">
                     <button type="button" onClick={() => setMobileOpen(!mobileOpen)} className="p-2 -ml-2 text-muted-foreground hover:text-foreground hover:bg-muted/80 rounded-xl transition-colors btn-press" aria-expanded={mobileOpen} aria-label={mobileOpen ? "Close menu" : "Open menu"}>
-                        {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+                        {mobileOpen ? <X size={20} strokeWidth={2.5} /> : <Menu size={20} strokeWidth={2.5} />}
                     </button>
                     <div className="flex items-center gap-2">
-                        <div className="h-7 w-7 rounded-lg bg-primary flex items-center justify-center"><GraduationCap className="h-3.5 w-3.5 text-primary-foreground" /></div>
-                        <span className="font-bold text-sm text-foreground tracking-tight">ResultPro</span>
+                        <div className="h-7 w-7 rounded-lg bg-primary flex items-center justify-center"><GraduationCap size={16} strokeWidth={2} className="text-primary-foreground" /></div>
+                        <span className="font-bold text-sm text-foreground tracking-tight">School Management System</span>
                     </div>
                 </div>
                 <div className="flex items-center gap-1">
                     <Link href="/dashboard/administration/notice" className="relative p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-all duration-200 btn-press" aria-label="Notifications">
-                        <Bell className="h-[18px] w-[18px]" strokeWidth={1.8} />
+                        <Bell size={20} strokeWidth={1.5} />
                     </Link>
                     <Link href="/dashboard/settings" className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary btn-press" aria-label="Account">
-                        <User className="h-4 w-4" strokeWidth={2} />
+                        <User size={18} strokeWidth={2.5} />
                     </Link>
                 </div>
             </header>

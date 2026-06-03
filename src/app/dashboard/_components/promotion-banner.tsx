@@ -14,21 +14,21 @@ export function PromotionBanner({ academicYear }: Props) {
     if (!shouldShow) return null;
 
     return (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 shadow-sm animate-in fade-in slide-in-from-top-2">
+        <div className="rounded-xl border border-border bg-muted px-4 py-3 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2">
             <div className="flex items-center gap-2 min-w-0">
-                <Bell className="h-5 w-5 text-red-600 shrink-0" />
-                <p className="text-sm text-red-800 font-medium">
+                <Bell className="h-5 w-5 text-foreground shrink-0" strokeWidth={1.2} />
+                <p className="text-sm text-foreground font-medium">
                     New calendar year ({currentYear}) detected, but active academic year is still {academicYear}. Please execute the Yearly Promotion.
                 </p>
             </div>
             <div className="flex items-center gap-2 shrink-0">
-                <Link href="/dashboard/promotion" className="text-xs font-bold text-white bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded-lg transition-colors btn-press">
+                <Link href="/dashboard/promotion" className="text-xs font-bold text-primary-foreground bg-primary hover:bg-primary/90 px-3 py-1.5 rounded-lg transition-colors btn-press">
                     Promote Now
                 </Link>
                 <button
                     type="button"
                     onClick={dismiss}
-                    className="text-xs rounded-lg border border-red-300 px-2.5 py-1.5 text-red-800 hover:bg-red-100 transition-colors font-medium btn-press"
+                    className="text-xs rounded-lg border border-border px-2.5 py-1.5 text-foreground hover:bg-muted/80 transition-colors font-medium btn-press"
                 >
                     Dismiss
                 </button>

@@ -29,7 +29,7 @@ export function CTABanner() {
               Ready to Transform Your School?
             </h2>
             <p className="text-lg text-indigo-100 max-w-lg mx-auto">
-              Join hundreds of institutions already using ResultPro to manage
+              Join hundreds of institutions already using School Management System to manage
               their academic operations efficiently.
             </p>
             <div className="flex flex-wrap items-center justify-center gap-4 pt-4">

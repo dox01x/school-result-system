@@ -6,7 +6,7 @@ import type { Class, Section } from "@/lib/database.types";
 import { CLASS_COLUMNS, SECTION_COLUMNS } from "@/lib/supabase/select-columns";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { BarChart3, Download, PenLine, CalendarCheck } from "lucide-react";
+import { BarChart3 as ChartBar, Download as DownloadSimple, PenLine as PencilSimpleLine, CalendarCheck } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { AttendanceFilters, type AttendanceFilterState } from "./_components/attendance-filters";
 import { AttendanceReportTab } from "./_components/attendance-report-tab";
@@ -135,21 +135,21 @@ export default function AttendancePage() {
             {/* Page Header */}
             <PageHeader
                 icon={CalendarCheck}
-                iconBg="bg-blue-50"
-                iconColor="text-blue-600"
+                iconBg="bg-primary/10"
+                iconColor="text-primary"
                 title="Attendance"
                 subtitle="View reports, import from Google Sheets, or enter attendance manually."
             />
 
             {loading ? (
                 <div className="space-y-4">
-                    <div className="h-12 rounded-xl bg-slate-100 animate-pulse" />
-                    <div className="h-64 rounded-xl bg-slate-100 animate-pulse" />
+                    <div className="h-12 rounded-xl bg-muted animate-pulse" />
+                    <div className="h-64 rounded-xl bg-muted animate-pulse" />
                 </div>
             ) : (
                 <>
                     {/* Shared Filters */}
-                    <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-4">
+                    <div className="bg-card rounded-2xl border border-border/50 shadow-none p-5">
                         <AttendanceFilters
                             classes={classes}
                             sections={sections}
@@ -163,27 +163,27 @@ export default function AttendancePage() {
                     </div>
 
                     {/* Tabs */}
-                    <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-                        <TabsList className="bg-slate-100/80 rounded-xl p-1 h-auto flex-wrap">
+                    <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+                        <TabsList className="bg-muted rounded-2xl p-1 h-auto flex-wrap border-0 shadow-none">
                             <TabsTrigger
                                 value="report"
-                                className="rounded-lg text-xs font-semibold px-4 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 transition-all"
+                                className="rounded-xl text-xs font-bold px-4 py-2.5 data-[state=active]:bg-card data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground transition-all"
                             >
-                                <BarChart3 className="h-3.5 w-3.5 mr-1.5" />
+                                <ChartBar size={14} strokeWidth={2} className="mr-1.5" />
                                 Report
                             </TabsTrigger>
                             <TabsTrigger
                                 value="import"
-                                className="rounded-lg text-xs font-semibold px-4 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 transition-all"
+                                className="rounded-xl text-xs font-bold px-4 py-2.5 data-[state=active]:bg-card data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground transition-all"
                             >
-                                <Download className="h-3.5 w-3.5 mr-1.5" />
+                                <DownloadSimple size={14} strokeWidth={2} className="mr-1.5" />
                                 Google Sheets Import
                             </TabsTrigger>
                             <TabsTrigger
                                 value="manual"
-                                className="rounded-lg text-xs font-semibold px-4 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 transition-all"
+                                className="rounded-xl text-xs font-bold px-4 py-2.5 data-[state=active]:bg-card data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground transition-all"
                             >
-                                <PenLine className="h-3.5 w-3.5 mr-1.5" />
+                                <PencilSimpleLine size={14} strokeWidth={2} className="mr-1.5" />
                                 Manual Entry
                             </TabsTrigger>
                         </TabsList>

@@ -14,13 +14,13 @@ export async function POST(request: Request) {
 
     const supabase = (await createServerSupabaseClient()) as any;
     
-    // 1. Fetch salary payment
+    // 1. Fetch salary payment with teacher info (staff_id references teachers table, not users)
     // @ts-ignore
     const { data: payment, error } = await supabase
       .from('salary_payments')
       .select(`
         *,
-        users!salary_payments_staff_id_fkey(name, role, phone)
+        teachers!salary_payments_staff_id_fkey(name, designation, phone)
       `)
       .eq('id', salary_id)
       .single();
@@ -29,7 +29,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: "Payment not found" }, { status: 404 });
     }
 
-    const schoolInfo = {
+    // Fetch school info from DB
+    // @ts-ignore
+    const { data: schoolData } = await supabase.from('school_info').select('name, address, phone, logo_url').limit(1).single();
+
+    const schoolInfo = schoolData || {
       name: "Your School Name",
       address: "School Address, City, Country",
       phone: "+8801XXXXXXXXX",
@@ -46,14 +50,14 @@ export async function POST(request: Request) {
       amount: Number(amount)
     }));
 
-    // 2. Format Slip Data
+    // 2. Format Slip Data — use 'teachers' relation, not 'users'
     const slipData: SalarySlipData = {
       school: schoolInfo,
       slip_number: payment.slip_number,
       staff: {
-        name: payment.users.name,
-        designation: payment.users.role,
-        phone: payment.users.phone || '',
+        name: payment.teachers?.name || 'Unknown',
+        designation: payment.teachers?.designation || 'Staff',
+        phone: payment.teachers?.phone || '',
       },
       month_name: getMonthName(payment.month),
       year: payment.year,
