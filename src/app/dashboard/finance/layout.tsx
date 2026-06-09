@@ -21,8 +21,8 @@ export default function FinanceLayout({ children }: { children: React.ReactNode 
           .single();
 
         const role = profile?.role || '';
-        // Only admin and accountant can access finance pages
-        setAllowed(role === 'admin' || role === 'accountant');
+        // Only super_admin, admin and accountant can access finance pages
+        setAllowed(role === 'super_admin' || role === 'admin' || role === 'accountant');
       } catch {
         setAllowed(false);
       }
@@ -47,7 +47,7 @@ export default function FinanceLayout({ children }: { children: React.ReactNode 
         <h1 className="text-2xl font-bold text-foreground">Access Denied</h1>
         <p className="text-muted-foreground max-w-md">
           You do not have permission to access Finance Management. 
-          Only <strong>Admin</strong> and <strong>Accountant</strong> roles can view this section.
+          Only <strong>Super Admin</strong>, <strong>Admin</strong>, and <strong>Accountant</strong> roles can view this section.
         </p>
         <p className="text-xs text-muted-foreground">
           Contact your administrator if you believe this is an error.
