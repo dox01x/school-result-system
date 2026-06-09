@@ -17,6 +17,9 @@ import {
 } from "@/components/ui/popover";
 import { toast } from "sonner";
 import { GlobalSearch } from "@/components/layout/global-search";
+import { useUserRole } from "@/lib/hooks/use-user-role";
+import { ROLE_LABELS_EN, ROLE_COLORS } from "@/lib/rbac";
+import { cn } from "@/lib/utils";
 
 const routeTitles: Record<string, string> = {
     "/dashboard": "Dashboard",
@@ -35,6 +38,7 @@ const routeTitles: Record<string, string> = {
     "/dashboard/administration/routine": "Class Routine",
     "/dashboard/administration/teacher-shift": "Teacher Shift",
     "/dashboard/promotion": "Promotion",
+    "/dashboard/users": "User Management",
 };
 
 function getPageTitle(pathname: string | null): string {
@@ -59,20 +63,12 @@ export function Header() {
     const router = useRouter();
     const title = getPageTitle(pathname);
     const breadcrumb = getBreadcrumb(pathname);
-    const [email, setEmail] = useState<string | null>(null);
-    const [displayName, setDisplayName] = useState<string | null>(null);
+    const { role, email, fullName } = useUserRole();
     const [hasNotices, setHasNotices] = useState(false);
     const [noticesList, setNoticesList] = useState<any[]>([]);
     const supabase = useMemo(() => createClient(), []);
 
     useEffect(() => {
-        void (async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return;
-            setEmail(user.email ?? null);
-            const name = (user.user_metadata?.display_name as string)?.trim();
-            if (name) setDisplayName(name);
-        })();
         // Check for recent notices
         void (async () => {
             const { data } = await supabase
@@ -93,7 +89,9 @@ export function Header() {
         router.refresh();
     }
 
-    const headerLabel = displayName || email?.split("@")[0] || "Account";
+    const displayName = fullName || email?.split("@")[0] || "Account";
+    const roleLabel = role ? ROLE_LABELS_EN[role] : null;
+    const roleColor = role ? ROLE_COLORS[role] : "";
 
     return (
         <header className="hidden lg:flex bg-card border-b border-border h-16 px-4 sm:px-6 items-center justify-between gap-4 sticky top-0 z-30 shrink-0 overflow-visible">
@@ -159,20 +157,30 @@ export function Header() {
                     <DropdownMenuTrigger asChild>
                         <button
                             type="button"
-                            className="h-9 min-w-9 rounded-full bg-primary/10 flex items-center justify-center text-primary px-2 gap-1 text-xs font-semibold hover:ring-2 hover:ring-primary/20 transition-all duration-200 btn-press"
+                            className="h-9 min-w-9 rounded-full bg-primary/10 flex items-center justify-center text-primary px-2 gap-1.5 text-xs font-semibold hover:ring-2 hover:ring-primary/20 transition-all duration-200 btn-press"
                             aria-label="Account menu"
                         >
                             <User size={18} strokeWidth={2.5} className="shrink-0" />
                             <span className="hidden sm:inline max-w-[120px] truncate">
-                                {headerLabel}
+                                {displayName}
                             </span>
+                            {roleLabel && (
+                                <span className={cn("hidden md:inline text-[9px] font-bold px-1.5 py-0.5 rounded-md", roleColor)}>
+                                    {roleLabel}
+                                </span>
+                            )}
                         </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-48">
-                        {(displayName || email) && (
+                        {(fullName || email) && (
                             <div className="px-2 py-1.5 text-xs text-muted-foreground border-b border-border mb-1">
-                                {displayName && <p className="font-medium text-foreground truncate">{displayName}</p>}
+                                {fullName && <p className="font-medium text-foreground truncate">{fullName}</p>}
                                 {email && <p className="truncate">{email}</p>}
+                                {roleLabel && (
+                                    <span className={cn("inline-block text-[9px] font-bold px-1.5 py-0.5 rounded-md mt-1", roleColor)}>
+                                        {roleLabel}
+                                    </span>
+                                )}
                             </div>
                         )}
                         <DropdownMenuItem onClick={() => void handleSignOut()} className="gap-2 cursor-pointer">
@@ -185,3 +193,4 @@ export function Header() {
         </header>
     );
 }
+

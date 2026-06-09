@@ -467,7 +467,7 @@ CREATE TABLE staff_salary_config (
 
 CREATE TABLE profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  role TEXT NOT NULL DEFAULT 'admin' CHECK (role IN ('admin', 'accountant', 'teacher', 'viewer')),
+  role TEXT NOT NULL DEFAULT 'admin' CHECK (role IN ('super_admin', 'admin', 'exam_controller', 'accountant', 'class_teacher')),
   full_name TEXT DEFAULT '',
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -490,6 +490,15 @@ CREATE OR REPLACE FUNCTION public.profile_role()
 RETURNS TEXT LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
   SELECT role FROM public.profiles WHERE id = auth.uid() LIMIT 1;
 $$;
+
+CREATE TABLE class_teacher_assignments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  class_id UUID NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
+  section_id UUID NOT NULL REFERENCES sections(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(class_id, section_id)
+);
 
 -- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 -- ATTENDANCE
@@ -614,22 +623,123 @@ ALTER TABLE staff_salary_config ENABLE ROW LEVEL SECURITY;
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE attendance_records ENABLE ROW LEVEL SECURITY;
 ALTER TABLE promotion_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE class_teacher_assignments ENABLE ROW LEVEL SECURITY;
 
 -- Authenticated policies (core + admin)
 CREATE POLICY "auth_rw_school_info" ON school_info FOR ALL TO authenticated USING (true) WITH CHECK (true);
-CREATE POLICY "auth_rw_classes" ON classes FOR ALL TO authenticated USING (true) WITH CHECK (true);
-CREATE POLICY "auth_rw_sections" ON sections FOR ALL TO authenticated USING (true) WITH CHECK (true);
-CREATE POLICY "auth_rw_subjects" ON subjects FOR ALL TO authenticated USING (true) WITH CHECK (true);
-CREATE POLICY "auth_rw_students" ON students FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+-- Classes: Admin+ full access, Class Teacher restricted to assigned class
+CREATE POLICY "auth_rw_classes" ON classes FOR ALL TO authenticated USING (
+  public.profile_role() IN ('super_admin', 'admin', 'exam_controller', 'accountant') OR
+  (public.profile_role() = 'class_teacher' AND EXISTS (SELECT 1 FROM class_teacher_assignments cta WHERE cta.user_id = auth.uid() AND cta.class_id = classes.id))
+) WITH CHECK (
+  public.profile_role() IN ('super_admin', 'admin', 'exam_controller', 'accountant') OR
+  (public.profile_role() = 'class_teacher' AND EXISTS (SELECT 1 FROM class_teacher_assignments cta WHERE cta.user_id = auth.uid() AND cta.class_id = classes.id))
+);
+
+-- Sections: Admin+ full access, Class Teacher restricted to assigned section
+CREATE POLICY "auth_rw_sections" ON sections FOR ALL TO authenticated USING (
+  public.profile_role() IN ('super_admin', 'admin', 'exam_controller', 'accountant') OR
+  (public.profile_role() = 'class_teacher' AND EXISTS (SELECT 1 FROM class_teacher_assignments cta WHERE cta.user_id = auth.uid() AND cta.section_id = sections.id))
+) WITH CHECK (
+  public.profile_role() IN ('super_admin', 'admin', 'exam_controller', 'accountant') OR
+  (public.profile_role() = 'class_teacher' AND EXISTS (SELECT 1 FROM class_teacher_assignments cta WHERE cta.user_id = auth.uid() AND cta.section_id = sections.id))
+);
+
+-- Subjects: Admin+ full access, Class Teacher restricted to assigned class
+CREATE POLICY "auth_rw_subjects" ON subjects FOR ALL TO authenticated USING (
+  public.profile_role() IN ('super_admin', 'admin', 'exam_controller', 'accountant') OR
+  (public.profile_role() = 'class_teacher' AND EXISTS (SELECT 1 FROM class_teacher_assignments cta WHERE cta.user_id = auth.uid() AND cta.class_id = subjects.class_id))
+) WITH CHECK (
+  public.profile_role() IN ('super_admin', 'admin', 'exam_controller', 'accountant') OR
+  (public.profile_role() = 'class_teacher' AND EXISTS (SELECT 1 FROM class_teacher_assignments cta WHERE cta.user_id = auth.uid() AND cta.class_id = subjects.class_id))
+);
+
+-- Students: restricted to assigned class and section
+CREATE POLICY "auth_rw_students" ON students FOR ALL TO authenticated USING (
+  public.profile_role() IN ('super_admin', 'admin', 'exam_controller', 'accountant') OR
+  (public.profile_role() = 'class_teacher' AND EXISTS (SELECT 1 FROM class_teacher_assignments cta WHERE cta.user_id = auth.uid() AND cta.class_id = students.class_id AND cta.section_id = students.section_id))
+) WITH CHECK (
+  public.profile_role() IN ('super_admin', 'admin', 'exam_controller', 'accountant') OR
+  (public.profile_role() = 'class_teacher' AND EXISTS (SELECT 1 FROM class_teacher_assignments cta WHERE cta.user_id = auth.uid() AND cta.class_id = students.class_id AND cta.section_id = students.section_id))
+);
+
 CREATE POLICY "auth_rw_exams" ON exams FOR ALL TO authenticated USING (true) WITH CHECK (true);
 CREATE POLICY "auth_rw_grading_rules" ON grading_rules FOR ALL TO authenticated USING (true) WITH CHECK (true);
 CREATE POLICY "auth_rw_exam_subject_config" ON exam_subject_config FOR ALL TO authenticated USING (true) WITH CHECK (true);
-CREATE POLICY "auth_rw_marks" ON marks FOR ALL TO authenticated USING (true) WITH CHECK (true);
-CREATE POLICY "auth_rw_results" ON results FOR ALL TO authenticated USING (true) WITH CHECK (true);
-CREATE POLICY "auth_rw_final_results" ON final_results FOR ALL TO authenticated USING (true) WITH CHECK (true);
-CREATE POLICY "auth_rw_final_result_details" ON final_result_details FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+-- Marks: Join with students to check class/section
+CREATE POLICY "auth_rw_marks" ON marks FOR ALL TO authenticated USING (
+  public.profile_role() IN ('super_admin', 'admin', 'exam_controller', 'accountant') OR
+  (public.profile_role() = 'class_teacher' AND EXISTS (
+    SELECT 1 FROM students s JOIN class_teacher_assignments cta ON cta.class_id = s.class_id AND cta.section_id = s.section_id
+    WHERE s.id = marks.student_id AND cta.user_id = auth.uid()
+  ))
+) WITH CHECK (
+  public.profile_role() IN ('super_admin', 'admin', 'exam_controller', 'accountant') OR
+  (public.profile_role() = 'class_teacher' AND EXISTS (
+    SELECT 1 FROM students s JOIN class_teacher_assignments cta ON cta.class_id = s.class_id AND cta.section_id = s.section_id
+    WHERE s.id = marks.student_id AND cta.user_id = auth.uid()
+  ))
+);
+
+-- Results
+CREATE POLICY "auth_rw_results" ON results FOR ALL TO authenticated USING (
+  public.profile_role() IN ('super_admin', 'admin', 'exam_controller', 'accountant') OR
+  (public.profile_role() = 'class_teacher' AND EXISTS (
+    SELECT 1 FROM students s JOIN class_teacher_assignments cta ON cta.class_id = s.class_id AND cta.section_id = s.section_id
+    WHERE s.id = results.student_id AND cta.user_id = auth.uid()
+  ))
+) WITH CHECK (
+  public.profile_role() IN ('super_admin', 'admin', 'exam_controller', 'accountant') OR
+  (public.profile_role() = 'class_teacher' AND EXISTS (
+    SELECT 1 FROM students s JOIN class_teacher_assignments cta ON cta.class_id = s.class_id AND cta.section_id = s.section_id
+    WHERE s.id = results.student_id AND cta.user_id = auth.uid()
+  ))
+);
+
+-- Final Results
+CREATE POLICY "auth_rw_final_results" ON final_results FOR ALL TO authenticated USING (
+  public.profile_role() IN ('super_admin', 'admin', 'exam_controller', 'accountant') OR
+  (public.profile_role() = 'class_teacher' AND EXISTS (
+    SELECT 1 FROM students s JOIN class_teacher_assignments cta ON cta.class_id = s.class_id AND cta.section_id = s.section_id
+    WHERE s.id = final_results.student_id AND cta.user_id = auth.uid()
+  ))
+) WITH CHECK (
+  public.profile_role() IN ('super_admin', 'admin', 'exam_controller', 'accountant') OR
+  (public.profile_role() = 'class_teacher' AND EXISTS (
+    SELECT 1 FROM students s JOIN class_teacher_assignments cta ON cta.class_id = s.class_id AND cta.section_id = s.section_id
+    WHERE s.id = final_results.student_id AND cta.user_id = auth.uid()
+  ))
+);
+
+-- Final Result Details (joined via final_results)
+CREATE POLICY "auth_rw_final_result_details" ON final_result_details FOR ALL TO authenticated USING (
+  public.profile_role() IN ('super_admin', 'admin', 'exam_controller', 'accountant') OR
+  (public.profile_role() = 'class_teacher' AND EXISTS (
+    SELECT 1 FROM final_results fr JOIN students s ON s.id = fr.student_id
+    JOIN class_teacher_assignments cta ON cta.class_id = s.class_id AND cta.section_id = s.section_id
+    WHERE fr.id = final_result_details.final_result_id AND cta.user_id = auth.uid()
+  ))
+) WITH CHECK (
+  public.profile_role() IN ('super_admin', 'admin', 'exam_controller', 'accountant') OR
+  (public.profile_role() = 'class_teacher' AND EXISTS (
+    SELECT 1 FROM final_results fr JOIN students s ON s.id = fr.student_id
+    JOIN class_teacher_assignments cta ON cta.class_id = s.class_id AND cta.section_id = s.section_id
+    WHERE fr.id = final_result_details.final_result_id AND cta.user_id = auth.uid()
+  ))
+);
+
 CREATE POLICY "auth_rw_archived_students" ON archived_students FOR ALL TO authenticated USING (true) WITH CHECK (true);
-CREATE POLICY "auth_rw_sheet_configs" ON sheet_configs FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+-- Sheet Configs
+CREATE POLICY "auth_rw_sheet_configs" ON sheet_configs FOR ALL TO authenticated USING (
+  public.profile_role() IN ('super_admin', 'admin', 'exam_controller', 'accountant') OR
+  (public.profile_role() = 'class_teacher' AND EXISTS (SELECT 1 FROM class_teacher_assignments cta WHERE cta.user_id = auth.uid() AND cta.class_id = sheet_configs.class_id AND cta.section_id = sheet_configs.section_id))
+) WITH CHECK (
+  public.profile_role() IN ('super_admin', 'admin', 'exam_controller', 'accountant') OR
+  (public.profile_role() = 'class_teacher' AND EXISTS (SELECT 1 FROM class_teacher_assignments cta WHERE cta.user_id = auth.uid() AND cta.class_id = sheet_configs.class_id AND cta.section_id = sheet_configs.section_id))
+);
 CREATE POLICY "auth_rw_teachers" ON teachers FOR ALL TO authenticated USING (true) WITH CHECK (true);
 CREATE POLICY "auth_rw_rooms" ON rooms FOR ALL TO authenticated USING (true) WITH CHECK (true);
 CREATE POLICY "auth_rw_class_routines" ON class_routines FOR ALL TO authenticated USING (true) WITH CHECK (true);
@@ -639,26 +749,39 @@ CREATE POLICY "auth_rw_leave_requests" ON leave_requests FOR ALL TO authenticate
 CREATE POLICY "auth_rw_notices" ON notices FOR ALL TO authenticated USING (true) WITH CHECK (true);
 CREATE POLICY "auth_rw_routine_settings" ON routine_settings FOR ALL TO authenticated USING (true) WITH CHECK (true);
 CREATE POLICY "auth_rw_proxy_assignments" ON proxy_assignments FOR ALL TO authenticated USING (true) WITH CHECK (true);
-CREATE POLICY "auth_rw_attendance_records" ON attendance_records FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "auth_rw_attendance_records" ON attendance_records FOR ALL TO authenticated USING (
+  public.profile_role() IN ('super_admin', 'admin', 'exam_controller', 'accountant') OR
+  (public.profile_role() = 'class_teacher' AND EXISTS (SELECT 1 FROM class_teacher_assignments cta WHERE cta.user_id = auth.uid() AND cta.class_id = attendance_records.class_id AND cta.section_id = attendance_records.section_id))
+) WITH CHECK (
+  public.profile_role() IN ('super_admin', 'admin', 'exam_controller', 'accountant') OR
+  (public.profile_role() = 'class_teacher' AND EXISTS (SELECT 1 FROM class_teacher_assignments cta WHERE cta.user_id = auth.uid() AND cta.class_id = attendance_records.class_id AND cta.section_id = attendance_records.section_id))
+);
 CREATE POLICY "auth_rw_promotion_logs" ON promotion_logs FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
 -- Profiles policies
-CREATE POLICY "profiles_select_own" ON profiles FOR SELECT TO authenticated USING (auth.uid() = id);
-CREATE POLICY "profiles_update_own" ON profiles FOR UPDATE TO authenticated USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
+CREATE POLICY "profiles_select" ON profiles FOR SELECT TO authenticated USING (auth.uid() = id OR public.profile_role() = 'super_admin');
+CREATE POLICY "profiles_update" ON profiles FOR UPDATE TO authenticated USING (auth.uid() = id OR public.profile_role() = 'super_admin') WITH CHECK (auth.uid() = id OR public.profile_role() = 'super_admin');
+CREATE POLICY "profiles_insert" ON profiles FOR INSERT TO authenticated WITH CHECK (public.profile_role() = 'super_admin');
+
+-- Class teacher assignments policies
+CREATE POLICY "cta_select" ON class_teacher_assignments FOR SELECT TO authenticated USING (true);
+CREATE POLICY "cta_write" ON class_teacher_assignments FOR INSERT TO authenticated WITH CHECK (public.profile_role() IN ('super_admin', 'admin'));
+CREATE POLICY "cta_update" ON class_teacher_assignments FOR UPDATE TO authenticated USING (public.profile_role() IN ('super_admin', 'admin')) WITH CHECK (public.profile_role() IN ('super_admin', 'admin'));
+CREATE POLICY "cta_delete" ON class_teacher_assignments FOR DELETE TO authenticated USING (public.profile_role() IN ('super_admin', 'admin'));
 
 -- Finance policies (role-based)
 CREATE POLICY "finance_fee_select" ON fee_structure FOR SELECT TO authenticated USING (true);
-CREATE POLICY "finance_fee_write" ON fee_structure FOR INSERT TO authenticated WITH CHECK (public.profile_role() IN ('admin', 'accountant'));
-CREATE POLICY "finance_fee_update" ON fee_structure FOR UPDATE TO authenticated USING (public.profile_role() IN ('admin', 'accountant')) WITH CHECK (public.profile_role() IN ('admin', 'accountant'));
-CREATE POLICY "finance_fee_delete" ON fee_structure FOR DELETE TO authenticated USING (public.profile_role() IN ('admin', 'accountant'));
-CREATE POLICY "finance_tuition_all" ON tuition_payments FOR ALL TO authenticated USING (public.profile_role() IN ('admin', 'accountant')) WITH CHECK (public.profile_role() IN ('admin', 'accountant'));
-CREATE POLICY "finance_salary_all" ON salary_payments FOR ALL TO authenticated USING (public.profile_role() IN ('admin', 'accountant')) WITH CHECK (public.profile_role() IN ('admin', 'accountant'));
-CREATE POLICY "finance_income_all" ON income_entries FOR ALL TO authenticated USING (public.profile_role() IN ('admin', 'accountant')) WITH CHECK (public.profile_role() IN ('admin', 'accountant'));
-CREATE POLICY "finance_expense_all" ON expense_entries FOR ALL TO authenticated USING (public.profile_role() IN ('admin', 'accountant')) WITH CHECK (public.profile_role() IN ('admin', 'accountant'));
+CREATE POLICY "finance_fee_write" ON fee_structure FOR INSERT TO authenticated WITH CHECK (public.profile_role() IN ('super_admin', 'admin', 'accountant'));
+CREATE POLICY "finance_fee_update" ON fee_structure FOR UPDATE TO authenticated USING (public.profile_role() IN ('super_admin', 'admin', 'accountant')) WITH CHECK (public.profile_role() IN ('super_admin', 'admin', 'accountant'));
+CREATE POLICY "finance_fee_delete" ON fee_structure FOR DELETE TO authenticated USING (public.profile_role() IN ('super_admin', 'admin', 'accountant'));
+CREATE POLICY "finance_tuition_all" ON tuition_payments FOR ALL TO authenticated USING (public.profile_role() IN ('super_admin', 'admin', 'accountant')) WITH CHECK (public.profile_role() IN ('super_admin', 'admin', 'accountant'));
+CREATE POLICY "finance_salary_all" ON salary_payments FOR ALL TO authenticated USING (public.profile_role() IN ('super_admin', 'admin', 'accountant')) WITH CHECK (public.profile_role() IN ('super_admin', 'admin', 'accountant'));
+CREATE POLICY "finance_income_all" ON income_entries FOR ALL TO authenticated USING (public.profile_role() IN ('super_admin', 'admin', 'accountant')) WITH CHECK (public.profile_role() IN ('super_admin', 'admin', 'accountant'));
+CREATE POLICY "finance_expense_all" ON expense_entries FOR ALL TO authenticated USING (public.profile_role() IN ('super_admin', 'admin', 'accountant')) WITH CHECK (public.profile_role() IN ('super_admin', 'admin', 'accountant'));
 CREATE POLICY "finance_staff_config_select" ON staff_salary_config FOR SELECT TO authenticated USING (true);
-CREATE POLICY "finance_staff_config_write" ON staff_salary_config FOR INSERT TO authenticated WITH CHECK (public.profile_role() IN ('admin', 'accountant'));
-CREATE POLICY "finance_staff_config_update" ON staff_salary_config FOR UPDATE TO authenticated USING (public.profile_role() IN ('admin', 'accountant')) WITH CHECK (public.profile_role() IN ('admin', 'accountant'));
-CREATE POLICY "finance_staff_config_delete" ON staff_salary_config FOR DELETE TO authenticated USING (public.profile_role() IN ('admin', 'accountant'));
+CREATE POLICY "finance_staff_config_write" ON staff_salary_config FOR INSERT TO authenticated WITH CHECK (public.profile_role() IN ('super_admin', 'admin', 'accountant'));
+CREATE POLICY "finance_staff_config_update" ON staff_salary_config FOR UPDATE TO authenticated USING (public.profile_role() IN ('super_admin', 'admin', 'accountant')) WITH CHECK (public.profile_role() IN ('super_admin', 'admin', 'accountant'));
+CREATE POLICY "finance_staff_config_delete" ON staff_salary_config FOR DELETE TO authenticated USING (public.profile_role() IN ('super_admin', 'admin', 'accountant'));
 
 -- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 -- TRIGGERS

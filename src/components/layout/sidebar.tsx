@@ -8,10 +8,12 @@ import {
     Menu, X, ChevronsLeft, ChevronsRight, Building2, BookOpen,
     ClipboardList, PenLine, CalendarPlus, CalendarDays,
     CalendarCheck, ArrowUpCircle, Bell, User, Wallet, Receipt, Coins,
-    CircleDollarSign, TrendingUp, ListChecks, Sun, FileText
+    CircleDollarSign, TrendingUp, ListChecks, Sun, FileText, Shield
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { useUserRole } from "@/lib/hooks/use-user-role";
+import { isNavItemVisible, ROLE_LABELS_EN, ROLE_COLORS } from "@/lib/rbac";
 
 type NavItem = { title: string; icon: LucideIcon; href: string; exact?: boolean };
 type NavGroup = { label: string; items: NavItem[] };
@@ -66,6 +68,7 @@ const navGroups: NavGroup[] = [
     {
         label: "SYSTEM",
         items: [
+            { title: "User Management", icon: Shield, href: "/dashboard/users" },
             { title: "Settings", icon: Settings, href: "/dashboard/settings" },
             { title: "Fee Structure", icon: CircleDollarSign, href: "/dashboard/finance/fee-structure" },
             { title: "Salary Config", icon: Settings, href: "/dashboard/finance/salary/config" },
@@ -84,6 +87,7 @@ export function Sidebar() {
     const pathname = usePathname();
     const [mobileOpen, setMobileOpen] = useState(false);
     const [collapsed, setCollapsed] = useState(false);
+    const { role, fullName, email, loading } = useUserRole();
 
     const closeMobile = useCallback(() => setMobileOpen(false), []);
 
@@ -99,6 +103,21 @@ export function Sidebar() {
             closeMobile();
         });
     }, [pathname, closeMobile]);
+
+    // Filter nav groups by role
+    const filteredNavGroups = useMemo(() => {
+        if (loading || !role) return navGroups; // show all while loading
+        return navGroups
+            .map(group => ({
+                ...group,
+                items: group.items.filter(item => isNavItemVisible(role, item.href)),
+            }))
+            .filter(group => group.items.length > 0);
+    }, [role, loading]);
+
+    const displayName = fullName || email?.split("@")[0] || "User";
+    const roleLabel = role ? ROLE_LABELS_EN[role] : "User";
+    const roleColor = role ? ROLE_COLORS[role] : "";
 
     const renderItem = (item: NavItem) => {
         const active = isActive(item.href, pathname, item.exact);
@@ -164,10 +183,10 @@ export function Sidebar() {
 
             {/* Nav */}
             <nav className="flex-1 overflow-y-auto py-4 thin-scrollbar">
-                {navGroups.map(renderGroup)}
+                {filteredNavGroups.map(renderGroup)}
             </nav>
 
-            {/* Bottom */}
+            {/* Bottom — User Info */}
             <div className={cn("shrink-0 border-t border-border", collapsed ? "p-2" : "p-3")}>
                 <button
                     type="button"
@@ -179,10 +198,16 @@ export function Sidebar() {
                 </button>
                 {!collapsed && (
                     <div className="flex items-center gap-3 mt-2 px-2">
-                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0 text-primary text-xs font-bold">A</div>
-                        <div className="min-w-0">
-                            <p className="text-xs font-semibold text-foreground truncate">Admin</p>
-                            <p className="text-[10px] text-muted-foreground truncate">Signed in</p>
+                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0 text-primary text-xs font-bold">
+                            {displayName.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                            <p className="text-xs font-semibold text-foreground truncate">{displayName}</p>
+                            {role && (
+                                <span className={cn("inline-block text-[9px] font-bold px-1.5 py-0.5 rounded-md mt-0.5", roleColor)}>
+                                    {roleLabel}
+                                </span>
+                            )}
                         </div>
                     </div>
                 )}

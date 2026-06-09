@@ -10,6 +10,7 @@ import { PromotionBanner } from "./_components/promotion-banner";
 import { WelcomeBanner } from "./_components/welcome-banner";
 import { StatsCards } from "./_components/stats-cards";
 import { AttendanceChart } from "./_components/attendance-chart";
+import { AccessDeniedToast } from "./_components/access-denied-toast";
 
 type SchoolData = { name: string; address: string; phone: string; email: string; logo_url: string; current_academic_year: string; last_promotion_year: string };
 type SectionRow = { class_name: string; section_name: string; student_count: number };
@@ -127,6 +128,7 @@ export default async function DashboardPage() {
 
     return (
         <div className="flex flex-col gap-6">
+            <AccessDeniedToast />
             <PromotionBanner academicYear={school?.current_academic_year} />
 
             {/* Top Bento Row: Welcome & Quick Actions */}

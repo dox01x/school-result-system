@@ -588,7 +588,13 @@ export default function ResultsPage() {
 .rc-view .gtbl td{padding:3px 5px;border:1px solid #cbd5e0;text-align:center;color:#4a5568}
 .rc-view .sigs{width:100%;table-layout:fixed;margin-top:30px;border-collapse:collapse}
 .rc-view .sigs td{text-align:center;vertical-align:top}
-.rc-view .sigb{width:160px;margin:0 auto;border-top:1.5px solid #2d3748;padding-top:4px;font-size:10px;color:#4a5568}`;
+.rc-view .sigb{width:160px;margin:0 auto;border-top:1.5px solid #2d3748;padding-top:4px;font-size:10px;color:#4a5568}
+/* High contrast B&W theme for preview and print */
+.rc-view, .rc-view * { color: #000 !important; border-color: #000 !important; }
+.rc-view .mtbl th, .rc-view .mtbl th * { color: #fff !important; background-color: #000 !important; }
+.rc-view .tbar { background: transparent !important; border-top: 2px solid #000 !important; border-bottom: 2px solid #000 !important; }
+.rc-view .st td, .rc-view .mtbl tr.e, .rc-view .mtbl tr.o { background: transparent !important; }
+.rc-view .gtbl th, .rc-view .mtbl tr.tot { background: #e2e8f0 !important; }`;
 
         const body = `<div class="pg">
 <div class="tb"></div>
@@ -627,11 +633,6 @@ ${gradingHtml}
 @page{size:A4 portrait;margin:0}
 ${css}
 body{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;color-adjust:exact !important}
-.rc-view .mtbl th{background:#1a365d !important;color:#fff !important}
-.rc-view .mtbl tr.e{background:#fff !important}.rc-view .mtbl tr.o{background:#f8fafc !important}
-.rc-view .mtbl tr.tot{background:#edf2f7 !important}
-.rc-view .st td{background:#f0f4ff !important}
-.rc-view .gtbl th{background:#edf2f7 !important}
 </style></head><body><div class="rc-view">${body}</div></body></html>`;
 
         const w = window.open("", "_blank", "width=800,height=900");
@@ -656,18 +657,16 @@ body{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !impor
 
         const summaryHtml = `<div style="text-align:center;">
 <div style="margin-top:24px;font-size:12px;font-weight:700;color:#1a365d;text-transform:uppercase;margin-bottom:8px;letter-spacing:1px;">Grade Summary</div>
-<table style="width:250px;border:2px solid #2d3748;border-collapse:collapse;margin:0 auto 20px auto;">
+<table style="width:100%;max-width:700px;border:2px solid #2d3748;border-collapse:collapse;margin:0 auto 20px auto;">
     <tr>
-        <th style="background:#edf2f7 !important;color:#1a365d !important;padding:6px 12px;border:1px solid #2d3748;font-size:12px;text-align:center;font-weight:700;width:50%;">Grade</th>
-        <th style="background:#edf2f7 !important;color:#1a365d !important;padding:6px 12px;border:1px solid #2d3748;font-size:12px;text-align:center;font-weight:700;width:50%;">Students</th>
+        <th style="background:#edf2f7 !important;color:#1a365d !important;padding:6px 8px;border:1px solid #2d3748;font-size:12px;text-align:center;font-weight:700;">Grade</th>
+        ${gradesList.map((g) => `<th style="background:#edf2f7 !important;color:#1a365d !important;padding:6px 8px;border:1px solid #2d3748;font-size:12px;text-align:center;font-weight:700;">${g}</th>`).join('')}
+        <th style="background:#edf2f7 !important;color:#1a365d !important;padding:6px 8px;border:1px solid #2d3748;font-size:12px;text-align:center;font-weight:700;">Total</th>
     </tr>
-    ${gradesList.map((g, idx) => `<tr style="background:${idx % 2 === 0 ? '#fff' : '#f8fafc'} !important;">
-        <td style="padding:6px 12px;border:1px solid #2d3748;font-size:12px;font-weight:700;text-align:center;color:#1a365d !important;">${g}</td>
-        <td style="padding:6px 12px;border:1px solid #2d3748;font-size:13px;font-weight:700;text-align:center;color:#1a202c !important;">${gradeCounts[g]}</td>
-    </tr>`).join('')}
     <tr>
-        <td style="padding:6px 12px;border:1px solid #2d3748;font-size:12px;font-weight:700;text-align:center;background:#edf2f7 !important;color:#1a365d !important;">Total</td>
-        <td style="padding:6px 12px;border:1px solid #2d3748;font-size:13px;font-weight:700;text-align:center;background:#edf2f7 !important;color:#1a365d !important;">${sorted.length}</td>
+        <td style="background:#f8fafc !important;padding:6px 8px;border:1px solid #2d3748;font-size:12px;font-weight:700;text-align:center;color:#1a365d !important;">Students</td>
+        ${gradesList.map((g) => `<td style="padding:6px 8px;border:1px solid #2d3748;font-size:13px;font-weight:700;text-align:center;color:#1a202c !important;">${gradeCounts[g]}</td>`).join('')}
+        <td style="background:#f8fafc !important;padding:6px 8px;border:1px solid #2d3748;font-size:13px;font-weight:700;text-align:center;color:#1a202c !important;">${sorted.length}</td>
     </tr>
 </table>
 </div>`;
@@ -704,6 +703,11 @@ th{background:#1a365d !important;color:#fff !important;padding:7px 8px;border:1p
 td{text-align:center;padding:5px 8px;border:1px solid #2d3748}
 tr.e{background:#fff !important}
 tr.o{background:#f8fafc !important}
+/* High contrast B&W theme for preview and print */
+*, body { color: #000 !important; border-color: #000 !important; }
+th, th * { color: #fff !important; background-color: #000 !important; }
+.tbar { background: transparent !important; border-top: 2px solid #000 !important; border-bottom: 2px solid #000 !important; }
+tr.e, tr.o { background: transparent !important; }
 </style></head><body><div class="pg">
 <div class="tb"></div>
 <div class="hdr">
@@ -746,11 +750,6 @@ ${summaryHtml}
 @media print{.pg{page-break-after:always}.pg:last-child{page-break-after:auto}}
 ${css}
 body{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;color-adjust:exact !important}
-.rc-view .mtbl th{background:#1a365d !important;color:#fff !important}
-.rc-view .mtbl tr.e{background:#fff !important}.rc-view .mtbl tr.o{background:#f8fafc !important}
-.rc-view .mtbl tr.tot{background:#edf2f7 !important}
-.rc-view .st td{background:#f0f4ff !important}
-.rc-view .gtbl th{background:#edf2f7 !important}
 </style></head><body><div class="rc-view">${pages}</div></body></html>`;
 
         const w = window.open("", "_blank", "width=800,height=900");
