@@ -3,6 +3,7 @@
 
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { printHtml } from "@/lib/print-utils";
 import {
     CLASS_COLUMNS,
     CLASS_ROUTINE_COLUMNS,
@@ -404,8 +405,7 @@ ${schoolInfo?.logo_url ? `<img src="${schoolInfo.logo_url}" alt="Logo">` : ""}
 
 </body></html>`;
 
-        const w = window.open("", "_blank", "width=1100,height=700");
-        if (w) { w.document.write(html); w.document.close(); w.onload = () => { setTimeout(() => w.print(), 500); }; }
+        printHtml(html);
     };
 
     if (loading) {

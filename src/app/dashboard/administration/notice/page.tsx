@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { printHtml } from "@/lib/print-utils";
 import type { Notice } from "@/lib/database.types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -152,8 +153,7 @@ body{font-family:'Poppins',sans-serif;color:#1a202c;line-height:1.7}
 <div class="footer">This is a system-generated notice.</div>
 </body></html>`;
 
-        const w = window.open("", "_blank", "width=800,height=900");
-        if (w) { w.document.write(html); w.document.close(); w.onload = () => { setTimeout(() => w.print(), 500); }; }
+        printHtml(html);
         })();
     };
 

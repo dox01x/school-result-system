@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { printHtml } from '@/lib/print-utils';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -124,9 +125,7 @@ export default function PaySalaryPage() {
     if (!lastSlip) return;
     const s = lastSlip;
 
-    const w = window.open('', '_blank');
-    if (!w) return;
-    w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Salary Slip ${s.slip_number}</title>
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Salary Slip ${s.slip_number}</title>
     <style>
       @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap');
       * { margin:0; padding:0; box-sizing:border-box; }
@@ -242,10 +241,8 @@ export default function PaySalaryPage() {
     </div>
 
     <div class="footer">Computer Generated Salary Slip • No Signature Required</div>
-    </body></html>`);
-    w.document.close();
-    w.focus();
-    setTimeout(() => { w.print(); w.close(); }, 400);
+    </body></html>`;
+    printHtml(html);
   };
 
   // ═══════ SLIP VIEW ═══════

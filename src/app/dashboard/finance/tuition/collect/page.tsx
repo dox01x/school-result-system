@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import { printHtml } from '@/lib/print-utils';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -481,10 +482,7 @@ export default function CollectTuitionPage() {
       </tr>`;
     }).join('');
 
-    const printWindow = window.open('', '_blank', 'width=800,height=900');
-    if (!printWindow) return;
-
-    printWindow.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Receipt ${r.receipt_number}</title>
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Receipt ${r.receipt_number}</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
     <style>
       *{margin:0;padding:0;box-sizing:border-box}
@@ -567,10 +565,9 @@ export default function CollectTuitionPage() {
     
     ${r.note ? '<div class="note-box">Note: ' + r.note + '</div>' : ''}
     <div class="footer">Computer Generated Receipt • No Signature Required</div>
-    </body></html>`);
+    </body></html>`;
 
-    printWindow.document.close();
-    printWindow.onload = () => { setTimeout(() => printWindow.print(), 500); };
+    printHtml(html);
   };
 
   const handleNewCollection = () => {

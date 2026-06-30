@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { printHtml } from "@/lib/print-utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -476,16 +477,7 @@ export function ExamDutiesTab({ exams }: { exams: { id: string; name: string }[]
 </body>
 </html>`;
 
-        const printWindow = window.open("", "_blank");
-        if (printWindow) {
-            printWindow.document.write(html);
-            printWindow.document.close();
-            printWindow.focus();
-            setTimeout(() => {
-                printWindow.print();
-                printWindow.close();
-            }, 400);
-        }
+        printHtml(html);
     };
 
     const selectedExamName = exams.find(e => e.id === selectedExam)?.name || "";

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { printHtml } from '@/lib/print-utils';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -53,9 +54,7 @@ export default function DailyClosingPage() {
       `<tr><td>${i + 1}</td><td class="col-label">${e.category.replace('_', ' ')}</td><td>${e.description}</td><td class="col-amount">${Number(e.amount).toLocaleString('en-IN')} TK</td></tr>`
     ).join('');
 
-    const w = window.open('', '_blank');
-    if (!w) return;
-    w.document.write(`<!DOCTYPE html><html><head><title>Daily Closing - ${d.date}</title>
+    const html = `<!DOCTYPE html><html><head><title>Daily Closing - ${d.date}</title>
     <style>
       @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap');
       * { margin:0; padding:0; box-sizing:border-box; }
@@ -116,10 +115,8 @@ export default function DailyClosingPage() {
       <div><p>Verified By (Signature)</p><div class="line"></div></div>
     </div>
     <div class="footer"><p>Generated on ${new Date().toLocaleDateString('en-GB')} &bull; School Management System</p></div>
-    </body></html>`);
-    w.document.close();
-    w.focus();
-    setTimeout(() => { w.print(); }, 400);
+    </body></html>`;
+    printHtml(html);
   };
 
   return (

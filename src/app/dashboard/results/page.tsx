@@ -2,6 +2,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { escapeHtml } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
+import { printHtml } from "@/lib/print-utils";
 import {
     CLASS_COLUMNS,
     EXAM_COLUMNS,
@@ -662,8 +663,7 @@ ${css}
 body{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;color-adjust:exact !important}
 </style></head><body><div class="rc-view">${body}</div></body></html>`;
 
-        const w = window.open("", "_blank", "width=800,height=900");
-        if (w) { w.document.write(html); w.document.close(); w.onload = () => { setTimeout(() => w.print(), 500); }; }
+        printHtml(html);
     };
 
     const handlePrintAll = () => {
@@ -759,8 +759,7 @@ ${summaryHtml}
 <div class="bb"></div>
 </div></body></html>`;
 
-        const w = window.open("", "_blank", "width=850,height=900");
-        if (w) { w.document.write(html); w.document.close(); w.onload = () => { setTimeout(() => w.print(), 500); }; }
+        printHtml(html);
     };
 
     const handlePrintAllCards = () => {
@@ -779,8 +778,7 @@ ${css}
 body{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;color-adjust:exact !important}
 </style></head><body><div class="rc-view">${pages}</div></body></html>`;
 
-        const w = window.open("", "_blank", "width=800,height=900");
-        if (w) { w.document.write(html); w.document.close(); w.onload = () => { setTimeout(() => w.print(), 500); }; }
+        printHtml(html);
     };
 
     const handleDownloadCSV = () => {

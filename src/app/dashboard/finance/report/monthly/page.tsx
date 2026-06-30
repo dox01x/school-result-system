@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { printHtml } from '@/lib/print-utils';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -64,9 +65,7 @@ export default function MonthlyReportPage() {
     const totalIncome = r.income_breakdown.reduce((s, i) => s + i.amount, 0);
     const totalExpense = r.expense_breakdown.reduce((s, e) => s + e.amount, 0);
 
-    const w = window.open('', '_blank');
-    if (!w) return;
-    w.document.write(`<!DOCTYPE html><html><head><title>Report - ${getMonthName(r.month)} ${r.year}</title>
+    const html = `<!DOCTYPE html><html><head><title>Report - ${getMonthName(r.month)} ${r.year}</title>
     <style>
       @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap');
       * { margin:0; padding:0; box-sizing:border-box; }
@@ -121,10 +120,8 @@ export default function MonthlyReportPage() {
     </div>
     <div class="net-card"><h4>Net Balance</h4><div class="val">${r.net_balance >= 0 ? '+' : ''}${r.net_balance.toLocaleString('en-IN')} TK</div></div>
     <div class="footer"><p>Generated on ${new Date().toLocaleDateString('en-GB')} &bull; School Management System</p></div>
-    </body></html>`);
-    w.document.close();
-    w.focus();
-    setTimeout(() => { w.print(); w.close(); }, 400);
+    </body></html>`;
+    printHtml(html);
   };
 
   return (
