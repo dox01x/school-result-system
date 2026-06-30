@@ -626,7 +626,16 @@ ALTER TABLE promotion_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE class_teacher_assignments ENABLE ROW LEVEL SECURITY;
 
 -- Authenticated policies (core + admin)
-CREATE POLICY "auth_rw_school_info" ON school_info FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+-- school_info: everyone can read, only admin+ can write
+CREATE POLICY "school_info_select" ON school_info FOR SELECT TO authenticated USING (true);
+CREATE POLICY "school_info_modify" ON school_info FOR UPDATE TO authenticated
+  USING (public.profile_role() IN ('super_admin', 'admin'))
+  WITH CHECK (public.profile_role() IN ('super_admin', 'admin'));
+CREATE POLICY "school_info_insert" ON school_info FOR INSERT TO authenticated
+  WITH CHECK (public.profile_role() IN ('super_admin', 'admin'));
+CREATE POLICY "school_info_delete" ON school_info FOR DELETE TO authenticated
+  USING (public.profile_role() IN ('super_admin', 'admin'));
 
 -- Classes: Admin+ full access, Class Teacher restricted to assigned class
 CREATE POLICY "auth_rw_classes" ON classes FOR ALL TO authenticated USING (
@@ -664,9 +673,35 @@ CREATE POLICY "auth_rw_students" ON students FOR ALL TO authenticated USING (
   (public.profile_role() = 'class_teacher' AND EXISTS (SELECT 1 FROM class_teacher_assignments cta WHERE cta.user_id = auth.uid() AND cta.class_id = students.class_id AND cta.section_id = students.section_id))
 );
 
-CREATE POLICY "auth_rw_exams" ON exams FOR ALL TO authenticated USING (true) WITH CHECK (true);
-CREATE POLICY "auth_rw_grading_rules" ON grading_rules FOR ALL TO authenticated USING (true) WITH CHECK (true);
-CREATE POLICY "auth_rw_exam_subject_config" ON exam_subject_config FOR ALL TO authenticated USING (true) WITH CHECK (true);
+-- Exams: everyone can read, admin + exam_controller can write
+CREATE POLICY "exams_select" ON exams FOR SELECT TO authenticated USING (true);
+CREATE POLICY "exams_modify" ON exams FOR INSERT TO authenticated
+  WITH CHECK (public.profile_role() IN ('super_admin', 'admin', 'exam_controller'));
+CREATE POLICY "exams_update" ON exams FOR UPDATE TO authenticated
+  USING (public.profile_role() IN ('super_admin', 'admin', 'exam_controller'))
+  WITH CHECK (public.profile_role() IN ('super_admin', 'admin', 'exam_controller'));
+CREATE POLICY "exams_delete" ON exams FOR DELETE TO authenticated
+  USING (public.profile_role() IN ('super_admin', 'admin', 'exam_controller'));
+
+-- Grading rules: everyone can read, admin + exam_controller can write
+CREATE POLICY "grading_rules_select" ON grading_rules FOR SELECT TO authenticated USING (true);
+CREATE POLICY "grading_rules_modify" ON grading_rules FOR INSERT TO authenticated
+  WITH CHECK (public.profile_role() IN ('super_admin', 'admin', 'exam_controller'));
+CREATE POLICY "grading_rules_update" ON grading_rules FOR UPDATE TO authenticated
+  USING (public.profile_role() IN ('super_admin', 'admin', 'exam_controller'))
+  WITH CHECK (public.profile_role() IN ('super_admin', 'admin', 'exam_controller'));
+CREATE POLICY "grading_rules_delete" ON grading_rules FOR DELETE TO authenticated
+  USING (public.profile_role() IN ('super_admin', 'admin', 'exam_controller'));
+
+-- Exam subject config: everyone can read, admin + exam_controller can write
+CREATE POLICY "exam_subject_config_select" ON exam_subject_config FOR SELECT TO authenticated USING (true);
+CREATE POLICY "exam_subject_config_modify" ON exam_subject_config FOR INSERT TO authenticated
+  WITH CHECK (public.profile_role() IN ('super_admin', 'admin', 'exam_controller'));
+CREATE POLICY "exam_subject_config_update" ON exam_subject_config FOR UPDATE TO authenticated
+  USING (public.profile_role() IN ('super_admin', 'admin', 'exam_controller'))
+  WITH CHECK (public.profile_role() IN ('super_admin', 'admin', 'exam_controller'));
+CREATE POLICY "exam_subject_config_delete" ON exam_subject_config FOR DELETE TO authenticated
+  USING (public.profile_role() IN ('super_admin', 'admin', 'exam_controller'));
 
 -- Marks: Join with students to check class/section
 CREATE POLICY "auth_rw_marks" ON marks FOR ALL TO authenticated USING (
@@ -730,7 +765,15 @@ CREATE POLICY "auth_rw_final_result_details" ON final_result_details FOR ALL TO 
   ))
 );
 
-CREATE POLICY "auth_rw_archived_students" ON archived_students FOR ALL TO authenticated USING (true) WITH CHECK (true);
+-- Archived students: everyone can read, only admin+ can write
+CREATE POLICY "archived_students_select" ON archived_students FOR SELECT TO authenticated USING (true);
+CREATE POLICY "archived_students_modify" ON archived_students FOR INSERT TO authenticated
+  WITH CHECK (public.profile_role() IN ('super_admin', 'admin'));
+CREATE POLICY "archived_students_update" ON archived_students FOR UPDATE TO authenticated
+  USING (public.profile_role() IN ('super_admin', 'admin'))
+  WITH CHECK (public.profile_role() IN ('super_admin', 'admin'));
+CREATE POLICY "archived_students_delete" ON archived_students FOR DELETE TO authenticated
+  USING (public.profile_role() IN ('super_admin', 'admin'));
 
 -- Sheet Configs
 CREATE POLICY "auth_rw_sheet_configs" ON sheet_configs FOR ALL TO authenticated USING (
@@ -740,15 +783,98 @@ CREATE POLICY "auth_rw_sheet_configs" ON sheet_configs FOR ALL TO authenticated 
   public.profile_role() IN ('super_admin', 'admin', 'exam_controller', 'accountant') OR
   (public.profile_role() = 'class_teacher' AND EXISTS (SELECT 1 FROM class_teacher_assignments cta WHERE cta.user_id = auth.uid() AND cta.class_id = sheet_configs.class_id AND cta.section_id = sheet_configs.section_id))
 );
-CREATE POLICY "auth_rw_teachers" ON teachers FOR ALL TO authenticated USING (true) WITH CHECK (true);
-CREATE POLICY "auth_rw_rooms" ON rooms FOR ALL TO authenticated USING (true) WITH CHECK (true);
-CREATE POLICY "auth_rw_class_routines" ON class_routines FOR ALL TO authenticated USING (true) WITH CHECK (true);
-CREATE POLICY "auth_rw_exam_schedules" ON exam_schedules FOR ALL TO authenticated USING (true) WITH CHECK (true);
-CREATE POLICY "auth_rw_teacher_shifts" ON teacher_shifts FOR ALL TO authenticated USING (true) WITH CHECK (true);
-CREATE POLICY "auth_rw_leave_requests" ON leave_requests FOR ALL TO authenticated USING (true) WITH CHECK (true);
-CREATE POLICY "auth_rw_notices" ON notices FOR ALL TO authenticated USING (true) WITH CHECK (true);
-CREATE POLICY "auth_rw_routine_settings" ON routine_settings FOR ALL TO authenticated USING (true) WITH CHECK (true);
-CREATE POLICY "auth_rw_proxy_assignments" ON proxy_assignments FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+-- Teachers: everyone can read, only admin+ can write
+CREATE POLICY "teachers_select" ON teachers FOR SELECT TO authenticated USING (true);
+CREATE POLICY "teachers_modify" ON teachers FOR INSERT TO authenticated
+  WITH CHECK (public.profile_role() IN ('super_admin', 'admin'));
+CREATE POLICY "teachers_update" ON teachers FOR UPDATE TO authenticated
+  USING (public.profile_role() IN ('super_admin', 'admin'))
+  WITH CHECK (public.profile_role() IN ('super_admin', 'admin'));
+CREATE POLICY "teachers_delete" ON teachers FOR DELETE TO authenticated
+  USING (public.profile_role() IN ('super_admin', 'admin'));
+
+-- Rooms: everyone can read, only admin+ can write
+CREATE POLICY "rooms_select" ON rooms FOR SELECT TO authenticated USING (true);
+CREATE POLICY "rooms_modify" ON rooms FOR INSERT TO authenticated
+  WITH CHECK (public.profile_role() IN ('super_admin', 'admin'));
+CREATE POLICY "rooms_update" ON rooms FOR UPDATE TO authenticated
+  USING (public.profile_role() IN ('super_admin', 'admin'))
+  WITH CHECK (public.profile_role() IN ('super_admin', 'admin'));
+CREATE POLICY "rooms_delete" ON rooms FOR DELETE TO authenticated
+  USING (public.profile_role() IN ('super_admin', 'admin'));
+
+-- Class routines: everyone can read, only admin+ can write
+CREATE POLICY "class_routines_select" ON class_routines FOR SELECT TO authenticated USING (true);
+CREATE POLICY "class_routines_modify" ON class_routines FOR INSERT TO authenticated
+  WITH CHECK (public.profile_role() IN ('super_admin', 'admin'));
+CREATE POLICY "class_routines_update" ON class_routines FOR UPDATE TO authenticated
+  USING (public.profile_role() IN ('super_admin', 'admin'))
+  WITH CHECK (public.profile_role() IN ('super_admin', 'admin'));
+CREATE POLICY "class_routines_delete" ON class_routines FOR DELETE TO authenticated
+  USING (public.profile_role() IN ('super_admin', 'admin'));
+
+-- Exam schedules: everyone can read, admin + exam_controller can write
+CREATE POLICY "exam_schedules_select" ON exam_schedules FOR SELECT TO authenticated USING (true);
+CREATE POLICY "exam_schedules_modify" ON exam_schedules FOR INSERT TO authenticated
+  WITH CHECK (public.profile_role() IN ('super_admin', 'admin', 'exam_controller'));
+CREATE POLICY "exam_schedules_update" ON exam_schedules FOR UPDATE TO authenticated
+  USING (public.profile_role() IN ('super_admin', 'admin', 'exam_controller'))
+  WITH CHECK (public.profile_role() IN ('super_admin', 'admin', 'exam_controller'));
+CREATE POLICY "exam_schedules_delete" ON exam_schedules FOR DELETE TO authenticated
+  USING (public.profile_role() IN ('super_admin', 'admin', 'exam_controller'));
+
+-- Teacher shifts: everyone can read, only admin+ can write
+CREATE POLICY "teacher_shifts_select" ON teacher_shifts FOR SELECT TO authenticated USING (true);
+CREATE POLICY "teacher_shifts_modify" ON teacher_shifts FOR INSERT TO authenticated
+  WITH CHECK (public.profile_role() IN ('super_admin', 'admin'));
+CREATE POLICY "teacher_shifts_update" ON teacher_shifts FOR UPDATE TO authenticated
+  USING (public.profile_role() IN ('super_admin', 'admin'))
+  WITH CHECK (public.profile_role() IN ('super_admin', 'admin'));
+CREATE POLICY "teacher_shifts_delete" ON teacher_shifts FOR DELETE TO authenticated
+  USING (public.profile_role() IN ('super_admin', 'admin'));
+
+-- Leave requests: everyone can read, only admin+ can write
+CREATE POLICY "leave_requests_select" ON leave_requests FOR SELECT TO authenticated USING (true);
+CREATE POLICY "leave_requests_modify" ON leave_requests FOR INSERT TO authenticated
+  WITH CHECK (public.profile_role() IN ('super_admin', 'admin'));
+CREATE POLICY "leave_requests_update" ON leave_requests FOR UPDATE TO authenticated
+  USING (public.profile_role() IN ('super_admin', 'admin'))
+  WITH CHECK (public.profile_role() IN ('super_admin', 'admin'));
+CREATE POLICY "leave_requests_delete" ON leave_requests FOR DELETE TO authenticated
+  USING (public.profile_role() IN ('super_admin', 'admin'));
+
+-- Notices: everyone can read, only admin+ can write
+CREATE POLICY "notices_select" ON notices FOR SELECT TO authenticated USING (true);
+CREATE POLICY "notices_modify" ON notices FOR INSERT TO authenticated
+  WITH CHECK (public.profile_role() IN ('super_admin', 'admin'));
+CREATE POLICY "notices_update" ON notices FOR UPDATE TO authenticated
+  USING (public.profile_role() IN ('super_admin', 'admin'))
+  WITH CHECK (public.profile_role() IN ('super_admin', 'admin'));
+CREATE POLICY "notices_delete" ON notices FOR DELETE TO authenticated
+  USING (public.profile_role() IN ('super_admin', 'admin'));
+
+-- Routine settings: everyone can read, only admin+ can write
+CREATE POLICY "routine_settings_select" ON routine_settings FOR SELECT TO authenticated USING (true);
+CREATE POLICY "routine_settings_modify" ON routine_settings FOR INSERT TO authenticated
+  WITH CHECK (public.profile_role() IN ('super_admin', 'admin'));
+CREATE POLICY "routine_settings_update" ON routine_settings FOR UPDATE TO authenticated
+  USING (public.profile_role() IN ('super_admin', 'admin'))
+  WITH CHECK (public.profile_role() IN ('super_admin', 'admin'));
+CREATE POLICY "routine_settings_delete" ON routine_settings FOR DELETE TO authenticated
+  USING (public.profile_role() IN ('super_admin', 'admin'));
+
+-- Proxy assignments: everyone can read, only admin+ can write
+CREATE POLICY "proxy_assignments_select" ON proxy_assignments FOR SELECT TO authenticated USING (true);
+CREATE POLICY "proxy_assignments_modify" ON proxy_assignments FOR INSERT TO authenticated
+  WITH CHECK (public.profile_role() IN ('super_admin', 'admin'));
+CREATE POLICY "proxy_assignments_update" ON proxy_assignments FOR UPDATE TO authenticated
+  USING (public.profile_role() IN ('super_admin', 'admin'))
+  WITH CHECK (public.profile_role() IN ('super_admin', 'admin'));
+CREATE POLICY "proxy_assignments_delete" ON proxy_assignments FOR DELETE TO authenticated
+  USING (public.profile_role() IN ('super_admin', 'admin'));
+
+-- Attendance records: role-based + class_teacher restricted
 CREATE POLICY "auth_rw_attendance_records" ON attendance_records FOR ALL TO authenticated USING (
   public.profile_role() IN ('super_admin', 'admin', 'exam_controller', 'accountant') OR
   (public.profile_role() = 'class_teacher' AND EXISTS (SELECT 1 FROM class_teacher_assignments cta WHERE cta.user_id = auth.uid() AND cta.class_id = attendance_records.class_id AND cta.section_id = attendance_records.section_id))
@@ -756,12 +882,22 @@ CREATE POLICY "auth_rw_attendance_records" ON attendance_records FOR ALL TO auth
   public.profile_role() IN ('super_admin', 'admin', 'exam_controller', 'accountant') OR
   (public.profile_role() = 'class_teacher' AND EXISTS (SELECT 1 FROM class_teacher_assignments cta WHERE cta.user_id = auth.uid() AND cta.class_id = attendance_records.class_id AND cta.section_id = attendance_records.section_id))
 );
-CREATE POLICY "auth_rw_promotion_logs" ON promotion_logs FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+-- Promotion logs: everyone can read, only admin+ can write
+CREATE POLICY "promotion_logs_select" ON promotion_logs FOR SELECT TO authenticated USING (true);
+CREATE POLICY "promotion_logs_modify" ON promotion_logs FOR INSERT TO authenticated
+  WITH CHECK (public.profile_role() IN ('super_admin', 'admin'));
+CREATE POLICY "promotion_logs_update" ON promotion_logs FOR UPDATE TO authenticated
+  USING (public.profile_role() IN ('super_admin', 'admin'))
+  WITH CHECK (public.profile_role() IN ('super_admin', 'admin'));
+CREATE POLICY "promotion_logs_delete" ON promotion_logs FOR DELETE TO authenticated
+  USING (public.profile_role() IN ('super_admin', 'admin'));
 
 -- Profiles policies
 CREATE POLICY "profiles_select" ON profiles FOR SELECT TO authenticated USING (auth.uid() = id OR public.profile_role() = 'super_admin');
 CREATE POLICY "profiles_update" ON profiles FOR UPDATE TO authenticated USING (auth.uid() = id OR public.profile_role() = 'super_admin') WITH CHECK (auth.uid() = id OR public.profile_role() = 'super_admin');
 CREATE POLICY "profiles_insert" ON profiles FOR INSERT TO authenticated WITH CHECK (public.profile_role() = 'super_admin');
+CREATE POLICY "profiles_delete" ON profiles FOR DELETE TO authenticated USING (public.profile_role() = 'super_admin');
 
 -- Class teacher assignments policies
 CREATE POLICY "cta_select" ON class_teacher_assignments FOR SELECT TO authenticated USING (true);

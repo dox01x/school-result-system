@@ -1,6 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
-import { createServerClient } from "@supabase/ssr";
 
 const AUTH_DISABLED = process.env.AUTH_DISABLED === "true";
 
@@ -42,7 +41,7 @@ function redirectWithCookies(
 }
 
 export async function proxy(request: NextRequest) {
-  const { supabaseResponse, user } = await updateSession(request);
+  const { supabaseResponse, user, supabase } = await updateSession(request);
   const pathname = request.nextUrl.pathname;
 
   // If auth is disabled, skip all checks
@@ -75,22 +74,7 @@ export async function proxy(request: NextRequest) {
 
   // Role-based route guard for dashboard routes
   if (user && pathname.startsWith("/dashboard") && pathname !== "/dashboard") {
-    // Fetch user role from profile via a lightweight Supabase call
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return request.cookies.getAll();
-          },
-          setAll() {
-            // Middleware doesn't need to set cookies for this read-only check
-          },
-        },
-      }
-    );
-
+    // Reuse the supabase client from updateSession (no duplicate creation)
     const { data: profile } = await supabase
       .from("profiles")
       .select("role")

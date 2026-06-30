@@ -72,7 +72,7 @@ export default function CollectTuitionPage() {
 
   // Exam selection for per-exam fees
   const [examList, setExamList] = useState<any[]>([]);
-  const [selectedExamForFee, setSelectedExamForFee] = useState<Record<string, string>>({}); // fee.type -> exam_id
+  const [selectedExamForFee, setSelectedExamForFee] = useState<Record<string, string[]>>({}); // fee.type -> array of exam_ids
 
   // Submit & Print
   const [submitting, setSubmitting] = useState(false);
@@ -175,7 +175,11 @@ export default function CollectTuitionPage() {
       supabase.from('students').select('id, name, roll').eq('class_id', classId).order('roll')
     ]);
     if (secRes.data) setSections(secRes.data);
-    if (stuRes.data) setStudentsList(stuRes.data);
+    if (stuRes.data) setStudentsList([...stuRes.data].sort((a: any, b: any) => {
+      const na = parseInt(a.roll), nb = parseInt(b.roll);
+      if (!isNaN(na) && !isNaN(nb)) return na - nb;
+      return (a.roll || '').localeCompare(b.roll || '');
+    }));
   };
 
   const handleSectionChange = async (sectionId: string) => {
@@ -189,7 +193,11 @@ export default function CollectTuitionPage() {
       else query = query.eq('section_id', sectionId);
     }
     const { data } = await query.order('roll');
-    if (data) setStudentsList(data);
+    if (data) setStudentsList([...data].sort((a: any, b: any) => {
+      const na = parseInt(a.roll), nb = parseInt(b.roll);
+      if (!isNaN(na) && !isNaN(nb)) return na - nb;
+      return (a.roll || '').localeCompare(b.roll || '');
+    }));
   };
 
   const handleStudentDropdownChange = (studentId: string) => {
@@ -305,13 +313,8 @@ export default function CollectTuitionPage() {
   const activeFees = fees.filter(f => {
     if (!f.selected) return false;
     const fType = f.type.toLowerCase().trim();
-    // Per-exam fees: check if THIS specific exam is already paid
+    // Per-exam fees: keep visible, individual exams are disabled if paid
     if (isPerExamFee(fType)) {
-      const selExamId = selectedExamForFee[f.type];
-      if (selExamId) {
-        const exam = examList.find(e => e.id === selExamId);
-        if (exam && paidExamFees.includes(`${fType}__${exam.name}`)) return false;
-      }
       return true;
     }
     // Yearly fees: check if already paid
@@ -323,7 +326,12 @@ export default function CollectTuitionPage() {
   const activeMonths = paymentMonths.filter(m => !paidMonths.includes(parseInt(m)));
 
   const totalDue = activeFees.reduce((sum, f) => {
-    const multiplier = isMonthlyFee(f.type) ? activeMonths.length : 1;
+    let multiplier = 1;
+    if (isMonthlyFee(f.type)) {
+      multiplier = activeMonths.length;
+    } else if (isPerExamFee(f.type)) {
+      multiplier = Math.max(1, (selectedExamForFee[f.type] || []).length);
+    }
     return sum + (Number(f.amount) * multiplier);
   }, 0);
 
@@ -368,10 +376,13 @@ export default function CollectTuitionPage() {
 
       // Validate per-exam fees have an exam selected
       for (const f of activeFees) {
-        if (isPerExamFee(f.type) && !selectedExamForFee[f.type]) {
-          toast.error(`Please select which exam for "${f.label}"`);
-          setSubmitting(false);
-          return;
+        if (isPerExamFee(f.type)) {
+          const selected = selectedExamForFee[f.type] || [];
+          if (selected.length === 0) {
+            toast.error(`Please select at least one exam for "${f.label}"`);
+            setSubmitting(false);
+            return;
+          }
         }
       }
 
@@ -381,8 +392,11 @@ export default function CollectTuitionPage() {
             feeDetails.push({ type: f.type, amount: f.amount, month: parseInt(m), year: parseInt(paymentYear) });
           });
         } else if (isPerExamFee(f.type)) {
-          const exam = examList.find(e => e.id === selectedExamForFee[f.type]);
-          feeDetails.push({ type: f.type, amount: f.amount, year: parseInt(paymentYear), exam_name: exam?.name || '' });
+          const selected = selectedExamForFee[f.type] || [];
+          selected.forEach(examId => {
+             const exam = examList.find(e => e.id === examId);
+             feeDetails.push({ type: f.type, amount: f.amount, year: parseInt(paymentYear), exam_name: exam?.name || '' });
+          });
         } else {
           feeDetails.push({ type: f.type, amount: f.amount, year: parseInt(paymentYear) });
         }
@@ -476,37 +490,39 @@ export default function CollectTuitionPage() {
       *{margin:0;padding:0;box-sizing:border-box}
       body{font-family:'Inter',sans-serif;color:#000;font-size:13px;line-height:1.5;background:#fff;max-width:800px;margin:0 auto;padding:40px}
       
-      .school-info { text-align: center; margin-bottom: 40px; }
-      .school-info h2 { font-size: 24px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; }
+      .school-info { text-align: center; margin-bottom: 24px; }
+      .school-info h2 { font-size: 22px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; }
       .school-info p { font-size: 12px; color: #666; margin-top: 4px; }
       
-      .header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 40px; padding-bottom: 20px; border-bottom: 1px solid #e5e5e5; }
-      .header-title h1 { font-size: 28px; font-weight: 900; letter-spacing: -1px; line-height: 1; text-transform: uppercase; }
+      .header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid #e5e5e5; }
+      .header-title h1 { font-size: 24px; font-weight: 900; letter-spacing: -1px; line-height: 1; text-transform: uppercase; }
       .header-title p { font-size: 12px; font-weight: 600; color: #666; letter-spacing: 2px; text-transform: uppercase; margin-top: 6px; }
       .header-date { text-align: right; }
-      .header-date .date-val { font-size: 24px; font-weight: 800; color:#000; }
+      .header-date .date-val { font-size: 20px; font-weight: 800; color:#000; }
       .header-date .date-year { font-size: 12px; font-weight: 600; color: #666; letter-spacing: 2px; text-transform: uppercase; margin-top: 4px; }
       
-      .info-grid{display:grid;grid-template-columns:repeat(2, 1fr);row-gap:24px;column-gap:30px;margin-bottom:40px;padding-bottom:20px}
-      .info-item .lbl{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:2px;color:#000;margin-bottom:8px}
+      .info-grid{display:grid;grid-template-columns:repeat(2, 1fr);row-gap:12px;column-gap:30px;margin-bottom:24px;padding-bottom:16px}
+      .info-item{display:flex;align-items:baseline}
+      .info-item .lbl{width:125px;flex-shrink:0;display:flex;justify-content:space-between;margin-right:8px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:#000;margin-bottom:0}
+      .info-item .lbl::after{content:':'}
       .info-item .val{font-size:14px;font-weight:600;color:#333}
       
-      table { width: 100%; border-collapse: collapse; margin-bottom:20px; border-top:1px solid #e5e5e5; }
-      th { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; color: #000; padding: 20px 0 10px; text-align: left; }
-      td { padding: 12px 0; border-bottom: none; font-size: 13px; }
+      table { width: 100%; border-collapse: collapse; margin-bottom:16px; border-top:1px solid #e5e5e5; }
+      th { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: #000; padding: 12px 0 8px; text-align: left; }
+      td { padding: 8px 0; border-bottom: none; font-size: 13px; }
       .col-label { font-weight: 600; text-transform: capitalize; color: #333; }
       .col-amount { text-align: right; font-family: monospace; font-weight: 600; font-size: 14px; }
       .col-center { text-align: center; width: 40px; color:#666; }
       
-      .total-row td { border-top: none; padding-top: 24px; font-weight: 800; color: #000; font-size: 14px; }
+      .total-row td { border-top: none; padding-top: 16px; font-weight: 800; color: #000; font-size: 14px; }
       .total-row .col-amount { font-size: 16px; }
       
-      .net-card { background: transparent; color: #000; padding: 30px 0; margin-top: 20px; text-align: center; }
-      .net-card h4 { font-size: 12px; text-transform: uppercase; letter-spacing: 3px; color: #666; margin-bottom: 12px; }
-      .net-card .val { font-size: 48px; font-weight: 900; font-family: monospace; letter-spacing: -2px; }
+      .net-card { background: transparent; color: #000; padding: 20px 0; margin-top: 16px; text-align: center; }
+      .net-card h4 { font-size: 12px; text-transform: uppercase; letter-spacing: 3px; color: #666; margin-bottom: 8px; }
+      .net-card .val { font-size: 40px; font-weight: 900; font-family: monospace; letter-spacing: -2px; }
       
-      .note-box{font-size:12px;color:#666;margin-bottom:20px;text-align:center;font-weight:600}
-      .footer { text-align: center; font-size: 10px; color: #999; margin-top: 40px; padding-top: 20px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+      .note-box{font-size:12px;color:#666;margin-bottom:16px;text-align:center;font-weight:600}
+      .footer { text-align: center; font-size: 10px; color: #999; margin-top: 30px; padding-top: 16px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
       @media print { body { padding: 20px; } }
     </style></head><body>
     <div class="school-info">
@@ -576,37 +592,39 @@ export default function CollectTuitionPage() {
       .rc-view{font-family:'Inter',sans-serif;color:#000;font-size:13px;line-height:1.5}
       .rc-view .pg{max-width:800px;margin:0 auto;padding:40px;background:#fff}
       
-      .rc-view .school-info { text-align: center; margin-bottom: 40px; }
-      .rc-view .school-info h2 { font-size: 24px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; color:#000; }
+      .rc-view .school-info { text-align: center; margin-bottom: 24px; }
+      .rc-view .school-info h2 { font-size: 22px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; color:#000; }
       .rc-view .school-info p { font-size: 12px; color: #666; margin-top: 4px; }
       
-      .rc-view .header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 40px; padding-bottom: 20px; border-bottom: 1px solid #e5e5e5; }
-      .rc-view .header-title h1 { font-size: 28px; font-weight: 900; letter-spacing: -1px; line-height: 1; text-transform: uppercase; color:#000; margin-bottom: 6px; }
+      .rc-view .header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid #e5e5e5; }
+      .rc-view .header-title h1 { font-size: 24px; font-weight: 900; letter-spacing: -1px; line-height: 1; text-transform: uppercase; color:#000; margin-bottom: 6px; }
       .rc-view .header-title p { font-size: 12px; font-weight: 600; color: #666; letter-spacing: 2px; text-transform: uppercase; }
       .rc-view .header-date { text-align: right; }
-      .rc-view .header-date .date-val { font-size: 24px; font-weight: 800; color:#000; }
+      .rc-view .header-date .date-val { font-size: 20px; font-weight: 800; color:#000; }
       .rc-view .header-date .date-year { font-size: 12px; font-weight: 600; color: #666; letter-spacing: 2px; text-transform: uppercase; margin-top: 4px; }
       
-      .rc-view .info-grid{display:grid;grid-template-columns:repeat(2, 1fr);row-gap:24px;column-gap:30px;margin-bottom:40px;padding-bottom:20px}
-      .rc-view .info-item .lbl{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:2px;color:#000;margin-bottom:8px}
+      .rc-view .info-grid{display:grid;grid-template-columns:repeat(2, 1fr);row-gap:12px;column-gap:30px;margin-bottom:24px;padding-bottom:16px}
+      .rc-view .info-item{display:flex;align-items:baseline}
+      .rc-view .info-item .lbl{width:125px;flex-shrink:0;display:flex;justify-content:space-between;margin-right:8px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:#000;margin-bottom:0}
+      .rc-view .info-item .lbl::after{content:':'}
       .rc-view .info-item .val{font-size:14px;font-weight:600;color:#333}
       
-      .rc-view table { width: 100%; border-collapse: collapse; margin-bottom:20px; border-top:1px solid #e5e5e5; }
-      .rc-view th { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; color: #000; padding: 20px 0 10px; text-align: left; }
-      .rc-view td { padding: 12px 0; border-bottom: none; font-size: 13px; }
+      .rc-view table { width: 100%; border-collapse: collapse; margin-bottom:16px; border-top:1px solid #e5e5e5; }
+      .rc-view th { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: #000; padding: 12px 0 8px; text-align: left; }
+      .rc-view td { padding: 8px 0; border-bottom: none; font-size: 13px; }
       .rc-view .col-label { font-weight: 600; text-transform: capitalize; color: #333; }
       .rc-view .col-amount { text-align: right; font-family: monospace; font-weight: 600; font-size: 14px; color:#000;}
       .rc-view .col-center { text-align: center; width: 40px; color:#666; }
       
-      .rc-view .total-row td { border-top: none; padding-top: 24px; font-weight: 800; color: #000; font-size: 14px; }
+      .rc-view .total-row td { border-top: none; padding-top: 16px; font-weight: 800; color: #000; font-size: 14px; }
       .rc-view .total-row .col-amount { font-size: 16px; }
       
-      .rc-view .net-card { background: transparent; color: #000; padding: 30px 0; margin-top: 20px; text-align: center; }
-      .rc-view .net-card h4 { font-size: 12px; text-transform: uppercase; letter-spacing: 3px; color: #666; margin-bottom: 12px; }
-      .rc-view .net-card .val { font-size: 48px; font-weight: 900; font-family: monospace; letter-spacing: -2px; }
+      .rc-view .net-card { background: transparent; color: #000; padding: 20px 0; margin-top: 16px; text-align: center; }
+      .rc-view .net-card h4 { font-size: 12px; text-transform: uppercase; letter-spacing: 3px; color: #666; margin-bottom: 8px; }
+      .rc-view .net-card .val { font-size: 40px; font-weight: 900; font-family: monospace; letter-spacing: -2px; }
       
-      .rc-view .note-box{font-size:12px;color:#666;margin-bottom:20px;text-align:center;font-weight:600}
-      .rc-view .foot{text-align:center;font-size:10px;color:#999;margin-top:40px;padding-top:20px;font-weight:600;text-transform:uppercase;letter-spacing:1px}
+      .rc-view .note-box{font-size:12px;color:#666;margin-bottom:16px;text-align:center;font-weight:600}
+      .rc-view .foot{text-align:center;font-size:10px;color:#999;margin-top:30px;padding-top:16px;font-weight:600;text-transform:uppercase;letter-spacing:1px}
     `;
 
     const feeRowsHtml = (r.fee_details || []).map((fd: any, i: number) => {
@@ -954,26 +972,32 @@ export default function CollectTuitionPage() {
                         </label>
                         {/* Exam selector for per-exam fees */}
                         {perExam && fee.selected && (
-                          <div className="ml-9 mr-1">
-                            <Select
-                              value={selectedExamForFee[fee.type] || ''}
-                              onValueChange={(v) => setSelectedExamForFee(prev => ({ ...prev, [fee.type]: v }))}
-                            >
-                              <SelectTrigger className="h-9 text-xs font-semibold bg-muted border-0 shadow-none focus:ring-1 focus:ring-ring/30">
-                                <SelectValue placeholder={`For which exam? ${fee.type === 'mct_exam' ? '(MCT)' : fee.type === 'semester_exam' ? '(Semester)' : ''}`} />
-                              </SelectTrigger>
-                              <SelectContent className="border-border/50 rounded-xl shadow-md">
-                                {relevantExams.map(exam => {
-                                  const examKey = `${fee.type.toLowerCase().trim()}__${exam.name}`;
-                                  const isPaidExam = paidExamFees.includes(examKey);
-                                  return (
-                                    <SelectItem key={exam.id} value={exam.id} disabled={isPaidExam} className="rounded-lg">
-                                      {exam.name} {isPaidExam ? '✓ PAID' : ''}
-                                    </SelectItem>
-                                  );
-                                })}
-                              </SelectContent>
-                            </Select>
+                          <div className="ml-9 mr-1 mt-2 space-y-1.5 border-l-2 border-border/50 pl-3 py-1">
+                            {relevantExams.map(exam => {
+                              const examKey = `${fee.type.toLowerCase().trim()}__${exam.name}`;
+                              const isPaidExam = paidExamFees.includes(examKey);
+                              const selectedExams = selectedExamForFee[fee.type] || [];
+                              const isSelected = selectedExams.includes(exam.id);
+                              
+                              return (
+                                <label key={exam.id} className={`flex items-center gap-2 p-2 rounded-lg transition-all ${isPaidExam ? 'opacity-50 cursor-not-allowed bg-muted/50' : isSelected ? 'bg-primary/5 cursor-pointer' : 'hover:bg-muted/50 cursor-pointer'}`}>
+                                  <Checkbox 
+                                    disabled={isPaidExam} 
+                                    checked={isSelected || isPaidExam} 
+                                    onCheckedChange={(checked) => {
+                                      setSelectedExamForFee(prev => {
+                                        const curr = prev[fee.type] || [];
+                                        if (checked) return { ...prev, [fee.type]: [...curr, exam.id] };
+                                        return { ...prev, [fee.type]: curr.filter(id => id !== exam.id) };
+                                      });
+                                    }}
+                                    className="h-4 w-4 border-border/80 data-[state=checked]:bg-primary"
+                                  />
+                                  <span className="text-xs font-semibold text-foreground">{exam.name} {isPaidExam && <Badge className="ml-1.5 bg-muted text-muted-foreground border-0 text-[8px] font-bold px-1.5 h-3.5 shadow-none">PAID</Badge>}</span>
+                                </label>
+                              );
+                            })}
+                            {relevantExams.length === 0 && <p className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest">No exams found</p>}
                           </div>
                         )}
                       </div>

@@ -341,16 +341,93 @@ export default function ExamSchedulePage() {
     };
 
     const handlePrint = () => {
-        document.body.classList.add("printing-routine");
-        const style = document.createElement("style");
-        style.id = "exam-landscape-print";
-        style.textContent = "@page { size: A4 landscape !important; margin: 6mm !important; }";
-        document.head.appendChild(style);
-        setTimeout(() => {
-            window.print();
-            document.body.classList.remove("printing-routine");
-            style.remove();
-        }, 100);
+        if (!selectedShift) return;
+
+        // Build table header cells from exam dates
+        const headerCells = examDates.map((date) => {
+            const { date: formatted, day } = formatDateDisplay(date);
+            return `<th>${formatted}<br><span style="font-weight:400;font-size:8px;opacity:0.7">${day}</span></th>`;
+        }).join("");
+
+        // Build table body rows
+        const bodyRows = shiftClasses.map((cls) => {
+            const cells = examDates.map((date) => {
+                const entry = findSchedule(cls.id, date);
+                if (!entry) return `<td class="empty">—</td>`;
+                return `<td><div class="subj">${getName(subjectsByClass[cls.id] || [], entry.subject_id)}</div></td>`;
+            }).join("");
+            return `<tr><td class="day-col">${cls.name}</td>${cells}</tr>`;
+        }).join("");
+
+        // Build instructions HTML
+        let instructionsHtml = "";
+        if (instructions.length > 0) {
+            const items = instructions.map((inst, idx) => {
+                let style = "";
+                if (inst.bold) style += "font-weight:700;";
+                if (inst.italic) style += "font-style:italic;";
+                if (inst.underline) style += "text-decoration:underline;";
+                return `<li><span class="inst-num">${idx + 1}.</span> <span style="${style}">${inst.text}</span></li>`;
+            }).join("");
+            instructionsHtml = `<div class="inst-section"><h4>Instructions:</h4><ul>${items}</ul></div>`;
+        }
+
+        const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Exam Schedule - ${examName}</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+<style>
+@page { size: A4 landscape; margin: 8mm 6mm; }
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Inter', sans-serif; color: #000; font-size: 12px; line-height: 1.5; background: #fff; padding: 20px; }
+
+.school-info { text-align: center; margin-bottom: 20px; }
+.school-info img { max-height: 46px; margin-bottom: 8px; }
+.school-info h2 { font-size: 20px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; }
+.school-info p { font-size: 11px; color: #666; margin-top: 3px; }
+
+.header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; padding-bottom: 14px; border-bottom: 1px solid #e5e5e5; }
+.header-title h1 { font-size: 22px; font-weight: 900; letter-spacing: -1px; line-height: 1; text-transform: uppercase; }
+.header-title p { font-size: 11px; font-weight: 600; color: #666; letter-spacing: 2px; text-transform: uppercase; margin-top: 5px; }
+
+table { width: 100%; border-collapse: collapse; border: 1px solid #e5e5e5; }
+th { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: #000; padding: 8px 4px; text-align: center; border: 1px solid #e5e5e5; border-bottom: 2px solid #ccc; vertical-align: middle; }
+td { padding: 6px 4px; text-align: center; vertical-align: middle; font-size: 11px; border: 1px solid #e5e5e5; }
+td.day-col { font-weight: 800; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; width: 85px; min-width: 85px; }
+td.empty { color: #ccc; }
+.subj { font-weight: 700; font-size: 10px; color: #000; }
+
+.inst-section { margin-top: 24px; }
+.inst-section h4 { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: #000; margin-bottom: 8px; }
+.inst-section ul { list-style: none; padding: 0; }
+.inst-section li { font-size: 11px; line-height: 1.6; display: flex; align-items: flex-start; gap: 4px; }
+.inst-num { font-weight: 800; min-width: 16px; color: #000; }
+
+.footer { text-align: center; font-size: 9px; color: #999; margin-top: 24px; padding-top: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+@media print { body { padding: 10px; } }
+</style></head><body>
+
+<div class="school-info">
+${schoolInfo?.logo_url ? `<img src="${schoolInfo.logo_url}" alt="Logo">` : ""}
+<h2>${schoolInfo?.name || "School Name"}</h2>
+<p>${schoolInfo?.address || ""}${schoolInfo?.phone ? " • " + schoolInfo.phone : ""}${schoolInfo?.email ? " • " + schoolInfo.email : ""}</p>
+</div>
+
+<div class="header">
+<div class="header-title"><h1>${examName}</h1><p>${selectedShift.name} — Time: ${formatTime12(selectedShift.start_time)} to ${formatTime12(selectedShift.end_time)}</p></div>
+</div>
+
+<table>
+<thead><tr><th style="width:85px">Class</th>${headerCells}</tr></thead>
+<tbody>${bodyRows}</tbody>
+</table>
+
+${instructionsHtml}
+
+<div class="footer">Computer Generated Document &bull; No Signature Required</div>
+
+</body></html>`;
+
+        const w = window.open("", "_blank", "width=1100,height=700");
+        if (w) { w.document.write(html); w.document.close(); w.onload = () => { setTimeout(() => w.print(), 500); }; }
     };
 
     if (loading) {
@@ -366,6 +443,7 @@ export default function ExamSchedulePage() {
                 icon={CalendarCheck}
                 title="Exam Schedule"
                 subtitle="Create exam routines with shifts. Manage dates, classes, and print."
+                className="no-print"
                 actions={
                     hasGrid ? (
                         <Button variant="outline" size="sm" onClick={handlePrint} className="gap-1.5">
@@ -612,7 +690,7 @@ export default function ExamSchedulePage() {
                             {shiftForm.id ? "Edit" : "Create"} Shift
                         </DialogTitle>
                     </DialogHeader>
-                    <div className="grid gap-4 py-2">
+                    <form onSubmit={(e) => { e.preventDefault(); saveShift(); }} className="grid gap-4 py-2">
                         <div className="grid gap-1.5">
                             <Label>Shift Name *</Label>
                             <Input
@@ -648,16 +726,16 @@ export default function ExamSchedulePage() {
                             </div>
                         </div>
                         <div className="flex gap-2">
-                            <Button onClick={saveShift} className="flex-1">
+                            <Button type="submit" className="flex-1">
                                 {shiftForm.id ? "Update Shift" : "Create Shift"}
                             </Button>
                             {shiftForm.id && (
-                                <Button variant="outline" className="text-destructive hover:text-red-700 hover:bg-destructive/10" onClick={() => { deleteShift(shiftForm.id); setShiftDialogOpen(false); }}>
+                                <Button type="button" variant="outline" className="text-destructive hover:text-red-700 hover:bg-destructive/10" onClick={() => { deleteShift(shiftForm.id); setShiftDialogOpen(false); }}>
                                     <Trash size={16} strokeWidth={1.5} className=" " />
                                 </Button>
                             )}
                         </div>
-                    </div>
+                    </form>
                 </DialogContent>
             </Dialog>
 
@@ -704,7 +782,7 @@ export default function ExamSchedulePage() {
                             {formData.id ? "Edit" : "Assign Subject"} — {getName(classes, formData.class_id)}
                         </DialogTitle>
                     </DialogHeader>
-                    <div className="grid gap-4 py-2">
+                    <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="grid gap-4 py-2">
                         <div className="text-sm text-muted-foreground">
                             Date: <strong>{formatDateDisplay(formData.exam_date).date}</strong> ({formatDateDisplay(formData.exam_date).day})
                         </div>
@@ -722,10 +800,10 @@ export default function ExamSchedulePage() {
                                 </p>
                             )}
                         </div>
-                        <Button onClick={handleSave} disabled={submitting} className="mt-2">
+                        <Button type="submit" disabled={submitting} className="mt-2">
                             {submitting ? "Saving..." : formData.id ? "Update" : "Assign"}
                         </Button>
-                    </div>
+                    </form>
                 </DialogContent>
             </Dialog>
 

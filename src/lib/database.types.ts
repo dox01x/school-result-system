@@ -716,6 +716,9 @@ export type Database = {
                     name: string;
                     capacity: number;
                     room_type: string;
+                    tables_count: number | null;
+                    seats_per_table: number | null;
+                    order_index: number | null;
                     created_at: string;
                 };
                 Insert: {
@@ -723,6 +726,9 @@ export type Database = {
                     name: string;
                     capacity?: number;
                     room_type?: string;
+                    tables_count?: number | null;
+                    seats_per_table?: number | null;
+                    order_index?: number | null;
                     created_at?: string;
                 };
                 Update: {
@@ -730,6 +736,9 @@ export type Database = {
                     name?: string;
                     capacity?: number;
                     room_type?: string;
+                    tables_count?: number | null;
+                    seats_per_table?: number | null;
+                    order_index?: number | null;
                     created_at?: string;
                 };
                 Relationships: [];
@@ -878,6 +887,191 @@ export type Database = {
                     {
                         foreignKeyName: "exam_schedules_invigilator_id_fkey";
                         columns: ["invigilator_id"];
+                        isOneToOne: false;
+                        referencedRelation: "teachers";
+                        referencedColumns: ["id"];
+                    }
+                ];
+            };
+            exam_seat_plans: {
+                Row: {
+                    id: string;
+                    exam_id: string;
+                    class_id: string;
+                    section_id: string;
+                    room_id: string;
+                    allocated_students: number;
+                    created_at: string;
+                };
+                Insert: {
+                    id?: string;
+                    exam_id: string;
+                    class_id: string;
+                    section_id: string;
+                    room_id: string;
+                    allocated_students: number;
+                    created_at?: string;
+                };
+                Update: {
+                    id?: string;
+                    exam_id?: string;
+                    class_id?: string;
+                    section_id?: string;
+                    room_id?: string;
+                    allocated_students?: number;
+                    created_at?: string;
+                };
+                Relationships: [
+                    {
+                        foreignKeyName: "exam_seat_plans_exam_id_fkey";
+                        columns: ["exam_id"];
+                        isOneToOne: false;
+                        referencedRelation: "exams";
+                        referencedColumns: ["id"];
+                    },
+                    {
+                        foreignKeyName: "exam_seat_plans_class_id_fkey";
+                        columns: ["class_id"];
+                        isOneToOne: false;
+                        referencedRelation: "classes";
+                        referencedColumns: ["id"];
+                    },
+                    {
+                        foreignKeyName: "exam_seat_plans_section_id_fkey";
+                        columns: ["section_id"];
+                        isOneToOne: false;
+                        referencedRelation: "sections";
+                        referencedColumns: ["id"];
+                    },
+                    {
+                        foreignKeyName: "exam_seat_plans_room_id_fkey";
+                        columns: ["room_id"];
+                        isOneToOne: false;
+                        referencedRelation: "rooms";
+                        referencedColumns: ["id"];
+                    }
+                ];
+            };
+            exam_duties: {
+                Row: {
+                    id: string;
+                    exam_id: string | null;
+                    room_id: string;
+                    teacher_id: string;
+                    exam_date: string;
+                    start_time: string;
+                    end_time: string;
+                    created_at: string;
+                };
+                Insert: {
+                    id?: string;
+                    exam_id?: string | null;
+                    room_id: string;
+                    teacher_id: string;
+                    exam_date: string;
+                    start_time: string;
+                    end_time: string;
+                    created_at?: string;
+                };
+                Update: {
+                    id?: string;
+                    exam_id?: string | null;
+                    room_id?: string;
+                    teacher_id?: string;
+                    exam_date?: string;
+                    start_time?: string;
+                    end_time?: string;
+                    created_at?: string;
+                };
+                Relationships: [
+                    {
+                        foreignKeyName: "exam_duties_exam_id_fkey";
+                        columns: ["exam_id"];
+                        isOneToOne: false;
+                        referencedRelation: "exams";
+                        referencedColumns: ["id"];
+                    },
+                    {
+                        foreignKeyName: "exam_duties_room_id_fkey";
+                        columns: ["room_id"];
+                        isOneToOne: false;
+                        referencedRelation: "rooms";
+                        referencedColumns: ["id"];
+                    },
+                    {
+                        foreignKeyName: "exam_duties_teacher_id_fkey";
+                        columns: ["teacher_id"];
+                        isOneToOne: false;
+                        referencedRelation: "teachers";
+                        referencedColumns: ["id"];
+                    }
+                ];
+            };
+            exam_paper_distributions: {
+                Row: {
+                    id: string;
+                    exam_id: string;
+                    class_id: string;
+                    subject_id: string;
+                    teacher_id: string;
+                    total_copies: number;
+                    date_given: string;
+                    date_returned: string | null;
+                    status: string;
+                    notes: string | null;
+                    created_at: string;
+                };
+                Insert: {
+                    id?: string;
+                    exam_id: string;
+                    class_id: string;
+                    subject_id: string;
+                    teacher_id: string;
+                    total_copies: number;
+                    date_given: string;
+                    date_returned?: string | null;
+                    status?: string;
+                    notes?: string | null;
+                    created_at?: string;
+                };
+                Update: {
+                    id?: string;
+                    exam_id?: string;
+                    class_id?: string;
+                    subject_id?: string;
+                    teacher_id?: string;
+                    total_copies?: number;
+                    date_given?: string;
+                    date_returned?: string | null;
+                    status?: string;
+                    notes?: string | null;
+                    created_at?: string;
+                };
+                Relationships: [
+                    {
+                        foreignKeyName: "exam_paper_distributions_exam_id_fkey";
+                        columns: ["exam_id"];
+                        isOneToOne: false;
+                        referencedRelation: "exams";
+                        referencedColumns: ["id"];
+                    },
+                    {
+                        foreignKeyName: "exam_paper_distributions_class_id_fkey";
+                        columns: ["class_id"];
+                        isOneToOne: false;
+                        referencedRelation: "classes";
+                        referencedColumns: ["id"];
+                    },
+                    {
+                        foreignKeyName: "exam_paper_distributions_subject_id_fkey";
+                        columns: ["subject_id"];
+                        isOneToOne: false;
+                        referencedRelation: "subjects";
+                        referencedColumns: ["id"];
+                    },
+                    {
+                        foreignKeyName: "exam_paper_distributions_teacher_id_fkey";
+                        columns: ["teacher_id"];
                         isOneToOne: false;
                         referencedRelation: "teachers";
                         referencedColumns: ["id"];
@@ -1647,4 +1841,7 @@ export type Notice = Database["public"]["Tables"]["notices"]["Row"];
 export type RoutineSettingsRow = Database["public"]["Tables"]["routine_settings"]["Row"];
 export type ProxyAssignment = Database["public"]["Tables"]["proxy_assignments"]["Row"];
 export type PromotionLog = Database["public"]["Tables"]["promotion_logs"]["Row"];
+export type ExamSeatPlan = Database["public"]["Tables"]["exam_seat_plans"]["Row"];
+export type ExamDuty = Database["public"]["Tables"]["exam_duties"]["Row"];
+export type ExamPaperDistribution = Database["public"]["Tables"]["exam_paper_distributions"]["Row"];
 

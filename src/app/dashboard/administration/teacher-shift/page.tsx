@@ -398,7 +398,7 @@ export default function TeacherShiftPage() {
                     <DialogHeader>
                         <DialogTitle>{shiftForm.id ? "Edit" : "Add"} Duty Shift</DialogTitle>
                     </DialogHeader>
-                    <div className="grid gap-4 py-2">
+                    <form onSubmit={(e) => { e.preventDefault(); handleSaveShift(); }} className="grid gap-4 py-2">
                         <div className="grid gap-1.5">
                             <Label>Teacher *</Label>
                             <Select value={shiftForm.teacher_id} onValueChange={(v) => setShiftForm((p) => ({ ...p, teacher_id: v }))}>
@@ -408,7 +408,7 @@ export default function TeacherShiftPage() {
                         </div>
                         <div className="grid gap-1.5">
                             <Label>Date *</Label>
-                            <Input id="shift-date" type="date" value={shiftForm.shift_date} onChange={(e) => setShiftForm((p) => ({ ...p, shift_date: e.target.value }))} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); document.getElementById("shift-start-time")?.focus(); }}} />
+                            <Input id="shift-date" type="date" value={shiftForm.shift_date} onChange={(e) => setShiftForm((p) => ({ ...p, shift_date: e.target.value }))} />
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                             <div className="grid gap-1.5">
@@ -435,10 +435,10 @@ export default function TeacherShiftPage() {
                             <Label>Notes</Label>
                             <Textarea value={shiftForm.notes} onChange={(e) => setShiftForm((p) => ({ ...p, notes: e.target.value }))} placeholder="Optional notes..." rows={2} />
                         </div>
-                        <Button onClick={handleSaveShift} disabled={submitting} className="mt-2">
+                        <Button type="submit" disabled={submitting} className="mt-2">
                             {submitting ? "Saving..." : shiftForm.id ? "Update" : "Add Shift"}
                         </Button>
-                    </div>
+                    </form>
                 </DialogContent>
             </Dialog>
 
@@ -448,7 +448,7 @@ export default function TeacherShiftPage() {
                     <DialogHeader>
                         <DialogTitle>Request Leave</DialogTitle>
                     </DialogHeader>
-                    <div className="grid gap-4 py-2">
+                    <form onSubmit={(e) => { e.preventDefault(); handleSaveLeave(); }} className="grid gap-4 py-2">
                         <div className="grid gap-1.5">
                             <Label>Teacher *</Label>
                             <Select value={leaveForm.teacher_id} onValueChange={(v) => setLeaveForm((p) => ({ ...p, teacher_id: v }))}>
@@ -459,7 +459,7 @@ export default function TeacherShiftPage() {
                         <div className="grid grid-cols-2 gap-3">
                             <div className="grid gap-1.5">
                                 <Label>From Date *</Label>
-                                <Input id="leave-start-date" type="date" value={leaveForm.start_date} onChange={(e) => setLeaveForm((p) => ({ ...p, start_date: e.target.value }))} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); document.getElementById("leave-end-date")?.focus(); }}} />
+                                <Input id="leave-start-date" type="date" value={leaveForm.start_date} onChange={(e) => setLeaveForm((p) => ({ ...p, start_date: e.target.value }))} />
                             </div>
                             <div className="grid gap-1.5">
                                 <Label>To Date *</Label>
@@ -499,10 +499,10 @@ export default function TeacherShiftPage() {
                             </div>
                         )}
 
-                        <Button onClick={handleSaveLeave} disabled={submitting} className="mt-2">
+                        <Button type="submit" disabled={submitting} className="mt-2">
                             {submitting ? "Submitting..." : "Submit Leave Request"}
                         </Button>
-                    </div>
+                    </form>
                 </DialogContent>
             </Dialog>
         </div>

@@ -332,29 +332,207 @@
     page-break-inside: avoid; font-size: 11pt; line-height: 1.4;
   }
   #report-card table { width: 100% !important; border-collapse: collapse !important; page-break-inside: avoid; }
+
+  /* ═══════════════════════════════════════════════
+     ROUTINE PRINT — Border-based (no backgrounds)
+     Works without "Background graphics" checkbox
+     ═══════════════════════════════════════════════ */
+
+  /* Reset: show body children for routine print */
   body.printing-routine > * { display: block !important; }
-  body.printing-routine script, body.printing-routine noscript,
-  body.printing-routine aside, body.printing-routine header,
-  body.printing-routine nav, body.printing-routine [role="navigation"],
-  body.printing-routine .no-print, body.printing-routine [data-radix-dialog-portal],
-  body.printing-routine #__next-build-indicator { display: none !important; }
+
+  /* Hide all non-essential UI */
+  body.printing-routine script,
+  body.printing-routine noscript,
+  body.printing-routine aside,
+  body.printing-routine header,
+  body.printing-routine nav,
+  body.printing-routine [role="navigation"],
+  body.printing-routine .no-print,
+  body.printing-routine [data-radix-dialog-portal],
+  body.printing-routine #__next-build-indicator,
+  body.printing-routine [data-sonner-toaster],
+  body.printing-routine [data-radix-popper-content-wrapper] { display: none !important; }
+
+  /* Layout reset */
   body.printing-routine main { margin: 0 !important; padding: 0 !important; }
-  body.printing-routine .animate-fade-in { animation: none !important; padding: 8mm !important; max-width: 100% !important; }
-  body.printing-routine .print-header { display: block !important; text-align: center; margin-bottom: 10px; }
-  body.printing-routine .routine-table-wrapper { border: none !important; overflow: visible !important; }
-  body.printing-routine .routine-table { font-size: 11px !important; width: 100% !important; border-collapse: separate !important; border-spacing: 0 !important; border: 1px solid #2d3748 !important; }
-  body.printing-routine .routine-table th, body.printing-routine .routine-table td { border-right: 1px solid #2d3748 !important; border-bottom: 1px solid #2d3748 !important; padding: 5px 8px !important; }
-  body.printing-routine .routine-table th:last-child, body.printing-routine .routine-table td:last-child { border-right: none !important; }
-  body.printing-routine .routine-table tbody tr:last-child td { border-bottom: none !important; }
-  body.printing-routine .day-header, body.printing-routine .period-header { background: #1a365d !important; color: #fff !important; font-size: 11px !important; }
-  body.printing-routine .day-cell { background: #f0f4ff !important; font-size: 11px !important; }
-  body.printing-routine .subject-name { font-size: 11px !important; color: #000 !important; }
-  body.printing-routine .teacher-name { font-size: 10px !important; color: #333 !important; }
-  body.printing-routine .teacher-phone { font-size: 9px !important; color: #555 !important; }
-  body.printing-routine .period-cell.filled { background: #fff !important; }
-  body.printing-routine .period-cell.conflict { background: #ffe0e0 !important; }
+  body.printing-routine .space-y-5 > * + * { margin-top: 0 !important; }
+  body.printing-routine .animate-fade-in {
+    animation: none !important;
+    padding: 0 !important;
+    max-width: 100% !important;
+  }
+
+  /* ── Print Header ── */
+  body.printing-routine .print-header {
+    display: block !important;
+    text-align: center;
+    margin-bottom: 12px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #000;
+  }
+  body.printing-routine .print-header img {
+    height: 50px !important;
+    width: auto !important;
+    margin: 0 auto 6px !important;
+    display: block !important;
+    filter: grayscale(100%) !important;
+  }
+  body.printing-routine .print-header h2 {
+    font-size: 18px !important;
+    font-weight: 800 !important;
+    color: #000 !important;
+    margin: 0 0 2px !important;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  body.printing-routine .print-header p {
+    margin: 1px 0 !important;
+    color: #333 !important;
+    font-size: 11px !important;
+    line-height: 1.4 !important;
+  }
+  body.printing-routine .print-header .print-header-divider {
+    border-top: 1px solid #000 !important;
+    margin-top: 8px !important;
+    padding-top: 5px !important;
+  }
+  body.printing-routine .print-header .print-header-divider p:first-child {
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    color: #000 !important;
+  }
+  body.printing-routine .print-header .print-header-divider p:last-child {
+    font-size: 10px !important;
+    color: #555 !important;
+    font-weight: 500 !important;
+  }
+
+  /* ── Table Wrapper ── */
+  body.printing-routine .routine-table-wrapper {
+    border: none !important;
+    overflow: visible !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+  }
+
+  /* ── Table ── */
+  body.printing-routine .routine-table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    border-spacing: 0 !important;
+    font-size: 10px !important;
+    border: 2px solid #000 !important;
+    border-radius: 0 !important;
+    table-layout: fixed !important;
+  }
+
+  /* Every cell — solid black border, white bg, centered */
+  body.printing-routine .routine-table th,
+  body.printing-routine .routine-table td {
+    border: 1px solid #333 !important;
+    padding: 5px 4px !important;
+    text-align: center !important;
+    vertical-align: middle !important;
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+    background: none !important;
+    color: #000 !important;
+  }
+
+  /* ── Header Row (Day + Periods) ──
+     No background — uses thick borders + bold text */
+  body.printing-routine .day-header,
+  body.printing-routine .period-header {
+    font-size: 9px !important;
+    font-weight: 900 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.8px !important;
+    padding: 6px 3px !important;
+    border: 1px solid #333 !important;
+    border-bottom: 3px solid #000 !important;
+    color: #000 !important;
+    background: none !important;
+  }
+  body.printing-routine .period-header div:first-child {
+    font-size: 9px !important;
+    font-weight: 900 !important;
+    color: #000 !important;
+  }
+  body.printing-routine .period-header div:last-child {
+    font-size: 7.5px !important;
+    font-weight: 400 !important;
+    color: #444 !important;
+    margin-top: 1px !important;
+    opacity: 1 !important;
+  }
+
+  /* ── Day Column — bold text, right border thicker ── */
+  body.printing-routine .day-cell {
+    font-weight: 800 !important;
+    font-size: 9px !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+    color: #000 !important;
+    border: 1px solid #333 !important;
+    border-right: 2px solid #000 !important;
+    width: 75px !important;
+    min-width: 75px !important;
+    background: none !important;
+    padding: 5px 4px !important;
+  }
+
+  /* ── Period Cells ── */
+  body.printing-routine .period-cell {
+    min-height: auto !important;
+    height: auto !important;
+    cursor: default !important;
+    padding: 4px 3px !important;
+    background: none !important;
+  }
+  body.printing-routine .period-cell.filled {
+    background: none !important;
+  }
+  body.printing-routine .period-cell.conflict {
+    background: none !important;
+  }
+
+  /* ── Cell Content Text ── */
+  body.printing-routine .cell-content {
+    position: static !important;
+  }
+  body.printing-routine .subject-name {
+    font-size: 9.5px !important;
+    font-weight: 700 !important;
+    color: #000 !important;
+    line-height: 1.3 !important;
+  }
+  body.printing-routine .teacher-name {
+    font-size: 8px !important;
+    color: #333 !important;
+    font-weight: 400 !important;
+    margin-top: 1px !important;
+    font-style: italic !important;
+  }
+  body.printing-routine .teacher-phone {
+    font-size: 7.5px !important;
+    color: #555 !important;
+    font-weight: 400 !important;
+    margin-top: 1px !important;
+    opacity: 1 !important;
+  }
+
+  /* Empty cell */
+  body.printing-routine .empty-cell {
+    opacity: 0.15 !important;
+    font-size: 12px !important;
+    color: #999 !important;
+  }
+
+  /* Hide interactive elements */
   body.printing-routine .delete-btn { display: none !important; }
   body.printing-routine button { display: none !important; }
-  body.printing-routine .empty-cell { opacity: 0.15 !important; }
+
   [data-sonner-toaster], [data-radix-popper-content-wrapper] { display: none !important; }
 }

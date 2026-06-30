@@ -39,10 +39,14 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2 as Trash, ClipboardList as ClipboardText, Medal, SlidersHorizontal as Sliders, Save as FloppyDisk, RotateCcw as ArrowCounterClockwise } from "lucide-react";
+import { Plus, Pencil, Trash2 as Trash, ClipboardList as ClipboardText, Medal, SlidersHorizontal as Sliders, Save as FloppyDisk, RotateCcw as ArrowCounterClockwise, Users, Briefcase, Building2, FileCheck } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { SeatPlanTab } from "./_components/SeatPlanTab";
+import { ExamDutiesTab } from "./_components/ExamDutiesTab";
+import { RoomsTab } from "./_components/RoomsTab";
+import { PaperCheckingTab } from "./_components/PaperCheckingTab";
 
 const DEFAULT_GRADING_100 = [
     { marks_category: 100, min_marks: 80, max_marks: 100, grade: "A+", grade_point: 5 },
@@ -450,13 +454,29 @@ export default function ExamsPage() {
                         <ClipboardText className="h-3.5 w-3.5" />
                         Exam Terms
                     </TabsTrigger>
+                    <TabsTrigger value="subjectConfig" className="rounded-xl text-xs font-bold px-4 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground transition-all gap-2">
+                        <Sliders className="h-3.5 w-3.5" />
+                        Subject Config
+                    </TabsTrigger>
                     <TabsTrigger value="grading" className="rounded-xl text-xs font-bold px-4 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground transition-all gap-2">
                         <Medal className="h-3.5 w-3.5" />
                         Grading System
                     </TabsTrigger>
-                    <TabsTrigger value="subjectConfig" className="rounded-xl text-xs font-bold px-4 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground transition-all gap-2">
-                        <Sliders className="h-3.5 w-3.5" />
-                        Subject Config
+                    <TabsTrigger value="rooms" className="rounded-xl text-xs font-bold px-4 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground transition-all gap-2">
+                        <Building2 className="h-3.5 w-3.5" />
+                        Rooms
+                    </TabsTrigger>
+                    <TabsTrigger value="seatPlan" className="rounded-xl text-xs font-bold px-4 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground transition-all gap-2">
+                        <Users className="h-3.5 w-3.5" />
+                        Seat Plan
+                    </TabsTrigger>
+                    <TabsTrigger value="examDuties" className="rounded-xl text-xs font-bold px-4 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground transition-all gap-2">
+                        <Briefcase className="h-3.5 w-3.5" />
+                        Duties
+                    </TabsTrigger>
+                    <TabsTrigger value="paperChecking" className="rounded-xl text-xs font-bold px-4 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground transition-all gap-2">
+                        <FileCheck className="h-3.5 w-3.5" />
+                        Paper Checking
                     </TabsTrigger>
                 </TabsList>
 
@@ -474,7 +494,7 @@ export default function ExamsPage() {
                     <Dialog open={examDialogOpen} onOpenChange={(o) => { setExamDialogOpen(o); if (!o) setEditingExam(null); if (o) setTimeout(() => document.getElementById("exam-name-input")?.focus(), 100); }}>
                         <DialogContent>
                             <DialogHeader><DialogTitle>{editingExam ? "PencilSimple Exam" : "Create Exam"}</DialogTitle></DialogHeader>
-                            <div className="space-y-6 py-6">
+                            <form onSubmit={(e) => { e.preventDefault(); handleSaveExam(); }} className="space-y-6 py-6">
                                 <div className="space-y-2">
                                     <Label>Exam Name</Label>
                                     <Input
@@ -482,7 +502,6 @@ export default function ExamsPage() {
                                         placeholder='e.g., "1st MCT", "1st Semester"'
                                         value={examForm.name}
                                         onChange={(e) => setExamForm({ ...examForm, name: e.target.value })}
-                                        onKeyDown={(e) => e.key === "Enter" && handleSaveExam()}
                                     />
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
@@ -511,11 +530,11 @@ export default function ExamsPage() {
                                         </div>
                                     )}
                                 </div>
-                            </div>
-                            <DialogFooter>
-                                <DialogClose asChild><Button variant="outline" className="border-border/50 text-foreground font-semibold rounded-xl hover:bg-muted transition-all duration-200">Cancel</Button></DialogClose>
-                                <Button className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl font-semibold shadow-none transition-all duration-200" onClick={handleSaveExam}>{editingExam ? "Update" : "Create"}</Button>
-                            </DialogFooter>
+                                <DialogFooter>
+                                    <DialogClose asChild><Button type="button" variant="outline" className="border-border/50 text-foreground font-semibold rounded-xl hover:bg-muted transition-all duration-200">Cancel</Button></DialogClose>
+                                    <Button type="submit" className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl font-semibold shadow-none transition-all duration-200">{editingExam ? "Update" : "Create"}</Button>
+                                </DialogFooter>
+                            </form>
                         </DialogContent>
                     </Dialog>
 
@@ -639,7 +658,7 @@ export default function ExamsPage() {
                     <Dialog open={gradeDialogOpen} onOpenChange={(o) => { setGradeDialogOpen(o); if (!o) setEditingGrade(null); if (o) setTimeout(() => document.getElementById("grade-input")?.focus(), 100); }}>
                         <DialogContent>
                             <DialogHeader><DialogTitle>{editingGrade ? "PencilSimple Grading Rule" : "Add Grading Rule"}</DialogTitle></DialogHeader>
-                            <div className="space-y-6 py-6">
+                            <form onSubmit={(e) => { e.preventDefault(); handleSaveGrade(); }} className="space-y-6 py-6">
                                 <div className="space-y-2">
                                     <Label>Full Marks Category</Label>
                                     <Select value={String(gradeForm.marks_category)} onValueChange={(v) => setGradeForm({ ...gradeForm, marks_category: parseInt(v) })}>
@@ -672,11 +691,11 @@ export default function ExamsPage() {
                                         <Input type="number" step="0.25" value={gradeForm.grade_point} onChange={(e) => setGradeForm({ ...gradeForm, grade_point: parseFloat(e.target.value) || 0 })} />
                                     </div>
                                 </div>
-                            </div>
-                            <DialogFooter>
-                                <DialogClose asChild><Button variant="outline" className="border-border/50 text-foreground font-semibold rounded-xl hover:bg-muted transition-all duration-200">Cancel</Button></DialogClose>
-                                <Button className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl font-semibold shadow-none transition-all duration-200" onClick={handleSaveGrade}>{editingGrade ? "Update" : "Add"}</Button>
-                            </DialogFooter>
+                                <DialogFooter>
+                                    <DialogClose asChild><Button type="button" variant="outline" className="border-border/50 text-foreground font-semibold rounded-xl hover:bg-muted transition-all duration-200">Cancel</Button></DialogClose>
+                                    <Button type="submit" className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl font-semibold shadow-none transition-all duration-200">{editingGrade ? "Update" : "Add"}</Button>
+                                </DialogFooter>
+                            </form>
                         </DialogContent>
                     </Dialog>
 
@@ -896,6 +915,22 @@ export default function ExamsPage() {
                             </CardContent>
                         </Card>
                     )}
+                </TabsContent>
+
+                <TabsContent value="examDuties" className="space-y-4">
+                    <ExamDutiesTab exams={exams} />
+                </TabsContent>
+
+                <TabsContent value="seatPlan" className="space-y-4">
+                    <SeatPlanTab exams={exams} />
+                </TabsContent>
+
+                <TabsContent value="paperChecking" className="space-y-4">
+                    <PaperCheckingTab exams={exams} />
+                </TabsContent>
+
+                <TabsContent value="rooms" className="space-y-4">
+                    <RoomsTab />
                 </TabsContent>
             </Tabs>
 

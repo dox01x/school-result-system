@@ -205,7 +205,7 @@ export default function ExpensePage() {
                 <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Description</TableHead>
                 <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Method</TableHead>
                 <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground text-right">Amount</TableHead>
-                {userRole === 'admin' && <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground text-right w-16"></TableHead>}
+                {(userRole === 'admin' || userRole === 'super_admin') && <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground text-right w-16"></TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -228,7 +228,7 @@ export default function ExpensePage() {
                       <span className="bg-muted text-muted-foreground px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-widest">{exp.payment_method.replace('_', ' ')}</span>
                     </TableCell>
                     <TableCell className="text-right font-mono font-black text-red-600">-{formatTaka(exp.amount)}</TableCell>
-                    {userRole === 'admin' && (
+                    {(userRole === 'admin' || userRole === 'super_admin') && (
                       <TableCell className="text-right">
                         <Button size="icon" variant="ghost" className="h-8 w-8 text-red-500 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50 hover:text-red-600 rounded-lg" onClick={() => handleDelete(exp.id)}>
                           <Trash size={14} strokeWidth={2} />

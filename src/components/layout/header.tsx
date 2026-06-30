@@ -69,8 +69,20 @@ export function Header() {
     const supabase = useMemo(() => createClient(), []);
 
     useEffect(() => {
-        // Check for recent notices
+        // Only check if notices exist (head-only count query — no content transferred)
         void (async () => {
+            const { count } = await supabase
+                .from("notices")
+                .select("id", { count: "exact", head: true })
+                .eq("is_published", true);
+            setHasNotices((count ?? 0) > 0);
+        })();
+    }, [supabase]);
+
+    // Lazy-load notice content only when popover is opened
+    const [noticesLoaded, setNoticesLoaded] = useState(false);
+    const handleNoticePopoverOpen = async (open: boolean) => {
+        if (open && !noticesLoaded) {
             const { data } = await supabase
                 .from("notices")
                 .select("id, title, content, created_at, priority")
@@ -78,9 +90,9 @@ export function Header() {
                 .order("created_at", { ascending: false })
                 .limit(5);
             setNoticesList(data || []);
-            setHasNotices((data?.length ?? 0) > 0);
-        })();
-    }, [supabase]);
+            setNoticesLoaded(true);
+        }
+    };
 
     async function handleSignOut() {
         await supabase.auth.signOut();
@@ -103,7 +115,7 @@ export function Header() {
             <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0 justify-end">
                 <GlobalSearch />
 
-                <Popover>
+                <Popover onOpenChange={handleNoticePopoverOpen}>
                     <PopoverTrigger asChild>
                         <button type="button" className="relative p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-all duration-200 btn-press" aria-label="Notifications">
                             <Bell size={20} strokeWidth={1.5} />
@@ -122,7 +134,7 @@ export function Header() {
                         <div className="max-h-[300px] overflow-y-auto">
                             {noticesList.length === 0 ? (
                                 <div className="p-4 text-center text-sm text-muted-foreground font-medium">
-                                    No new notifications
+                                    {noticesLoaded ? "No new notifications" : "Loading..."}
                                 </div>
                             ) : (
                                 <div className="flex flex-col">

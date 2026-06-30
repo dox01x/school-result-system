@@ -196,6 +196,7 @@ export default function ClassesPage() {
                                 {editingClass ? "Edit Class" : "Create New Class"}
                             </DialogTitle>
                         </DialogHeader>
+                        <form onSubmit={(e) => { e.preventDefault(); editingClass ? handleUpdateClass() : handleCreateClass(); }}>
                         <div className="space-y-6 py-6">
                             <div className="grid gap-4 md:grid-cols-4">
                                 <div className="space-y-2 md:col-span-3">
@@ -205,7 +206,6 @@ export default function ClassesPage() {
                                         placeholder="e.g., Class 10, Grade 5"
                                         value={className}
                                         onChange={(e) => setClassName(e.target.value)}
-                                        onKeyDown={(e) => e.key === "Enter" && (editingClass ? handleUpdateClass() : handleCreateClass())}
                                     />
                                 </div>
                                 <div className="space-y-2">
@@ -222,12 +222,13 @@ export default function ClassesPage() {
                         </div>
                         <DialogFooter>
                             <DialogClose asChild>
-                                <Button variant="outline" className="border-border/50 text-foreground font-semibold rounded-xl hover:bg-muted transition-all duration-200">Cancel</Button>
+                                <Button type="button" variant="outline" className="border-border/50 text-foreground font-semibold rounded-xl hover:bg-muted transition-all duration-200">Cancel</Button>
                             </DialogClose>
-                            <Button className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl font-semibold shadow-none transition-all duration-200" onClick={editingClass ? handleUpdateClass : handleCreateClass}>
+                            <Button type="submit" className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl font-semibold shadow-none transition-all duration-200">
                                 {editingClass ? "Update" : "Create"}
                             </Button>
                         </DialogFooter>
+                        </form>
                     </DialogContent>
                     </Dialog>
                 }
@@ -243,6 +244,7 @@ export default function ClassesPage() {
                     <DialogHeader>
                         <DialogTitle>Add Section</DialogTitle>
                     </DialogHeader>
+                    <form onSubmit={(e) => { e.preventDefault(); handleAddSection(); }}>
                     <div className="space-y-6 py-6">
                         <div className="space-y-2">
                             <Label htmlFor="sectionName">Section Name</Label>
@@ -251,16 +253,16 @@ export default function ClassesPage() {
                                 placeholder="e.g., A, B, Science"
                                 value={sectionName}
                                 onChange={(e) => setSectionName(e.target.value)}
-                                onKeyDown={(e) => e.key === "Enter" && handleAddSection()}
                             />
                         </div>
                     </div>
                     <DialogFooter>
                         <DialogClose asChild>
-                            <Button variant="outline" className="border-border/50 text-foreground font-semibold rounded-xl hover:bg-muted transition-all duration-200">Cancel</Button>
+                            <Button type="button" variant="outline" className="border-border/50 text-foreground font-semibold rounded-xl hover:bg-muted transition-all duration-200">Cancel</Button>
                         </DialogClose>
-                        <Button className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl font-semibold shadow-none transition-all duration-200" onClick={handleAddSection}>Add Section</Button>
+                        <Button type="submit" className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl font-semibold shadow-none transition-all duration-200">Add Section</Button>
                     </DialogFooter>
+                    </form>
                 </DialogContent>
             </Dialog>
 

@@ -147,7 +147,7 @@ function StudentsPageContent() {
                 .order("roll");
             
             if (studentsRes.error) throw studentsRes.error;
-            const sorted = (studentsRes.data || []).sort((a, b) => {
+            const sorted = (studentsRes.data || []).sort((a: Student, b: Student) => {
                 const na = parseInt(a.roll), nb = parseInt(b.roll);
                 if (!isNaN(na) && !isNaN(nb)) return na - nb;
                 return a.roll.localeCompare(b.roll);

@@ -310,15 +310,21 @@ export default function ResultsPage() {
         const semExams = exams.filter((e) => e.exam_type === "semester");
         if (semExams.length === 0) { toast.error("No semester exams found"); return []; }
 
-        // Generate results for each semester first
+        // Generate all semester results in parallel (not sequential)
         const semResults: Record<number, StudentResult[]> = {};
-        for (const sem of semExams) {
-            semResults[sem.term ?? 0] = await generateSemesterResult(sem.id, students, subjects);
-            // Save semester results to DB
-            const ay = selectedAcademicYear || '';
-            const upserts = semResults[sem.term ?? 0].map((r: StudentResult) => ({ student_id: r.student.id, exam_id: sem.id, academic_year: ay, total_marks: r.totalMarks, total_full_marks: r.totalFullMarks, percentage: r.percentage, gpa: r.gpa, grade: r.grade }));
-            await supabase.from("results").upsert(upserts, { onConflict: "student_id,exam_id,academic_year" });
-        }
+        const semResultsArr = await Promise.all(
+            semExams.map((sem) => generateSemesterResult(sem.id, students, subjects))
+        );
+        semExams.forEach((sem, i) => { semResults[sem.term ?? 0] = semResultsArr[i]; });
+
+        // Batch-save all semester results to DB in parallel
+        const ay = selectedAcademicYear || '';
+        await Promise.all(
+            semExams.map((sem, i) => {
+                const upserts = semResultsArr[i].map((r: StudentResult) => ({ student_id: r.student.id, exam_id: sem.id, academic_year: ay, total_marks: r.totalMarks, total_full_marks: r.totalFullMarks, percentage: r.percentage, gpa: r.gpa, grade: r.grade }));
+                return supabase.from("results").upsert(upserts, { onConflict: "student_id,exam_id,academic_year" });
+            })
+        );
 
         // Combine with weights
         return students.map((student) => {
@@ -376,7 +382,11 @@ export default function ResultsPage() {
             let studentQuery = supabase.from("students").select(STUDENT_COLUMNS).eq("class_id", selectedClass).order("roll");
             if (selectedSection && selectedSection !== "all") studentQuery = studentQuery.eq("section_id", selectedSection);
             const { data: students } = await studentQuery;
-            let studentsToUse = students || [];
+            let studentsToUse = (students || []).sort((a: any, b: any) => {
+                const na = parseInt(a.roll), nb = parseInt(b.roll);
+                if (!isNaN(na) && !isNaN(nb)) return na - nb;
+                return (a.roll || '').localeCompare(b.roll || '');
+            });
             const activeStudents = studentsToUse.length;
             let historicalMarkStudents = 0;
             let usedHistoricalFallback = false;
@@ -401,7 +411,11 @@ export default function ResultsPage() {
                         .select(STUDENT_COLUMNS)
                         .in("id", oldStudentIds)
                         .order("roll");
-                    studentsToUse = oldStudents || [];
+                    studentsToUse = (oldStudents || []).sort((a: any, b: any) => {
+                        const na = parseInt(a.roll), nb = parseInt(b.roll);
+                        if (!isNaN(na) && !isNaN(nb)) return na - nb;
+                        return (a.roll || '').localeCompare(b.roll || '');
+                    });
                     if (studentsToUse.length > 0) {
                         usedHistoricalFallback = true;
                         toast.info("Using historical students from marks for selected academic year");
@@ -434,37 +448,50 @@ export default function ResultsPage() {
                 // Assign positions before persisting
                 assignPositions(studentResults);
 
-                // ── Persist to final_results & final_result_details ──
+                // ── Persist to final_results & final_result_details (batch) ──
                 const now = new Date();
                 const academicYear = `${now.getFullYear() - 1}-${now.getFullYear()}`;
-                for (const r of studentResults) {
-                    // Upsert main final result row
-                    const { data: frRow } = await supabase.from("final_results").upsert({
-                        student_id: r.student.id,
-                        class_id: selectedClass,
-                        academic_year: academicYear,
-                        total_marks: r.totalMarks,
-                        total_full_marks: r.totalFullMarks,
-                        percentage: r.percentage,
-                        gpa: r.gpa,
-                        grade: r.grade,
-                        position: r.position ?? null,
-                    }, { onConflict: "student_id,class_id,academic_year" }).select("id").single();
+                // Batch upsert all final results at once
+                const finalResultPayloads = studentResults.map((r) => ({
+                    student_id: r.student.id,
+                    class_id: selectedClass,
+                    academic_year: academicYear,
+                    total_marks: r.totalMarks,
+                    total_full_marks: r.totalFullMarks,
+                    percentage: r.percentage,
+                    gpa: r.gpa,
+                    grade: r.grade,
+                    position: r.position ?? null,
+                }));
+                const { data: frRows } = await supabase.from("final_results").upsert(
+                    finalResultPayloads,
+                    { onConflict: "student_id,class_id,academic_year" }
+                ).select("id, student_id");
 
-                    // Upsert semester detail rows
-                    if (frRow && r.semesterBreakdown) {
-                        const details = r.semesterBreakdown.map((b) => ({
-                            final_result_id: frRow.id,
-                            term: b.term,
-                            percentage: b.percentage,
-                            raw_marks: b.totalMarks,
-                            raw_full_marks: b.totalFullMarks,
-                            raw_gpa: b.gpa,
-                            weighted_marks: Math.round(b.totalMarks * (b.weight / 100) * 100) / 100,
-                            weighted_gpa: Math.round(b.gpa * (b.weight / 100) * 100) / 100,
-                            grade: b.grade,
-                        }));
-                        await supabase.from("final_result_details").upsert(details, { onConflict: "final_result_id,term" });
+                // Batch upsert all semester detail rows
+                if (frRows && frRows.length > 0) {
+                    const frMap = new Map(frRows.map((fr) => [fr.student_id, fr.id]));
+                    const allDetails: any[] = [];
+                    for (const r of studentResults) {
+                        const frId = frMap.get(r.student.id);
+                        if (frId && r.semesterBreakdown) {
+                            for (const b of r.semesterBreakdown) {
+                                allDetails.push({
+                                    final_result_id: frId,
+                                    term: b.term,
+                                    percentage: b.percentage,
+                                    raw_marks: b.totalMarks,
+                                    raw_full_marks: b.totalFullMarks,
+                                    raw_gpa: b.gpa,
+                                    weighted_marks: Math.round(b.totalMarks * (b.weight / 100) * 100) / 100,
+                                    weighted_gpa: Math.round(b.gpa * (b.weight / 100) * 100) / 100,
+                                    grade: b.grade,
+                                });
+                            }
+                        }
+                    }
+                    if (allDetails.length > 0) {
+                        await supabase.from("final_result_details").upsert(allDetails, { onConflict: "final_result_id,term" });
                     }
                 }
             } else {
@@ -479,8 +506,8 @@ export default function ResultsPage() {
                 r.attendanceCount = attendanceMap[r.student.id] || 0;
             });
 
-            // Assign positions (not for MCT)
-            if (showPosition || isFinal) assignPositions(studentResults);
+            // Assign positions (not for MCT) — skip if already assigned in final result path
+            if (!isFinal && showPosition) assignPositions(studentResults);
 
             setResults(studentResults.sort((a, b) => parseInt(a.student.roll) - parseInt(b.student.roll))); setGenerated(true);
             toast.success(`Results generated for ${studentResults.length} students`);

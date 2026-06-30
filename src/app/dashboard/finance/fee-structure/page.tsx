@@ -182,11 +182,11 @@ export default function FeeStructurePage() {
                 </div>
               )}
               <div className="flex flex-col gap-2 mt-4">
-                <Button type="submit" className="w-full h-11 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold shadow-none" disabled={submitting || userRole !== 'admin'}>
+                <Button type="submit" className="w-full h-11 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold shadow-none" disabled={submitting || (userRole !== 'admin' && userRole !== 'super_admin')}>
                   {submitting ? <SpinnerGap size={16} strokeWidth={2} className="mr-2 animate-spin" /> : <Plus size={16} strokeWidth={2.5} className="mr-2" />}
                   Add Fee
                 </Button>
-                {userRole !== 'admin' && <p className="text-[10px] font-bold text-red-500 text-center uppercase tracking-widest mt-1">Only Admin can add fees</p>}
+                {userRole !== 'admin' && userRole !== 'super_admin' && <p className="text-[10px] font-bold text-red-500 text-center uppercase tracking-widest mt-1">Only Admin can add fees</p>}
               </div>
             </form>
           </CardContent>
@@ -274,12 +274,12 @@ export default function FeeStructurePage() {
                                       </div>
                                     ) : (
                                       <div className="flex gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
-                                        {userRole === 'admin' && (
+                                        {(userRole === 'admin' || userRole === 'super_admin') && (
                                           <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg" onClick={() => { setEditingId(f.id); setEditAmount(f.amount.toString()); }}>
                                             <Pencil className="w-4 h-4" />
                                           </Button>
                                         )}
-                                        {userRole === 'admin' && (
+                                        {(userRole === 'admin' || userRole === 'super_admin') && (
                                           <Button size="icon" variant="ghost" className="h-8 w-8 text-red-500 hover:bg-red-50 hover:text-red-600 rounded-lg" onClick={() => handleDelete(f.id)}>
                                             <Trash size={14} strokeWidth={2} />
                                           </Button>

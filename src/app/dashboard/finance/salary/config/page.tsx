@@ -214,8 +214,8 @@ export default function SalaryConfigPage() {
                   </div>
 
                   <div className="flex justify-end pt-5 border-t border-border/50 items-center">
-                    {userRole !== 'admin' && <span className="text-xs font-bold text-red-500 mr-4">Only Admin can change configuration.</span>}
-                    <Button type="submit" className="h-11 px-6 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold shadow-none" disabled={submitting || userRole !== 'admin'}>
+                    {(userRole !== 'admin' && userRole !== 'super_admin') && <span className="text-xs font-bold text-red-500 mr-4">Only Admin can change configuration.</span>}
+                    <Button type="submit" className="h-11 px-6 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold shadow-none" disabled={submitting || (userRole !== 'admin' && userRole !== 'super_admin')}>
                       {submitting ? <SpinnerGap size={16} strokeWidth={2} className="mr-2 animate-spin" /> : <CheckCircle size={16} strokeWidth={2} className="mr-2" />}
                       {submitting ? "Saving..." : "Save Configuration"}
                     </Button>

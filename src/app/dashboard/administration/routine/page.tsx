@@ -121,7 +121,7 @@ export default function RoutinePage() {
         (async () => {
             const [cRes, tRes, settingsRes, schoolRes] = await Promise.all([
                 supabase.from("classes").select(CLASS_COLUMNS).order("numeric_value"),
-                supabase.from("teachers").select(TEACHER_COLUMNS).order("name"),
+                supabase.from("teachers").select(TEACHER_COLUMNS).eq("employee_type", "teacher").order("name"),
                 fetch("/api/administration/routine/settings").then((r) => r.json()),
                 supabase.from("school_info").select("name, address, phone, email, logo_url").limit(1).single(),
             ]);
@@ -327,17 +327,85 @@ export default function RoutinePage() {
     }, [allRoutines, teachers]);
 
     const handlePrint = () => {
-        document.body.classList.add("printing-routine");
-        // Inject landscape @page style
-        const landscapeStyle = document.createElement("style");
-        landscapeStyle.id = "routine-landscape-print";
-        landscapeStyle.textContent = "@page { size: A4 landscape !important; margin: 6mm !important; }";
-        document.head.appendChild(landscapeStyle);
-        setTimeout(() => {
-            window.print();
-            document.body.classList.remove("printing-routine");
-            landscapeStyle.remove();
-        }, 100);
+        // Build table HTML from current data
+        const headerCells = periodSlots.map((slot) =>
+            `<th>Period ${slot.period}<br><span style="font-weight:400;font-size:8px;opacity:0.7">${formatTime12(slot.start)} - ${formatTime12(slot.end)}</span></th>`
+        ).join("");
+
+        const bodyRows = workingDays.map((dayName, dayIndex) => {
+            const cells = periodSlots.map((slot) => {
+                const entry = findRoutineForSlot(dayIndex, slot);
+                if (!entry) return `<td class="empty">—</td>`;
+                const teacher = getTeacher(entry.teacher_id);
+                if (viewMode === "class") {
+                    return `<td><div class="subj">${getName(subjects, entry.subject_id)}</div><div class="tchr">${teacher?.name || ""}</div>${teacher?.phone ? `<div class="tchr-ph">${teacher.phone}</div>` : ""}</td>`;
+                } else {
+                    return `<td><div class="subj">${getName(classes, entry.class_id)} — ${getName(sections, entry.section_id)}</div><div class="tchr">${getName(subjects, entry.subject_id)}</div></td>`;
+                }
+            }).join("");
+            return `<tr><td class="day-col">${dayName}</td>${cells}</tr>`;
+        }).join("");
+
+        const title = viewMode === "class"
+            ? `Class: ${selectedClassName} — Section: ${selectedSectionName}`
+            : `Teacher: ${getName(teachers, selectedTeacher)}`;
+
+        const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Class Routine</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+<style>
+@page { size: A4 landscape; margin: 8mm 6mm; }
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Inter', sans-serif; color: #000; font-size: 12px; line-height: 1.5; background: #fff; padding: 20px; }
+
+.school-info { text-align: center; margin-bottom: 20px; }
+.school-info img { max-height: 46px; margin-bottom: 8px; }
+.school-info h2 { font-size: 20px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; }
+.school-info p { font-size: 11px; color: #666; margin-top: 3px; }
+
+.header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; padding-bottom: 14px; border-bottom: 1px solid #e5e5e5; }
+.header-title h1 { font-size: 22px; font-weight: 900; letter-spacing: -1px; line-height: 1; text-transform: uppercase; }
+.header-title p { font-size: 11px; font-weight: 600; color: #666; letter-spacing: 2px; text-transform: uppercase; margin-top: 5px; }
+
+.info-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 18px; }
+.info-item { display: flex; align-items: baseline; }
+.info-item .lbl { flex-shrink: 0; display: flex; justify-content: space-between; margin-right: 6px; font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: #000; }
+.info-item .lbl::after { content: ':'; }
+.info-item .val { font-size: 13px; font-weight: 600; color: #333; }
+
+table { width: 100%; border-collapse: collapse; border: 1px solid #e5e5e5; }
+th { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: #000; padding: 8px 4px; text-align: center; border: 1px solid #e5e5e5; border-bottom: 2px solid #ccc; vertical-align: middle; }
+td { padding: 6px 4px; text-align: center; vertical-align: middle; font-size: 11px; border: 1px solid #e5e5e5; }
+td.day-col { font-weight: 800; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; width: 85px; min-width: 85px; }
+td.empty { color: #ccc; }
+.subj { font-weight: 700; font-size: 10px; color: #000; }
+.tchr { font-size: 8.5px; color: #555; margin-top: 1px; }
+.tchr-ph { font-size: 7.5px; color: #888; margin-top: 1px; }
+
+.footer { text-align: center; font-size: 9px; color: #999; margin-top: 24px; padding-top: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+@media print { body { padding: 10px; } }
+</style></head><body>
+
+<div class="school-info">
+${schoolInfo?.logo_url ? `<img src="${schoolInfo.logo_url}" alt="Logo">` : ""}
+<h2>${schoolInfo?.name || "School Name"}</h2>
+<p>${schoolInfo?.address || ""}${schoolInfo?.phone ? " • " + schoolInfo.phone : ""}${schoolInfo?.email ? " • " + schoolInfo.email : ""}</p>
+</div>
+
+<div class="header">
+<div class="header-title"><h1>Weekly Class Routine</h1><p>${title}</p></div>
+</div>
+
+<table>
+<thead><tr><th style="width:85px">Day</th>${headerCells}</tr></thead>
+<tbody>${bodyRows}</tbody>
+</table>
+
+<div class="footer">Computer Generated Document &bull; No Signature Required</div>
+
+</body></html>`;
+
+        const w = window.open("", "_blank", "width=1100,height=700");
+        if (w) { w.document.write(html); w.document.close(); w.onload = () => { setTimeout(() => w.print(), 500); }; }
     };
 
     if (loading) {
@@ -358,6 +426,7 @@ export default function RoutinePage() {
                 icon={CalendarCheck}
                 title="Class Routine"
                 subtitle="Weekly class schedule with conflict detection."
+                className="no-print"
                 actions={
                     hasSelection ? (
                         <Button variant="outline" size="sm" onClick={handlePrint} className="gap-1.5">
@@ -406,29 +475,30 @@ export default function RoutinePage() {
             {/* Print Header with School Info */}
             <div className="print-header">
                 {schoolInfo?.logo_url && (
-                    <img src={schoolInfo.logo_url} alt="Logo" style={{ height: 48, margin: "0 auto 6px", display: "block" }} />
+                    <img src={schoolInfo.logo_url} alt="Logo" />
                 )}
-                <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>{schoolInfo?.name || "School Name"}</h2>
-                {schoolInfo?.address && <p style={{ fontSize: 12, margin: "2px 0" }}>{schoolInfo.address}</p>}
+                <h2>{schoolInfo?.name || "School Name"}</h2>
+                {schoolInfo?.address && <p style={{ fontSize: 13 }}>{schoolInfo.address}</p>}
                 {(schoolInfo?.phone || schoolInfo?.email) && (
-                    <p style={{ fontSize: 11, margin: "2px 0", color: "#555" }}>
-                        {schoolInfo?.phone && `Phone: ${schoolInfo.phone}`}
-                        {schoolInfo?.phone && schoolInfo?.email && " | "}
-                        {schoolInfo?.email && `Email: ${schoolInfo.email}`}
+                    <p style={{ fontSize: 11 }}>
+                        {schoolInfo?.phone && `☎ ${schoolInfo.phone}`}
+                        {schoolInfo?.phone && schoolInfo?.email && "  •  "}
+                        {schoolInfo?.email && `✉ ${schoolInfo.email}`}
                     </p>
                 )}
-                <div style={{ borderTop: "2px solid #1a365d", marginTop: 8, paddingTop: 6 }}>
-                    <p style={{ fontSize: 14, fontWeight: 600 }}>
+                <div className="print-header-divider">
+                    <p>
                         {viewMode === "class"
                             ? `Class: ${selectedClassName} — Section: ${selectedSectionName}`
                             : `Teacher: ${getName(teachers, selectedTeacher)}`}
                     </p>
-                    <p style={{ fontSize: 12, color: "#555" }}>Weekly Class Routine</p>
+                    <p>Weekly Class Routine</p>
                 </div>
             </div>
 
             {/* TABLE GRID */}
             {hasSelection ? (
+                <>
                 <div className="routine-table-wrapper">
                     <table className="routine-table">
                         <thead>
@@ -487,6 +557,8 @@ export default function RoutinePage() {
                         </tbody>
                     </table>
                 </div>
+
+                </>
             ) : (
                 <div className="flex flex-col items-center justify-center py-16 text-center border-2 border-dashed rounded-lg no-print">
                     <CalendarCheck className="h-12 w-12 text-muted-foreground mb-4" />
@@ -525,7 +597,7 @@ export default function RoutinePage() {
                     <DialogHeader>
                         <DialogTitle>{formData.id ? "Edit" : "Add"} — {DAY_NAMES[formData.day_of_week]}, {formData.start_time} - {formData.end_time}</DialogTitle>
                     </DialogHeader>
-                    <div className="grid gap-4 py-2">
+                    <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="grid gap-4 py-2">
                         {conflictWarnings.length > 0 && (
                             <div className="rounded-lg border border-red-200 dark:border-red-500/30 bg-destructive/10 dark:bg-destructive/100/10 p-3">
                                 <div className="flex items-center gap-1.5 mb-1"><Warning size={16} strokeWidth={1.5} className=" text-red-500" /><span className="text-sm font-medium text-red-700 dark:text-red-400">Conflict Warning</span></div>
@@ -567,45 +639,149 @@ export default function RoutinePage() {
                                 <SelectContent>{teachers.map((t) => (<SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>))}</SelectContent>
                             </Select>
                         </div>
-                        <Button onClick={() => handleSave()} disabled={submitting} className="mt-2">{submitting ? "Saving..." : formData.id ? "Update" : "Add Period"}</Button>
-                    </div>
+                        <Button type="submit" disabled={submitting} className="mt-2">{submitting ? "Saving..." : formData.id ? "Update" : "Add Period"}</Button>
+                    </form>
                 </DialogContent>
             </Dialog>
 
             {/* Styles */}
             <style jsx global>{`
                 .print-header { display: none; text-align: center; }
-                .routine-table-wrapper { overflow-x: auto; border-radius: 8px; border: 1px solid #cbd5e0; }
-                .dark .routine-table-wrapper { border-color: #4a5568; }
-                .routine-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 12px; }
+
+                /* ── Routine Table — Premium On-Screen Design ── */
+                .routine-table-wrapper {
+                    overflow-x: auto;
+                    border-radius: 12px;
+                    border: 1px solid hsl(var(--border));
+                    box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03);
+                    background: hsl(var(--card));
+                }
+                .dark .routine-table-wrapper {
+                    border-color: rgba(255,255,255,0.08);
+                    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+                }
+                .routine-table {
+                    width: 100%;
+                    border-collapse: separate;
+                    border-spacing: 0;
+                    font-size: 12px;
+                }
                 .routine-table th, .routine-table td {
-                    border-right: 1px solid #cbd5e0;
-                    border-bottom: 1px solid #cbd5e0;
-                    padding: 6px 8px;
+                    border-right: 1px solid hsl(var(--border));
+                    border-bottom: 1px solid hsl(var(--border));
+                    padding: 8px 10px;
                     text-align: center;
                     vertical-align: middle;
                 }
                 .routine-table th:last-child, .routine-table td:last-child { border-right: none; }
                 .routine-table tbody tr:last-child td { border-bottom: none; }
-                .dark .routine-table th, .dark .routine-table td { border-color: #4a5568; }
-                .day-header { background: #1a365d; color: #fff; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; width: 100px; min-width: 100px; border-color: #2d3748 !important; }
-                .period-header { background: #1a365d; color: #fff; font-size: 11px; padding: 6px 4px; min-width: 110px; border-color: #2d3748 !important; }
-                .day-cell { background: #f0f4ff; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em; white-space: nowrap; }
-                .dark .day-cell { background: hsl(var(--muted)); }
-                .period-cell { position: relative; min-height: 60px; transition: background-color 0.15s; cursor: pointer; }
-                .period-cell.empty:hover { background: hsl(var(--accent)); }
-                .period-cell.filled { background: hsl(var(--accent) / 0.5); }
-                .period-cell.filled:hover { background: hsl(var(--accent)); }
-                .period-cell.conflict { background: hsl(0 84% 96%) !important; }
+                .dark .routine-table th, .dark .routine-table td { border-color: rgba(255,255,255,0.06); }
+
+                /* Header row — elegant gradient */
+                .day-header {
+                    background: linear-gradient(135deg, #1e3a5f 0%, #1a365d 100%);
+                    color: #fff;
+                    font-weight: 700;
+                    font-size: 11px;
+                    text-transform: uppercase;
+                    letter-spacing: 0.06em;
+                    width: 100px;
+                    min-width: 100px;
+                    border-color: #2d4a6f !important;
+                }
+                .period-header {
+                    background: linear-gradient(135deg, #1e3a5f 0%, #1a365d 100%);
+                    color: #fff;
+                    font-size: 11px;
+                    padding: 8px 6px;
+                    min-width: 110px;
+                    border-color: #2d4a6f !important;
+                }
+
+                /* Day column cells */
+                .day-cell {
+                    background: #eef2f8;
+                    font-weight: 700;
+                    font-size: 11px;
+                    text-transform: uppercase;
+                    letter-spacing: 0.04em;
+                    white-space: nowrap;
+                    color: #1a365d;
+                }
+                .dark .day-cell { background: hsl(var(--muted)); color: hsl(var(--foreground)); }
+
+                /* Alternating row stripes */
+                .routine-table tbody tr:nth-child(even) .day-cell { background: #e5e9f0; }
+                .routine-table tbody tr:nth-child(even) .period-cell { background: hsl(var(--muted) / 0.25); }
+                .dark .routine-table tbody tr:nth-child(even) .day-cell { background: hsl(var(--muted) / 0.7); }
+                .dark .routine-table tbody tr:nth-child(even) .period-cell { background: hsl(var(--muted) / 0.15); }
+
+                /* Period cells */
+                .period-cell {
+                    position: relative;
+                    min-height: 60px;
+                    transition: all 0.2s ease;
+                    cursor: pointer;
+                }
+                .period-cell.empty:hover {
+                    background: hsl(var(--accent)) !important;
+                    box-shadow: inset 0 0 0 2px hsl(var(--border));
+                }
+                .period-cell.filled {
+                    background: hsl(var(--accent) / 0.4);
+                }
+                .period-cell.filled:hover {
+                    background: hsl(var(--accent) / 0.7);
+                    box-shadow: inset 0 0 0 2px hsl(var(--ring));
+                }
+                .period-cell.conflict {
+                    background: hsl(0 84% 96%) !important;
+                    box-shadow: inset 0 0 0 1px hsl(0 70% 85%);
+                }
                 .dark .period-cell.conflict { background: hsl(0 60% 15% / 0.5) !important; }
+
+                /* Cell content */
                 .cell-content { position: relative; }
-                .subject-name { font-weight: 600; font-size: 11px; line-height: 1.3; color: hsl(var(--foreground)); }
-                .teacher-name { font-size: 10px; color: hsl(var(--muted-foreground)); margin-top: 1px; }
-                .teacher-phone { font-size: 9px; color: hsl(var(--muted-foreground)); opacity: 0.7; }
-                .empty-cell { color: hsl(var(--muted-foreground)); opacity: 0.3; font-size: 14px; }
-                .delete-btn { position: absolute; top: -2px; right: -2px; opacity: 0; padding: 2px; border-radius: 4px; transition: opacity 0.15s; color: hsl(var(--muted-foreground)); }
+                .subject-name {
+                    font-weight: 700;
+                    font-size: 11.5px;
+                    line-height: 1.3;
+                    color: hsl(var(--foreground));
+                }
+                .teacher-name {
+                    font-size: 10px;
+                    color: hsl(var(--muted-foreground));
+                    margin-top: 2px;
+                    font-weight: 500;
+                }
+                .teacher-phone {
+                    font-size: 9px;
+                    color: hsl(var(--muted-foreground));
+                    opacity: 0.65;
+                    margin-top: 1px;
+                }
+                .empty-cell {
+                    color: hsl(var(--muted-foreground));
+                    opacity: 0.2;
+                    font-size: 14px;
+                }
+
+                /* Delete button */
+                .delete-btn {
+                    position: absolute;
+                    top: -2px;
+                    right: -2px;
+                    opacity: 0;
+                    padding: 3px;
+                    border-radius: 6px;
+                    transition: all 0.15s ease;
+                    color: hsl(var(--muted-foreground));
+                }
                 .period-cell:hover .delete-btn { opacity: 1; }
-                .delete-btn:hover { color: hsl(0 72% 50%); background: hsl(0 72% 50% / 0.1); }
+                .delete-btn:hover {
+                    color: hsl(0 72% 50%);
+                    background: hsl(0 72% 50% / 0.1);
+                }
             `}</style>
         </div>
     );

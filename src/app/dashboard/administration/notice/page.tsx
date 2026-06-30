@@ -261,7 +261,7 @@ body{font-family:'Poppins',sans-serif;color:#1a202c;line-height:1.7}
                     <DialogHeader>
                         <DialogTitle className="font-bold text-xl">{formData.id ? "Edit" : "Create"} Notice</DialogTitle>
                     </DialogHeader>
-                    <div className="grid gap-4 py-2">
+                    <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="grid gap-4 py-2">
                         <div className="grid gap-1.5">
                             <Label className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold px-1">Title *</Label>
                             <Input id="notice-title" value={formData.title} onChange={(e) => setFormData((p) => ({ ...p, title: e.target.value }))} placeholder="Notice title" onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); document.getElementById("notice-content")?.focus(); }}} className="h-11 rounded-xl bg-muted border-0 font-bold text-foreground focus-visible:ring-1 focus-visible:ring-ring/30 shadow-none" />
@@ -286,10 +286,10 @@ body{font-family:'Poppins',sans-serif;color:#1a202c;line-height:1.7}
                                 </Select>
                             </div>
                         </div>
-                        <Button onClick={handleSave} disabled={submitting} className="mt-4 h-11 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold shadow-none">
+                        <Button type="submit" disabled={submitting} className="mt-4 h-11 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold shadow-none">
                             {submitting ? "Saving..." : formData.id ? "Update Notice" : "Create Notice"}
                         </Button>
-                    </div>
+                    </form>
                 </DialogContent>
             </Dialog>
         </div>

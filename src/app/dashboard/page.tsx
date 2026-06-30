@@ -21,8 +21,16 @@ type AttendanceItem = { name: "Present" | "Absent"; value: number; color: string
 /* ── Server-side data fetching ── */
 async function fetchDashboardData() {
     const supabase = await createServerSupabaseClient();
+    const todayIso = new Date().toISOString().slice(0, 10);
 
-    const [cRes, stuRes, subRes, exRes, secRes, schoolRes, classesRes, subjectsRes, noticesRes] = await Promise.all([
+    // ── Single parallel batch: ALL queries at once (no waterfall) ──
+    const [
+        cRes, stuRes, subRes, exRes, secRes, schoolRes,
+        classesRes, subjectsRes, noticesRes,
+        upcomingSchedulesRes,
+        allSectionsRes, allStudentsRes,
+        todayAttendanceRes,
+    ] = await Promise.all([
         supabase.from("classes").select("id", { count: "exact", head: true }),
         supabase.from("students").select("id", { count: "exact", head: true }),
         supabase.from("subjects").select("id", { count: "exact", head: true }),
@@ -32,6 +40,13 @@ async function fetchDashboardData() {
         supabase.from("classes").select("id, name, numeric_value").order("numeric_value"),
         supabase.from("subjects").select("id, name"),
         supabase.from("notices").select("title, created_at, priority, is_published").eq("is_published", true).order("created_at", { ascending: false }).limit(5),
+        // Upcoming exams — was sequential before
+        supabase.from("exam_schedules").select("exam_date, class_id, subject_id").gte("exam_date", todayIso).order("exam_date", { ascending: true }).limit(6),
+        // Section distribution — was conditional + sequential
+        supabase.from("sections").select("id, name, class_id").order("name"),
+        supabase.from("students").select("class_id, section_id"),
+        // Attendance — was sequential with fallback
+        supabase.from("attendance_records").select("status, att_date").eq("att_date", todayIso),
     ]);
 
     const stats = { classes: cRes.count ?? 0, students: stuRes.count ?? 0, subjects: subRes.count ?? 0, exams: exRes.count ?? 0, sections: secRes.count ?? 0 };
@@ -56,56 +71,36 @@ async function fetchDashboardData() {
         color: noticeColor(n.priority),
     }));
 
-    // Upcoming exams
-    const todayIso = new Date().toISOString().slice(0, 10);
-    const { data: upcomingSchedules } = await supabase
-        .from("exam_schedules")
-        .select("exam_date, class_id, subject_id")
-        .gte("exam_date", todayIso)
-        .order("exam_date", { ascending: true })
-        .limit(6);
-    const upcomingExams: UpcomingExamItem[] = (upcomingSchedules || []).map((r) => ({
+    // Upcoming exams — process from parallel results
+    const upcomingExams: UpcomingExamItem[] = (upcomingSchedulesRes.data || []).map((r) => ({
         subject: subjectMap[r.subject_id] || "Subject",
         date: fmt(r.exam_date),
         className: classMap[r.class_id] || "Class",
     }));
 
-    // Section distribution
+    // Section distribution — process from parallel results
     let sectionRows: SectionRow[] = [];
     if (classes.length > 0) {
-        const [sectionsRes, studentsRes] = await Promise.all([
-            supabase.from("sections").select("id, name, class_id").order("name"),
-            supabase.from("students").select("class_id, section_id"),
-        ]);
-        const secs = sectionsRes.data || [];
-        const studs = studentsRes.data || [];
+        const secs = allSectionsRes.data || [];
+        const studs = allStudentsRes.data || [];
         const countMap: Record<string, number> = {};
         studs.forEach((s) => { countMap[s.section_id] = (countMap[s.section_id] || 0) + 1; });
         sectionRows = secs.map((sec) => ({ class_name: classMap[sec.class_id] || "", section_name: sec.name, student_count: countMap[sec.id] || 0 }));
     }
 
-    // Attendance snapshot
+    // Attendance snapshot — process with single fallback query if needed
     let attendanceLabel = "Today";
-    let records: { status: string; att_date: string }[] = [];
-    const { data: todayAttendance } = await supabase
-        .from("attendance_records")
-        .select("status, att_date")
-        .eq("att_date", todayIso);
-    records = todayAttendance || [];
+    let records: { status: string; att_date: string }[] = todayAttendanceRes.data || [];
     if (records.length === 0) {
         const { data: latest } = await supabase
             .from("attendance_records")
-            .select("att_date")
+            .select("status, att_date")
             .order("att_date", { ascending: false })
-            .limit(1)
-            .maybeSingle();
-        if (latest?.att_date) {
-            const { data: latestRows } = await supabase
-                .from("attendance_records")
-                .select("status, att_date")
-                .eq("att_date", latest.att_date);
-            records = latestRows || [];
-            attendanceLabel = new Date(latest.att_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+            .limit(100);
+        if (latest && latest.length > 0) {
+            const latestDate = latest[0].att_date;
+            records = latest.filter((r) => r.att_date === latestDate);
+            attendanceLabel = new Date(latestDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
         }
     }
     const total = records.length;

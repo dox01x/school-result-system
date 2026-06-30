@@ -2,10 +2,12 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "@/lib/database.types";
 import type { User } from "@supabase/supabase-js";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 export async function updateSession(request: NextRequest): Promise<{
     supabaseResponse: NextResponse;
     user: User | null;
+    supabase: SupabaseClient<Database>;
 }> {
     let supabaseResponse = NextResponse.next({
         request,
@@ -36,5 +38,6 @@ export async function updateSession(request: NextRequest): Promise<{
         data: { user },
     } = await supabase.auth.getUser();
 
-    return { supabaseResponse, user };
+    return { supabaseResponse, user, supabase };
 }
+

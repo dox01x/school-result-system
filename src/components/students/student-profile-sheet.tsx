@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import dynamic from "next/dynamic";
 const BarChart = dynamic(() => import("recharts").then((mod) => mod.BarChart), { ssr: false });
 const Bar = dynamic(() => import("recharts").then((mod) => mod.Bar), { ssr: false });
@@ -21,7 +22,7 @@ const Tooltip = dynamic(() => import("recharts").then((mod) => mod.Tooltip), { s
 const ResponsiveContainer = dynamic(() => import("recharts").then((mod) => mod.ResponsiveContainer), { ssr: false });
 const CartesianGrid = dynamic(() => import("recharts").then((mod) => mod.CartesianGrid), { ssr: false });
 import { toast } from "sonner";
-import { Pencil, Printer, Trash2, MoveRight } from "lucide-react";
+import { Pencil, Printer, Trash2, MoveRight, TrendingUp, TrendingDown, Minus, ArrowUp, ArrowDown } from "lucide-react";
 
 type Props = {
     open: boolean;
@@ -34,6 +35,21 @@ type Props = {
 };
 
 type MarkTrend = { exam: string; percentage: number };
+
+type SubjectMark = {
+    subjectId: string;
+    subjectName: string;
+    examId: string;
+    total: number;
+    passMark: number;
+    fullMark: number;
+};
+
+type SubjectTrendRow = {
+    subjectName: string;
+    subjectId: string;
+    marksByExam: { examId: string; total: number; passMark: number; fullMark: number; change: number | null; passed: boolean }[];
+};
 
 const dayLabels = ["Sat", "Sun", "Mon", "Tue", "Wed", "Thu"];
 
@@ -55,6 +71,7 @@ export function StudentProfileSheet({
     const [exams, setExams] = useState<Exam[]>([]);
     const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
     const [fees, setFees] = useState<{ receipt_number: string; amount_due: number; amount_paid: number; payment_date: string | null; fee_type: string }[]>([]);
+    const [subjectMarks, setSubjectMarks] = useState<SubjectMark[]>([]);
     const [actionForm, setActionForm] = useState({
         name: "",
         phone: "",
@@ -105,16 +122,32 @@ export function StudentProfileSheet({
                 transferRoll: fetchedStudent.roll || "",
             }));
 
-            const [resultRes, attendanceRes, feeRes] = await Promise.all([
+            const [resultRes, attendanceRes, feeRes, marksRes] = await Promise.all([
                 supabase.from("results").select("id,student_id,exam_id,academic_year,total_marks,total_full_marks,percentage,gpa,grade,created_at").eq("student_id", studentId).order("created_at"),
                 supabase.from("attendance_records").select("id,student_id,class_id,section_id,att_date,status,source,created_at,updated_at").eq("student_id", studentId).order("att_date", { ascending: false }),
                 supabase.from("tuition_payments").select("receipt_number,amount_due,amount_paid,payment_date,fee_type").eq("student_id", studentId).order("payment_date", { ascending: false }).limit(12),
+                // Fetch per-subject marks with subject details
+                supabase.from("marks")
+                    .select("student_id,subject_id,exam_id,total,subjects(name,pass_marks,full_marks)")
+                    .eq("student_id", studentId)
+                    .order("created_at"),
             ]);
 
             if (cancelled) return;
             setResults(resultRes.data || []);
             setAttendance(attendanceRes.data || []);
             setFees(feeRes.data || []);
+
+            // Process marks into SubjectMark array
+            const processedMarks: SubjectMark[] = (marksRes.data || []).map((m: any) => ({
+                subjectId: m.subject_id,
+                subjectName: (m.subjects as any)?.name || "-",
+                examId: m.exam_id,
+                total: Number(m.total || 0),
+                passMark: Number((m.subjects as any)?.pass_marks || 33),
+                fullMark: Number((m.subjects as any)?.full_marks || 100),
+            }));
+            setSubjectMarks(processedMarks);
             setLoading(false);
         })();
 
@@ -163,6 +196,75 @@ export function StudentProfileSheet({
             percentage: Number(r.percentage || 0),
         }));
     }, [results, exams]);
+
+    // Semester-over-semester progress comparison
+    const progressComparison = useMemo(() => {
+        if (results.length < 2) return [];
+        const comparisons: { fromExam: string; toExam: string; fromPercentage: number; toPercentage: number; change: number; direction: 'up' | 'down' | 'same' }[] = [];
+        for (let i = 1; i < results.length; i++) {
+            const prev = results[i - 1];
+            const curr = results[i];
+            const prevPct = Number(prev.percentage || 0);
+            const currPct = Number(curr.percentage || 0);
+            const change = Math.round((currPct - prevPct) * 100) / 100;
+            comparisons.push({
+                fromExam: exams.find((e) => e.id === prev.exam_id)?.name || prev.exam_id.slice(0, 6),
+                toExam: exams.find((e) => e.id === curr.exam_id)?.name || curr.exam_id.slice(0, 6),
+                fromPercentage: prevPct,
+                toPercentage: currPct,
+                change,
+                direction: change > 0 ? 'up' : change < 0 ? 'down' : 'same',
+            });
+        }
+        return comparisons;
+    }, [results, exams]);
+
+    // Subject-wise trend table data
+    const subjectTrend = useMemo((): { orderedExams: { id: string; name: string }[]; rows: SubjectTrendRow[] } => {
+        if (subjectMarks.length === 0) return { orderedExams: [], rows: [] };
+
+        // Get ordered unique exams that have marks
+        const examIdsInMarks = [...new Set(subjectMarks.map((m) => m.examId))];
+        const orderedExams = exams
+            .filter((e) => examIdsInMarks.includes(e.id))
+            .map((e) => ({ id: e.id, name: e.name }));
+
+        if (orderedExams.length === 0) return { orderedExams: [], rows: [] };
+
+        // Get unique subjects
+        const subjectMap = new Map<string, string>();
+        for (const m of subjectMarks) {
+            if (!subjectMap.has(m.subjectId)) {
+                subjectMap.set(m.subjectId, m.subjectName);
+            }
+        }
+
+        const rows: SubjectTrendRow[] = [];
+        for (const [subjectId, subjectName] of subjectMap) {
+            const marksByExam = orderedExams.map((exam, examIdx) => {
+                const mark = subjectMarks.find((m) => m.subjectId === subjectId && m.examId === exam.id);
+                const total = mark?.total ?? 0;
+                const passMark = mark?.passMark ?? 33;
+                const fullMark = mark?.fullMark ?? 100;
+                const passed = total >= passMark;
+
+                // Calculate change from previous exam
+                let change: number | null = null;
+                if (examIdx > 0) {
+                    const prevExam = orderedExams[examIdx - 1];
+                    const prevMark = subjectMarks.find((m) => m.subjectId === subjectId && m.examId === prevExam.id);
+                    if (prevMark) {
+                        change = total - prevMark.total;
+                    }
+                }
+
+                return { examId: exam.id, total, passMark, fullMark, change, passed };
+            });
+            rows.push({ subjectName, subjectId, marksByExam });
+        }
+
+        return { orderedExams, rows };
+    }, [subjectMarks, exams]);
 
     const pendingDue = useMemo(() => fees.reduce((sum, f) => sum + (Number(f.amount_due) - Number(f.amount_paid)), 0), [fees]);
 
@@ -224,7 +326,7 @@ export function StudentProfileSheet({
             <DialogContent className="w-[96vw] sm:max-w-[900px] p-0 gap-0 overflow-hidden bg-background">
                 <DialogHeader className="border-b border-border/50 bg-muted/30 p-6">
                     <DialogTitle className="text-xl">Student Profile</DialogTitle>
-                    <DialogDescription>Detailed profile, academics, attendance and actions.</DialogDescription>
+                    <DialogDescription>Detailed profile, academics, progress analysis, attendance and actions.</DialogDescription>
                 </DialogHeader>
                 <ScrollArea className="max-h-[80vh] h-[800px]">
                     {loading || !student ? (
@@ -286,6 +388,7 @@ export function StudentProfileSheet({
                                 </TabsContent>
 
                                 <TabsContent value="academic" className="space-y-4">
+                                    {/* Performance Trend Chart */}
                                     <Card>
                                         <CardHeader><CardTitle className="text-sm">Performance Trend</CardTitle></CardHeader>
                                         <CardContent className="h-64">
@@ -304,6 +407,116 @@ export function StudentProfileSheet({
                                             )}
                                         </CardContent>
                                     </Card>
+
+                                    {/* Semester Progress Comparison */}
+                                    {progressComparison.length > 0 && (
+                                        <Card>
+                                            <CardHeader>
+                                                <CardTitle className="text-sm flex items-center gap-2">
+                                                    <TrendingUp size={16} strokeWidth={1.5} className="text-muted-foreground" />
+                                                    Semester Progress Comparison
+                                                </CardTitle>
+                                            </CardHeader>
+                                            <CardContent className="space-y-3">
+                                                {progressComparison.map((comp, idx) => (
+                                                    <div key={idx} className="rounded-xl border border-border/50 bg-muted/20 p-4">
+                                                        <div className="flex items-center justify-between flex-wrap gap-2">
+                                                            <div className="flex items-center gap-3">
+                                                                <div className="text-center">
+                                                                    <p className="text-xs text-muted-foreground font-medium mb-1">{comp.fromExam}</p>
+                                                                    <p className="text-lg font-bold text-foreground">{comp.fromPercentage.toFixed(1)}%</p>
+                                                                </div>
+                                                                <div className="flex items-center gap-1 px-3">
+                                                                    {comp.direction === 'up' && <ArrowUp size={20} className="text-emerald-600" />}
+                                                                    {comp.direction === 'down' && <ArrowDown size={20} className="text-red-600" />}
+                                                                    {comp.direction === 'same' && <Minus size={20} className="text-gray-400" />}
+                                                                </div>
+                                                                <div className="text-center">
+                                                                    <p className="text-xs text-muted-foreground font-medium mb-1">{comp.toExam}</p>
+                                                                    <p className="text-lg font-bold text-foreground">{comp.toPercentage.toFixed(1)}%</p>
+                                                                </div>
+                                                            </div>
+                                                            <Badge
+                                                                variant="secondary"
+                                                                className={`border-0 rounded-lg font-bold text-sm px-3 py-1.5 ${
+                                                                    comp.direction === 'up'
+                                                                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
+                                                                        : comp.direction === 'down'
+                                                                        ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
+                                                                        : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
+                                                                }`}
+                                                            >
+                                                                {comp.direction === 'up' ? '▲' : comp.direction === 'down' ? '▼' : '●'}{' '}
+                                                                {comp.change > 0 ? '+' : ''}{comp.change.toFixed(1)}%
+                                                            </Badge>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </CardContent>
+                                        </Card>
+                                    )}
+
+                                    {/* Subject-wise Trend Table */}
+                                    {subjectTrend.orderedExams.length > 0 && subjectTrend.rows.length > 0 && (
+                                        <Card>
+                                            <CardHeader>
+                                                <CardTitle className="text-sm">Subject-wise Marks Across Exams</CardTitle>
+                                            </CardHeader>
+                                            <CardContent>
+                                                <div className="overflow-x-auto">
+                                                    <Table>
+                                                        <TableHeader>
+                                                            <TableRow>
+                                                                <TableHead className="font-semibold min-w-[120px]">Subject</TableHead>
+                                                                {subjectTrend.orderedExams.map((exam) => (
+                                                                    <TableHead key={exam.id} className="text-center font-semibold min-w-[100px]">{exam.name}</TableHead>
+                                                                ))}
+                                                            </TableRow>
+                                                        </TableHeader>
+                                                        <TableBody>
+                                                            {subjectTrend.rows.map((row) => (
+                                                                <TableRow key={row.subjectId}>
+                                                                    <TableCell className="font-medium text-foreground">{row.subjectName}</TableCell>
+                                                                    {row.marksByExam.map((mark, idx) => (
+                                                                        <TableCell key={`${row.subjectId}-${idx}`} className="text-center">
+                                                                            {mark.total > 0 ? (
+                                                                                <div className="flex flex-col items-center gap-0.5">
+                                                                                    <span className={`font-bold text-sm ${mark.passed ? 'text-foreground' : 'text-red-600 dark:text-red-400'}`}>
+                                                                                        {mark.total}
+                                                                                    </span>
+                                                                                    {mark.change !== null && (
+                                                                                        <span className={`text-[10px] font-semibold flex items-center gap-0.5 ${
+                                                                                            mark.change > 0
+                                                                                                ? 'text-emerald-600 dark:text-emerald-400'
+                                                                                                : mark.change < 0
+                                                                                                ? 'text-red-600 dark:text-red-400'
+                                                                                                : 'text-gray-400'
+                                                                                        }`}>
+                                                                                            {mark.change > 0 ? (
+                                                                                                <><TrendingUp size={10} />+{mark.change}</>
+                                                                                            ) : mark.change < 0 ? (
+                                                                                                <><TrendingDown size={10} />{mark.change}</>
+                                                                                            ) : (
+                                                                                                <><Minus size={10} />0</>
+                                                                                            )}
+                                                                                        </span>
+                                                                                    )}
+                                                                                </div>
+                                                                            ) : (
+                                                                                <span className="text-muted-foreground text-xs">—</span>
+                                                                            )}
+                                                                        </TableCell>
+                                                                    ))}
+                                                                </TableRow>
+                                                            ))}
+                                                        </TableBody>
+                                                    </Table>
+                                                </div>
+                                            </CardContent>
+                                        </Card>
+                                    )}
+
+                                    {/* Exam History */}
                                     <Card>
                                         <CardHeader><CardTitle className="text-sm">Exam History</CardTitle></CardHeader>
                                         <CardContent className="space-y-3">
@@ -431,4 +644,3 @@ export function StudentProfileSheet({
         </Dialog>
     );
 }
-

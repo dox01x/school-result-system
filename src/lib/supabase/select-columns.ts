@@ -21,7 +21,10 @@ export const RESULT_COLUMNS =
     "id,student_id,exam_id,academic_year,total_marks,total_full_marks,percentage,gpa,grade,created_at";
 export const TEACHER_COLUMNS =
     "id,name,phone,email,subject_specialty,designation,employee_type,proxy_count,created_at";
-export const ROOM_COLUMNS = "id,name,capacity,room_type,created_at";
+export const ROOM_COLUMNS = "id,name,capacity,room_type,tables_count,seats_per_table,order_index,created_at";
+export const EXAM_SEAT_PLAN_COLUMNS = "id,exam_id,class_id,section_id,room_id,allocated_students,created_at";
+export const EXAM_DUTY_COLUMNS = "id,exam_id,room_id,teacher_id,exam_date,start_time,end_time,created_at";
+export const EXAM_PAPER_DISTRIBUTION_COLUMNS = "id,exam_id,class_id,subject_id,teacher_id,total_copies,date_given,date_returned,status,notes,created_at";
 export const CLASS_ROUTINE_COLUMNS =
     "id,class_id,section_id,subject_id,teacher_id,room_id,day_of_week,start_time,end_time,created_at";
 export const EXAM_SCHEDULE_COLUMNS =
