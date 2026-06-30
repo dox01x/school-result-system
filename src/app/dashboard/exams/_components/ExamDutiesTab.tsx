@@ -162,21 +162,24 @@ export function ExamDutiesTab({ exams }: { exams: { id: string; name: string }[]
         fetchSchedules();
     }, [selectedExam, supabase]);
 
-    // Fetch seat plans when exam selected
+    // Fetch seat plans when shift is selected
     useEffect(() => {
-        if (!selectedExam) {
+        if (!selectedExam || !selectedDate || !selectedShift) {
             setSeatPlans([]);
             return;
         }
+        const [start, end] = selectedShift.split("||");
         const fetchSeatPlans = async () => {
             const { data } = await supabase
                 .from("exam_seat_plans")
                 .select("room_id, class_id, section_id, allocated_students")
-                .eq("exam_id", selectedExam);
+                .eq("exam_id", selectedExam)
+                .eq("start_time", start)
+                .eq("end_time", end);
             setSeatPlans(data || []);
         };
         fetchSeatPlans();
-    }, [selectedExam, supabase]);
+    }, [selectedExam, selectedDate, selectedShift, supabase]);
 
     // Fetch exam schedules for specific date+shift to know subjects per class
     useEffect(() => {

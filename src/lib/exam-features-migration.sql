@@ -7,6 +7,8 @@ ALTER TABLE rooms ADD COLUMN IF NOT EXISTS order_index INTEGER DEFAULT 0;
 CREATE TABLE IF NOT EXISTS exam_seat_plans (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     exam_id UUID NOT NULL REFERENCES exams(id) ON DELETE CASCADE,
+    start_time TEXT NOT NULL,
+    end_time TEXT NOT NULL,
     class_id UUID NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
     section_id UUID NOT NULL REFERENCES sections(id) ON DELETE CASCADE,
     room_id UUID NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
@@ -17,9 +19,9 @@ CREATE TABLE IF NOT EXISTS exam_seat_plans (
 -- Indexes for performance
 CREATE INDEX IF NOT EXISTS idx_exam_seat_plans_exam ON exam_seat_plans(exam_id);
 CREATE INDEX IF NOT EXISTS idx_exam_seat_plans_room ON exam_seat_plans(room_id);
--- Prevent duplicate allocation for the same exam+class+section+room
+-- Prevent duplicate allocation for the same shift+class+section+room
 CREATE UNIQUE INDEX IF NOT EXISTS idx_exam_seat_plans_unique 
-    ON exam_seat_plans(exam_id, class_id, section_id, room_id);
+    ON exam_seat_plans(exam_id, start_time, end_time, class_id, section_id, room_id);
 
 -- RLS Policies for exam_seat_plans
 ALTER TABLE exam_seat_plans ENABLE ROW LEVEL SECURITY;

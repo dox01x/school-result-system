@@ -17,12 +17,24 @@ interface SeatAllocationLocal {
     allocated_students: number;
 }
 
+interface ExamScheduleEntry {
+    class_id: string;
+    subject_id: string;
+    start_time: string;
+    end_time: string;
+}
+
 export function SeatPlanTab({ exams }: { exams: { id: string; name: string }[] }) {
     const [selectedExam, setSelectedExam] = useState<string>("");
+    const [selectedShift, setSelectedShift] = useState<string>("");
+
     const [rooms, setRooms] = useState<RoomCapacity[]>([]);
     const [classes, setClasses] = useState<{ id: string; name: string }[]>([]);
     const [sections, setSections] = useState<{ id: string; class_id: string; name: string }[]>([]);
     const [students, setStudents] = useState<{ id: string; class_id: string; section_id: string }[]>([]);
+    const [subjects, setSubjects] = useState<{ id: string; name: string }[]>([]);
+    const [schedules, setSchedules] = useState<ExamScheduleEntry[]>([]);
+    
     const [allocations, setAllocations] = useState<SeatAllocationLocal[]>([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -32,11 +44,12 @@ export function SeatPlanTab({ exams }: { exams: { id: string; name: string }[] }
     const fetchBaseData = useCallback(async () => {
         setLoading(true);
         try {
-            const [roomsRes, classesRes, sectionsRes, studentsRes] = await Promise.all([
+            const [roomsRes, classesRes, sectionsRes, studentsRes, subjectsRes] = await Promise.all([
                 supabase.from("rooms").select("id, name, capacity, tables_count, seats_per_table, order_index").order("order_index", { ascending: true }),
                 supabase.from("classes").select("id, name, numeric_value").order("numeric_value", { ascending: true }),
                 supabase.from("sections").select("id, class_id, name"),
-                supabase.from("students").select("id, class_id, section_id")
+                supabase.from("students").select("id, class_id, section_id"),
+                supabase.from("subjects").select("id, name")
             ]);
 
             const parsedRooms: RoomCapacity[] = (roomsRes.data || []).map(r => ({
@@ -52,6 +65,7 @@ export function SeatPlanTab({ exams }: { exams: { id: string; name: string }[] }
             setClasses(classesRes.data || []);
             setSections(sectionsRes.data || []);
             setStudents(studentsRes.data || []);
+            setSubjects(subjectsRes.data || []);
         } catch {
             toast.error("Failed to load base data for seat plan");
         } finally {
@@ -63,10 +77,49 @@ export function SeatPlanTab({ exams }: { exams: { id: string; name: string }[] }
         fetchBaseData();
     }, [fetchBaseData]);
 
-    const fetchAllocations = useCallback(async (examId: string) => {
-        if (!examId) return;
+    // Fetch schedules when exam selected
+    useEffect(() => {
+        if (!selectedExam) {
+            setSchedules([]);
+            setSelectedShift("");
+            return;
+        }
+        const fetchSchedules = async () => {
+            const { data } = await supabase
+                .from("exam_schedules")
+                .select("class_id, subject_id, start_time, end_time")
+                .eq("exam_id", selectedExam);
+            setSchedules(data || []);
+            setSelectedShift("");
+        };
+        fetchSchedules();
+    }, [selectedExam, supabase]);
+
+    // Derived Shifts
+    const availableShifts = useMemo(() => {
+        const shifts = schedules.map(s => `${s.start_time}||${s.end_time}`);
+        // Sort the shifts chronologically
+        return Array.from(new Set(shifts)).sort();
+    }, [schedules]);
+
+    const activeSchedules = useMemo(() => {
+        if (!selectedShift) return [];
+        const [start, end] = selectedShift.split("||");
+        return schedules.filter(s => s.start_time === start && s.end_time === end);
+    }, [schedules, selectedShift]);
+
+    const fetchAllocations = useCallback(async () => {
+        if (!selectedExam || !selectedShift) {
+            setAllocations([]);
+            return;
+        }
+        const [start, end] = selectedShift.split("||");
         try {
-            const { data, error } = await supabase.from("exam_seat_plans").select("id, exam_id, class_id, section_id, room_id, allocated_students").eq("exam_id", examId);
+            const { data, error } = await supabase.from("exam_seat_plans")
+                .select("id, class_id, section_id, room_id, allocated_students")
+                .eq("exam_id", selectedExam)
+                .eq("start_time", start)
+                .eq("end_time", end);
             if (error) throw error;
             setAllocations((data || []).map(d => ({
                 room_id: d.room_id,
@@ -77,23 +130,37 @@ export function SeatPlanTab({ exams }: { exams: { id: string; name: string }[] }
         } catch {
             toast.error("Failed to load existing seat allocations");
         }
-    }, [supabase]);
+    }, [selectedExam, selectedShift, supabase]);
 
     useEffect(() => {
-        if (selectedExam) {
-            fetchAllocations(selectedExam);
-        } else {
-            setAllocations([]);
-        }
-    }, [selectedExam, fetchAllocations]);
+        fetchAllocations();
+    }, [fetchAllocations]);
 
-    // Check if rooms need table configuration
     const unconfiguredRooms = useMemo(() => rooms.filter(r => r.tables_count === 0), [rooms]);
     const configuredRooms = useMemo(() => rooms.filter(r => r.tables_count > 0), [rooms]);
 
+    // Generate demands from active students whose class is in the active schedule
+    const activeDemands = useMemo(() => {
+        const activeClassIds = new Set(activeSchedules.map(s => s.class_id));
+        const demandsMap = new Map<string, number>();
+        students.forEach(s => {
+            if (activeClassIds.has(s.class_id)) {
+                const key = `${s.class_id}||${s.section_id}`;
+                demandsMap.set(key, (demandsMap.get(key) || 0) + 1);
+            }
+        });
+
+        const demands: SectionDemand[] = [];
+        demandsMap.forEach((count, key) => {
+            const [class_id, section_id] = key.split("||");
+            demands.push({ class_id, section_id, student_count: count });
+        });
+        return demands;
+    }, [students, activeSchedules]);
+
     const handleAutoAllocate = () => {
-        if (!selectedExam) {
-            toast.warning("Please select an exam first");
+        if (!selectedExam || !selectedShift) {
+            toast.warning("Please select exam and shift first");
             return;
         }
 
@@ -102,24 +169,10 @@ export function SeatPlanTab({ exams }: { exams: { id: string; name: string }[] }
             return;
         }
 
-        // Generate demands from active students grouped by class_id + section_id
-        const demandsMap = new Map<string, number>();
-        students.forEach(s => {
-            const key = `${s.class_id}||${s.section_id}`;
-            demandsMap.set(key, (demandsMap.get(key) || 0) + 1);
-        });
-
-        const demands: SectionDemand[] = [];
-        demandsMap.forEach((count, key) => {
-            const [class_id, section_id] = key.split("||");
-            demands.push({ class_id, section_id, student_count: count });
-        });
-
-        const newAllocations = autoAllocateSeats(demands, configuredRooms);
+        const newAllocations = autoAllocateSeats(activeDemands, configuredRooms);
         setAllocations(newAllocations);
 
-        // Check if all students were placed
-        const totalStudents = demands.reduce((sum, d) => sum + d.student_count, 0);
+        const totalStudents = activeDemands.reduce((sum, d) => sum + d.student_count, 0);
         const placedStudents = newAllocations.reduce((sum, a) => sum + a.allocated_students, 0);
         
         if (placedStudents < totalStudents) {
@@ -130,15 +183,19 @@ export function SeatPlanTab({ exams }: { exams: { id: string; name: string }[] }
     };
 
     const handleSave = async () => {
-        if (!selectedExam) return;
+        if (!selectedExam || !selectedShift) return;
         setSaving(true);
+        const [start_time, end_time] = selectedShift.split("||");
         try {
-            // Delete existing allocations for this exam
-            await supabase.from("exam_seat_plans").delete().eq("exam_id", selectedExam);
+            await supabase.from("exam_seat_plans").delete()
+                .eq("exam_id", selectedExam)
+                .eq("start_time", start_time)
+                .eq("end_time", end_time);
             
-            // Insert new allocations
             const inserts = allocations.map(a => ({
                 exam_id: selectedExam,
+                start_time,
+                end_time,
                 room_id: a.room_id,
                 class_id: a.class_id,
                 section_id: a.section_id,
@@ -151,7 +208,7 @@ export function SeatPlanTab({ exams }: { exams: { id: string; name: string }[] }
             }
             
             toast.success("Seat plan saved successfully");
-            fetchAllocations(selectedExam);
+            fetchAllocations();
         } catch {
             toast.error("Failed to save seat plan");
         } finally {
@@ -159,7 +216,6 @@ export function SeatPlanTab({ exams }: { exams: { id: string; name: string }[] }
         }
     };
 
-    // Calculate room utilization
     const roomUtilization = useMemo(() => {
         const util = new Map<string, { used: number; sections: { name: string; count: number }[] }>();
         allocations.forEach(a => {
@@ -168,6 +224,7 @@ export function SeatPlanTab({ exams }: { exams: { id: string; name: string }[] }
             
             const cls = classes.find(c => c.id === a.class_id);
             const sec = sections.find(s => s.id === a.section_id);
+
             if (cls && sec) {
                 current.sections.push({
                     name: `${cls.name} - ${sec.name}`,
@@ -179,12 +236,11 @@ export function SeatPlanTab({ exams }: { exams: { id: string; name: string }[] }
         return util;
     }, [allocations, classes, sections]);
 
-    // Calculate unallocated students
     const unallocatedDemands = useMemo(() => {
         const demands = new Map<string, number>();
-        students.forEach(s => {
-            const key = `${s.class_id}||${s.section_id}`;
-            demands.set(key, (demands.get(key) || 0) + 1);
+        activeDemands.forEach(d => {
+            const key = `${d.class_id}||${d.section_id}`;
+            demands.set(key, d.student_count);
         });
 
         allocations.forEach(a => {
@@ -207,14 +263,13 @@ export function SeatPlanTab({ exams }: { exams: { id: string; name: string }[] }
             }
         });
         return unallocated;
-    }, [students, allocations, classes, sections]);
-
+    }, [activeDemands, allocations, classes, sections]);
 
     return (
         <div className="space-y-4">
             <div className="flex items-center gap-3 flex-wrap">
                 <Select value={selectedExam} onValueChange={setSelectedExam}>
-                    <SelectTrigger className="w-[300px] h-11 rounded-xl border-0 bg-muted text-foreground font-semibold shadow-none focus:ring-1 focus:ring-ring/30">
+                    <SelectTrigger className="w-[200px] h-11 rounded-xl border-0 bg-muted text-foreground font-semibold shadow-none focus:ring-1 focus:ring-ring/30">
                         <SelectValue placeholder="Select Exam" />
                     </SelectTrigger>
                     <SelectContent className="rounded-xl border-border/50 shadow-md">
@@ -222,25 +277,48 @@ export function SeatPlanTab({ exams }: { exams: { id: string; name: string }[] }
                     </SelectContent>
                 </Select>
 
-                <Button 
-                    variant="secondary" 
-                    onClick={handleAutoAllocate} 
-                    disabled={!selectedExam || loading}
-                    className="h-11 rounded-xl font-semibold shadow-none transition-all duration-200"
-                >
-                    <Wand2 className="mr-2 h-4 w-4" /> Auto Allocate
-                </Button>
-                
-                <Button 
-                    onClick={handleSave} 
-                    disabled={!selectedExam || saving || allocations.length === 0}
-                    className="h-11 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 font-semibold shadow-none transition-all duration-200"
-                >
-                    <Save className="mr-2 h-4 w-4" /> Save Seat Plan
-                </Button>
+                <Select value={selectedShift} onValueChange={setSelectedShift} disabled={!selectedExam || availableShifts.length === 0}>
+                    <SelectTrigger className="w-[200px] h-11 rounded-xl border-0 bg-muted text-foreground font-semibold shadow-none focus:ring-1 focus:ring-ring/30">
+                        <SelectValue placeholder="Select Shift" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl border-border/50 shadow-md">
+                        {availableShifts.map((s, idx) => {
+                            return <SelectItem key={s} value={s} className="rounded-lg">Shift {idx + 1}</SelectItem>;
+                        })}
+                    </SelectContent>
+                </Select>
+
+                <div className="ml-auto flex gap-2">
+                    <Button 
+                        variant="secondary" 
+                        onClick={handleAutoAllocate} 
+                        disabled={!selectedShift || loading}
+                        className="h-11 rounded-xl font-semibold shadow-none transition-all duration-200"
+                    >
+                        <Wand2 className="mr-2 h-4 w-4" /> Auto Allocate
+                    </Button>
+                    
+                    <Button 
+                        onClick={handleSave} 
+                        disabled={!selectedShift || saving || allocations.length === 0}
+                        className="h-11 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 font-semibold shadow-none transition-all duration-200"
+                    >
+                        <Save className="mr-2 h-4 w-4" /> Save Seat Plan
+                    </Button>
+                </div>
             </div>
 
-            {unconfiguredRooms.length > 0 && (
+            {selectedExam && availableShifts.length === 0 && schedules.length === 0 && (
+                <div className="flex items-start gap-2 p-3 rounded-xl border border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-700 text-sm mb-4">
+                    <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+                    <span className="text-amber-700 dark:text-amber-300">
+                        No exam schedule found for this exam. Please create an exam schedule with shifts first from 
+                        <strong> Administration → Exam Schedule</strong>.
+                    </span>
+                </div>
+            )}
+
+            {unconfiguredRooms.length > 0 && selectedShift && (
                 <div className="flex items-start gap-2 p-3 rounded-xl border border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-700 text-sm mb-4">
                     <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
                     <div>
@@ -255,7 +333,7 @@ export function SeatPlanTab({ exams }: { exams: { id: string; name: string }[] }
                 </div>
             )}
 
-            {unallocatedDemands.length > 0 && selectedExam && (
+            {unallocatedDemands.length > 0 && selectedShift && (
                 <Card className="border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-700 shadow-none rounded-2xl mb-4">
                     <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
                         <CardTitle className="text-base font-semibold text-amber-700 dark:text-amber-300">Unallocated Students</CardTitle>
@@ -275,46 +353,50 @@ export function SeatPlanTab({ exams }: { exams: { id: string; name: string }[] }
                 </Card>
             )}
 
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {rooms.map(room => {
-                    const util = roomUtilization.get(room.id);
-                    const used = util?.used || 0;
-                    const isFull = room.capacity > 0 && used >= room.capacity;
-                    const isOver = room.capacity > 0 && used > room.capacity;
-                    const isUnconfigured = room.tables_count === 0;
+            {selectedShift && (
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {rooms.map(room => {
+                        const util = roomUtilization.get(room.id);
+                        const used = util?.used || 0;
+                        const isFull = room.capacity > 0 && used >= room.capacity;
+                        const isOver = room.capacity > 0 && used > room.capacity;
+                        const isUnconfigured = room.tables_count === 0;
 
-                    return (
-                        <Card key={room.id} className={`border-border/50 shadow-none rounded-2xl transition-colors ${isOver ? 'border-destructive' : ''} ${isUnconfigured ? 'opacity-50' : ''}`}>
-                            <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
-                                <CardTitle className="text-base font-semibold">{room.name}</CardTitle>
-                                <Badge variant={isOver ? 'destructive' : isFull ? 'default' : 'secondary'} className="rounded-md">
-                                    {used} / {room.capacity}
-                                </Badge>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-sm text-muted-foreground mb-3">
-                                    {isUnconfigured 
-                                        ? "Not configured" 
-                                        : `${room.tables_count} Tables × ${room.seats_per_table} Seats`
-                                    }
-                                </div>
-                                {util?.sections && util.sections.length > 0 ? (
-                                    <div className="space-y-1">
-                                        {util.sections.map((s, idx) => (
-                                            <div key={idx} className="flex justify-between text-sm bg-muted/50 px-2 py-1 rounded-md">
-                                                <span>{s.name}</span>
-                                                <span className="font-mono text-xs">{s.count}</span>
-                                            </div>
-                                        ))}
+                        return (
+                            <Card key={room.id} className={`border-border/50 shadow-none rounded-2xl transition-colors ${isOver ? 'border-destructive' : ''} ${isUnconfigured ? 'opacity-50' : ''}`}>
+                                <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
+                                    <CardTitle className="text-base font-semibold">{room.name}</CardTitle>
+                                    <Badge variant={isOver ? 'destructive' : isFull ? 'default' : 'secondary'} className="rounded-md">
+                                        {used} / {room.capacity}
+                                    </Badge>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-sm text-muted-foreground mb-3">
+                                        {isUnconfigured 
+                                            ? "Not configured" 
+                                            : `${room.tables_count} Tables × ${room.seats_per_table} Seats`
+                                        }
                                     </div>
-                                ) : (
-                                    <div className="text-sm italic text-muted-foreground">Empty</div>
-                                )}
-                            </CardContent>
-                        </Card>
-                    );
-                })}
-            </div>
+                                    {util?.sections && util.sections.length > 0 ? (
+                                        <div className="space-y-1.5">
+                                            {util.sections.map((s, idx) => (
+                                                <div key={idx} className="flex flex-col text-sm bg-muted/50 px-2 py-1.5 rounded-md border border-border/30">
+                                                    <div className="flex justify-between items-start">
+                                                        <span className="font-medium">{s.name}</span>
+                                                        <span className="font-mono text-xs font-bold">{s.count}</span>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="text-sm italic text-muted-foreground">Empty</div>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        );
+                    })}
+                </div>
+            )}
         </div>
     );
 }

@@ -897,6 +897,8 @@ export type Database = {
                 Row: {
                     id: string;
                     exam_id: string;
+                    start_time: string;
+                    end_time: string;
                     class_id: string;
                     section_id: string;
                     room_id: string;
@@ -906,6 +908,8 @@ export type Database = {
                 Insert: {
                     id?: string;
                     exam_id: string;
+                    start_time: string;
+                    end_time: string;
                     class_id: string;
                     section_id: string;
                     room_id: string;
@@ -915,6 +919,8 @@ export type Database = {
                 Update: {
                     id?: string;
                     exam_id?: string;
+                    start_time?: string;
+                    end_time?: string;
                     class_id?: string;
                     section_id?: string;
                     room_id?: string;

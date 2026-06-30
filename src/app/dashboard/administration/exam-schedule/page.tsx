@@ -434,6 +434,33 @@ ${instructionsHtml}
         printHtml(html);
     };
 
+    const handleDeleteRoutine = async () => {
+        if (!selectedExam) return;
+        const confirmed = window.confirm("Are you sure you want to delete the ENTIRE exam routine for this exam? This will remove all scheduled subjects across all shifts and dates. This action cannot be undone.");
+        if (!confirmed) return;
+        
+        try {
+            const { error } = await supabase.from("exam_schedules").delete().eq("exam_id", selectedExam);
+            if (error) throw error;
+            
+            // Clean up dependent seat plans and duties since the shifts and dates are gone
+            await supabase.from("exam_seat_plans").delete().eq("exam_id", selectedExam);
+            await supabase.from("exam_duties").delete().eq("exam_id", selectedExam);
+            
+            // Clear local config for this exam
+            localStorage.removeItem(`exam_config_${selectedExam}`);
+            setShifts([]);
+            setExamDates([]);
+            setInstructions([]);
+            setSelectedShiftId("");
+            
+            toast.success("Entire exam routine deleted successfully");
+            loadSchedules();
+        } catch {
+            toast.error("Failed to delete exam routine");
+        }
+    };
+
     if (loading) {
         return (<div className="space-y-6"><Skeleton className="h-8 w-48" /><Skeleton className="h-64 w-full" /></div>);
     }
@@ -449,11 +476,18 @@ ${instructionsHtml}
                 subtitle="Create exam routines with shifts. Manage dates, classes, and print."
                 className="no-print"
                 actions={
-                    hasGrid ? (
-                        <Button variant="outline" size="sm" onClick={handlePrint} className="gap-1.5">
-                            <Printer size={16} strokeWidth={1.5} className=" " /> Print
-                        </Button>
-                    ) : undefined
+                    <div className="flex gap-2">
+                        {schedules.length > 0 && selectedExam && (
+                            <Button variant="destructive" size="sm" onClick={handleDeleteRoutine} className="gap-1.5 shadow-sm hover:shadow">
+                                <Trash size={15} strokeWidth={1.5} className=" " /> Delete Routine
+                            </Button>
+                        )}
+                        {hasGrid && (
+                            <Button variant="outline" size="sm" onClick={handlePrint} className="gap-1.5 bg-background shadow-sm hover:bg-muted">
+                                <Printer size={15} strokeWidth={1.5} className=" " /> Print
+                            </Button>
+                        )}
+                    </div>
                 }
             />
 
