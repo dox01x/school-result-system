@@ -1,7 +1,7 @@
 // Exam Schedule — Grid layout with Shift management, instructions, print
 "use client";
 
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo, useCallback, type MouseEvent } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { printHtml } from "@/lib/print-utils";
 import {
@@ -258,14 +258,16 @@ export default function ExamSchedulePage() {
     };
 
     // Cell operations
-    const findSchedule = (classId: string, date: string) => {
-        return schedules.find((s) => s.class_id === classId && s.exam_date === date);
+    const findSchedules = (classId: string, date: string) => {
+        return schedules.filter((s) => s.class_id === classId && s.exam_date === date);
     };
 
-    const openCellDialog = (classId: string, date: string) => {
-        const existing = findSchedule(classId, date);
-        if (existing) {
-            setFormData({ id: existing.id, class_id: classId, subject_id: existing.subject_id, exam_date: date });
+    const openCellDialog = (classId: string, date: string, existingId?: string) => {
+        if (existingId) {
+            const existing = schedules.find((s) => s.id === existingId);
+            if (existing) {
+                setFormData({ id: existing.id, class_id: classId, subject_id: existing.subject_id, exam_date: date });
+            }
         } else {
             setFormData({ id: "", class_id: classId, subject_id: "", exam_date: date });
         }
@@ -353,9 +355,10 @@ export default function ExamSchedulePage() {
         // Build table body rows
         const bodyRows = shiftClasses.map((cls) => {
             const cells = examDates.map((date) => {
-                const entry = findSchedule(cls.id, date);
-                if (!entry) return `<td class="empty">—</td>`;
-                return `<td><div class="subj">${getName(subjectsByClass[cls.id] || [], entry.subject_id)}</div></td>`;
+                const entries = findSchedules(cls.id, date);
+                if (entries.length === 0) return `<td class="empty">—</td>`;
+                const parts = entries.map((entry) => `<div class="subj">${getName(subjectsByClass[cls.id] || [], entry.subject_id)}</div>`);
+                return `<td>${parts.join('<div class="multi-sep"></div>')}</td>`;
             }).join("");
             return `<tr><td class="day-col">${cls.name}</td>${cells}</tr>`;
         }).join("");
@@ -395,6 +398,7 @@ td { padding: 6px 4px; text-align: center; vertical-align: middle; font-size: 11
 td.day-col { font-weight: 800; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; width: 85px; min-width: 85px; }
 td.empty { color: #ccc; }
 .subj { font-weight: 700; font-size: 10px; color: #000; }
+.multi-sep { border-top: 1px dashed #ccc; margin: 3px 0; }
 
 .inst-section { margin-top: 24px; }
 .inst-section h4 { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: #000; margin-bottom: 8px; }
@@ -539,22 +543,35 @@ ${instructionsHtml}
                                 <tr key={cls.id}>
                                     <td className="day-cell">{cls.name}</td>
                                     {examDates.map((date) => {
-                                        const entry = findSchedule(cls.id, date);
+                                        const entries = findSchedules(cls.id, date);
                                         return (
                                             <td
                                                 key={date}
-                                                className={`period-cell ${entry ? "filled" : "empty"}`}
-                                                onClick={() => openCellDialog(cls.id, date)}
+                                                className={`period-cell ${entries.length > 0 ? "filled" : "empty"}`}
+                                                onClick={() => { if (entries.length === 0) openCellDialog(cls.id, date); }}
                                                 style={{ cursor: "pointer" }}
                                             >
-                                                {entry ? (
-                                                    <div className="cell-content">
-                                                        <div className="subject-name">{getName(subjectsByClass[cls.id] || [], entry.subject_id)}</div>
+                                                {entries.length > 0 ? (
+                                                    <div className="cell-content multi-cell">
+                                                        {entries.map((entry, idx) => (
+                                                            <div key={entry.id} className={`multi-entry ${idx > 0 ? "multi-entry-border" : ""}`}>
+                                                                <div className="multi-entry-content" onClick={(e: MouseEvent) => { e.stopPropagation(); openCellDialog(cls.id, date, entry.id); }}>
+                                                                    <div className="subject-name">{getName(subjectsByClass[cls.id] || [], entry.subject_id)}</div>
+                                                                </div>
+                                                                <button
+                                                                    onClick={(e: MouseEvent) => { e.stopPropagation(); handleDeleteEntry(entry.id); }}
+                                                                    className="delete-btn no-print"
+                                                                >
+                                                                    <X size={10} strokeWidth={1.5} />
+                                                                </button>
+                                                            </div>
+                                                        ))}
                                                         <button
-                                                            onClick={(e) => { e.stopPropagation(); handleDeleteEntry(entry.id); }}
-                                                            className="delete-btn no-print"
+                                                            onClick={(e: MouseEvent) => { e.stopPropagation(); openCellDialog(cls.id, date); }}
+                                                            className="add-more-btn no-print"
+                                                            title="Add another subject"
                                                         >
-                                                            <X size={12} strokeWidth={1.5} className=" " />
+                                                            <Plus size={12} strokeWidth={2} />
                                                         </button>
                                                     </div>
                                                 ) : (
@@ -834,7 +851,57 @@ ${instructionsHtml}
                 .cell-content { position: relative; }
                 .subject-name { font-weight: 600; font-size: 12px; line-height: 1.3; color: hsl(var(--foreground)); }
                 .empty-cell { color: hsl(var(--muted-foreground)); opacity: 0.3; font-size: 14px; }
+
+                /* Multi-subject cell */
+                .multi-cell {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 0;
+                }
+                .multi-entry {
+                    position: relative;
+                    padding: 3px 2px;
+                    cursor: pointer;
+                    border-radius: 4px;
+                    transition: background 0.15s;
+                }
+                .multi-entry:hover {
+                    background: hsl(var(--accent) / 0.5);
+                }
+                .multi-entry-border {
+                    border-top: 1px dashed hsl(var(--border));
+                }
+                .multi-entry-content {
+                    cursor: pointer;
+                }
+
+                /* Add more button */
+                .add-more-btn {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    margin: 3px auto 0;
+                    width: 20px;
+                    height: 20px;
+                    border-radius: 50%;
+                    border: 1.5px dashed hsl(var(--border));
+                    color: hsl(var(--muted-foreground));
+                    background: none;
+                    cursor: pointer;
+                    opacity: 0;
+                    transition: all 0.15s ease;
+                }
+                .period-cell:hover .add-more-btn {
+                    opacity: 1;
+                }
+                .add-more-btn:hover {
+                    border-color: hsl(var(--ring));
+                    color: hsl(var(--foreground));
+                    background: hsl(var(--accent));
+                }
+
                 .delete-btn { position: absolute; top: -2px; right: -2px; opacity: 0; padding: 2px; border-radius: 4px; transition: opacity 0.15s; color: hsl(var(--muted-foreground)); background: none; border: none; cursor: pointer; }
+                .multi-entry:hover .delete-btn { opacity: 1; }
                 .period-cell:hover .delete-btn { opacity: 1; }
                 .delete-btn:hover { color: hsl(0 72% 50%); background: hsl(0 72% 50% / 0.1); }
 

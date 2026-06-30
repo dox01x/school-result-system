@@ -1,7 +1,7 @@
 // Class Routine Dashboard — table grid, click-to-edit, print with school info
 "use client";
 
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo, useCallback, type MouseEvent } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { printHtml } from "@/lib/print-utils";
 import {
@@ -19,7 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { CalendarCheck, Trash2 as Trash, AlertCircle as WarningCircle, Printer, Users, LayoutGrid as GridFour, AlertTriangle as Warning } from "lucide-react";
+import { CalendarCheck, Trash2 as Trash, AlertCircle as WarningCircle, Printer, Users, LayoutGrid as GridFour, AlertTriangle as Warning, Plus } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { toast } from "sonner";
 
@@ -217,17 +217,19 @@ export default function RoutinePage() {
     const getName = (list: { id: string; name: string }[], id: string) => list.find((x) => x.id === id)?.name || "";
     const getTeacher = (id: string) => teachers.find((x) => x.id === id);
 
-    const findRoutineForSlot = (dayIndex: number, slot: { start: string; end: string }) => {
-        return routines.find((r) => r.day_of_week === dayIndex && r.start_time === slot.start && r.end_time === slot.end);
+    const findRoutinesForSlot = (dayIndex: number, slot: { start: string; end: string }) => {
+        return routines.filter((r) => r.day_of_week === dayIndex && r.start_time === slot.start && r.end_time === slot.end);
     };
 
-    const openCellDialog = (dayIndex: number, slot: { period: number; start: string; end: string }) => {
-        const existing = findRoutineForSlot(dayIndex, slot);
-        if (existing) {
-            setFormData({ id: existing.id, subject_id: existing.subject_id, teacher_id: existing.teacher_id, day_of_week: dayIndex, start_time: slot.start, end_time: slot.end });
-            if (viewMode === "teacher") {
-                setDialogClassId(existing.class_id);
-                setDialogSectionId(existing.section_id);
+    const openCellDialog = (dayIndex: number, slot: { period: number; start: string; end: string }, existingId?: string) => {
+        if (existingId) {
+            const existing = routines.find((r) => r.id === existingId);
+            if (existing) {
+                setFormData({ id: existing.id, subject_id: existing.subject_id, teacher_id: existing.teacher_id, day_of_week: dayIndex, start_time: slot.start, end_time: slot.end });
+                if (viewMode === "teacher") {
+                    setDialogClassId(existing.class_id);
+                    setDialogSectionId(existing.section_id);
+                }
             }
         } else {
             setFormData({ id: "", subject_id: "", teacher_id: viewMode === "teacher" ? selectedTeacher : "", day_of_week: dayIndex, start_time: slot.start, end_time: slot.end });
@@ -335,13 +337,19 @@ export default function RoutinePage() {
 
         const bodyRows = workingDays.map((dayName, dayIndex) => {
             const cells = periodSlots.map((slot) => {
-                const entry = findRoutineForSlot(dayIndex, slot);
-                if (!entry) return `<td class="empty">—</td>`;
-                const teacher = getTeacher(entry.teacher_id);
+                const entries = findRoutinesForSlot(dayIndex, slot);
+                if (entries.length === 0) return `<td class="empty">—</td>`;
                 if (viewMode === "class") {
-                    return `<td><div class="subj">${getName(subjects, entry.subject_id)}</div><div class="tchr">${teacher?.name || ""}</div>${teacher?.phone ? `<div class="tchr-ph">${teacher.phone}</div>` : ""}</td>`;
+                    const parts = entries.map((entry) => {
+                        const teacher = getTeacher(entry.teacher_id);
+                        return `<div class="subj">${getName(subjects, entry.subject_id)}</div><div class="tchr">${teacher?.name || ""}</div>${teacher?.phone ? `<div class="tchr-ph">${teacher.phone}</div>` : ""}`;
+                    });
+                    return `<td>${parts.join('<div class="multi-sep"></div>')}</td>`;
                 } else {
-                    return `<td><div class="subj">${getName(classes, entry.class_id)} — ${getName(sections, entry.section_id)}</div><div class="tchr">${getName(subjects, entry.subject_id)}</div></td>`;
+                    const parts = entries.map((entry) => {
+                        return `<div class="subj">${getName(classes, entry.class_id)} — ${getName(sections, entry.section_id)}</div><div class="tchr">${getName(subjects, entry.subject_id)}</div>`;
+                    });
+                    return `<td>${parts.join('<div class="multi-sep"></div>')}</td>`;
                 }
             }).join("");
             return `<tr><td class="day-col">${dayName}</td>${cells}</tr>`;
@@ -381,6 +389,7 @@ td.empty { color: #ccc; }
 .subj { font-weight: 700; font-size: 10px; color: #000; }
 .tchr { font-size: 8.5px; color: #555; margin-top: 1px; }
 .tchr-ph { font-size: 7.5px; color: #888; margin-top: 1px; }
+.multi-sep { border-top: 1px dashed #ccc; margin: 3px 0; }
 
 .footer { text-align: center; font-size: 9px; color: #999; margin-top: 24px; padding-top: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
 @media print { body { padding: 10px; } }
@@ -517,33 +526,49 @@ ${schoolInfo?.logo_url ? `<img src="${schoolInfo.logo_url}" alt="Logo">` : ""}
                                 <tr key={dayIndex}>
                                     <td className="day-cell"><span className="font-semibold text-xs uppercase tracking-wide">{dayName}</span></td>
                                     {periodSlots.map((slot) => {
-                                        const entry = findRoutineForSlot(dayIndex, slot);
-                                        const conflict = entry ? hasConflict(entry) : false;
-                                        const teacher = entry ? getTeacher(entry.teacher_id) : null;
+                                        const entries = findRoutinesForSlot(dayIndex, slot);
+                                        const anyConflict = entries.some((e) => hasConflict(e));
 
                                         return (
                                             <td
                                                 key={slot.period}
-                                                onClick={() => openCellDialog(dayIndex, slot)}
-                                                className={`period-cell ${entry ? "filled" : "empty"} ${conflict ? "conflict" : ""}`}
+                                                className={`period-cell ${entries.length > 0 ? "filled" : "empty"} ${anyConflict ? "conflict" : ""}`}
+                                                onClick={() => { if (entries.length === 0) openCellDialog(dayIndex, slot); }}
                                             >
-                                                {entry ? (
-                                                    <div className="cell-content">
-                                                        {conflict && <Warning size={12} strokeWidth={1.5} className=" text-red-500 absolute top-1 right-1 no-print" />}
-                                                        {viewMode === "class" ? (
-                                                            <>
-                                                                <div className="subject-name">{getName(subjects, entry.subject_id)}</div>
-                                                                <div className="teacher-name">{teacher?.name || ""}</div>
-                                                                {teacher?.phone && <div className="teacher-phone">{teacher.phone}</div>}
-                                                            </>
-                                                        ) : (
-                                                            <>
-                                                                <div className="subject-name">{getName(classes, entry.class_id)} — {getName(sections, entry.section_id)}</div>
-                                                                <div className="teacher-name">{getName(subjects, entry.subject_id)}</div>
-                                                            </>
-                                                        )}
-                                                        <button onClick={(e) => { e.stopPropagation(); handleDelete(entry.id); }} className="delete-btn no-print">
-                                                            <Trash size={12} strokeWidth={1.5} className=" " />
+                                                {entries.length > 0 ? (
+                                                    <div className="cell-content multi-cell">
+                                                        {entries.map((entry, idx) => {
+                                                            const conflict = hasConflict(entry);
+                                                            const teacher = getTeacher(entry.teacher_id);
+                                                            return (
+                                                                <div key={entry.id} className={`multi-entry ${idx > 0 ? "multi-entry-border" : ""}`}>
+                                                                    {conflict && <Warning size={10} strokeWidth={1.5} className="text-red-500 absolute top-0 right-0 no-print" />}
+                                                                    <div className="multi-entry-content" onClick={(e: MouseEvent) => { e.stopPropagation(); openCellDialog(dayIndex, slot, entry.id); }}>
+                                                                        {viewMode === "class" ? (
+                                                                            <>
+                                                                                <div className="subject-name">{getName(subjects, entry.subject_id)}</div>
+                                                                                <div className="teacher-name">{teacher?.name || ""}</div>
+                                                                                {teacher?.phone && <div className="teacher-phone">{teacher.phone}</div>}
+                                                                            </>
+                                                                        ) : (
+                                                                            <>
+                                                                                <div className="subject-name">{getName(classes, entry.class_id)} — {getName(sections, entry.section_id)}</div>
+                                                                                <div className="teacher-name">{getName(subjects, entry.subject_id)}</div>
+                                                                            </>
+                                                                        )}
+                                                                    </div>
+                                                                    <button onClick={(e: MouseEvent) => { e.stopPropagation(); handleDelete(entry.id); }} className="delete-btn no-print">
+                                                                        <Trash size={10} strokeWidth={1.5} />
+                                                                    </button>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                        <button
+                                                            onClick={(e: MouseEvent) => { e.stopPropagation(); openCellDialog(dayIndex, slot); }}
+                                                            className="add-more-btn no-print"
+                                                            title="Add another subject"
+                                                        >
+                                                            <Plus size={12} strokeWidth={2} />
                                                         </button>
                                                     </div>
                                                 ) : (
@@ -766,6 +791,54 @@ ${schoolInfo?.logo_url ? `<img src="${schoolInfo.logo_url}" alt="Logo">` : ""}
                     font-size: 14px;
                 }
 
+                /* Multi-subject cell */
+                .multi-cell {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 0;
+                }
+                .multi-entry {
+                    position: relative;
+                    padding: 3px 2px;
+                    cursor: pointer;
+                    border-radius: 4px;
+                    transition: background 0.15s;
+                }
+                .multi-entry:hover {
+                    background: hsl(var(--accent) / 0.5);
+                }
+                .multi-entry-border {
+                    border-top: 1px dashed hsl(var(--border));
+                }
+                .multi-entry-content {
+                    cursor: pointer;
+                }
+
+                /* Add more button in multi-cell */
+                .add-more-btn {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    margin: 3px auto 0;
+                    width: 20px;
+                    height: 20px;
+                    border-radius: 50%;
+                    border: 1.5px dashed hsl(var(--border));
+                    color: hsl(var(--muted-foreground));
+                    background: none;
+                    cursor: pointer;
+                    opacity: 0;
+                    transition: all 0.15s ease;
+                }
+                .period-cell:hover .add-more-btn {
+                    opacity: 1;
+                }
+                .add-more-btn:hover {
+                    border-color: hsl(var(--ring));
+                    color: hsl(var(--foreground));
+                    background: hsl(var(--accent));
+                }
+
                 /* Delete button */
                 .delete-btn {
                     position: absolute;
@@ -776,7 +849,11 @@ ${schoolInfo?.logo_url ? `<img src="${schoolInfo.logo_url}" alt="Logo">` : ""}
                     border-radius: 6px;
                     transition: all 0.15s ease;
                     color: hsl(var(--muted-foreground));
+                    background: none;
+                    border: none;
+                    cursor: pointer;
                 }
+                .multi-entry:hover .delete-btn { opacity: 1; }
                 .period-cell:hover .delete-btn { opacity: 1; }
                 .delete-btn:hover {
                     color: hsl(0 72% 50%);
