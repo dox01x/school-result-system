@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ results: [] as GlobalSearchHit[] });
     }
 
-    const supabase = await createServerSupabaseClient();
+    const supabase = (await createServerSupabaseClient()) as any;
     const {
         data: { user },
     } = await supabase.auth.getUser();
@@ -26,13 +26,15 @@ export async function GET(request: NextRequest) {
     const pat = likePattern(q);
     const limit = 8;
 
-    const [studentsName, studentsRoll, studentsId, teachers, teachersEmail, classes, subjects, exams, notices] =
+    const [studentsName, studentsRoll, studentsId, teachers, teachersEmail, staffs, staffsEmail, classes, subjects, exams, notices] =
         await Promise.all([
         supabase.from("students").select("id, name, roll, student_id").ilike("name", pat).limit(limit),
         supabase.from("students").select("id, name, roll, student_id").ilike("roll", pat).limit(limit),
         supabase.from("students").select("id, name, roll, student_id").ilike("student_id", pat).limit(limit),
         supabase.from("teachers").select("id, name, email, subject_specialty").ilike("name", pat).limit(6),
         supabase.from("teachers").select("id, name, email, subject_specialty").ilike("email", pat).limit(6),
+        supabase.from("staffs").select("id, name, email, designation").ilike("name", pat).limit(6),
+        supabase.from("staffs").select("id, name, email, designation").ilike("email", pat).limit(6),
         supabase.from("classes").select("id, name").ilike("name", pat).limit(6),
         supabase.from("subjects").select("id, name").ilike("name", pat).limit(6),
         supabase.from("exams").select("id, name, exam_type").ilike("name", pat).limit(6),
@@ -65,6 +67,16 @@ export async function GET(request: NextRequest) {
             title: t.name,
             subtitle: t.subject_specialty || t.email || null,
             href: "/dashboard/administration/teachers-rooms",
+        });
+    }
+    const staffRows = [...(staffs.data ?? []), ...(staffsEmail.data ?? [])];
+    for (const s of staffRows) {
+        add({
+            type: "staff",
+            id: s.id,
+            title: s.name,
+            subtitle: s.designation || s.email || "Staff",
+            href: "/dashboard/administration/staff",
         });
     }
 

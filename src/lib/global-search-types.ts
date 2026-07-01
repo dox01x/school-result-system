@@ -1,5 +1,5 @@
 export type GlobalSearchHit = {
-    type: "student" | "teacher" | "class" | "subject" | "exam" | "notice";
+    type: "student" | "teacher" | "staff" | "class" | "subject" | "exam" | "notice";
     id: string;
     title: string;
     subtitle: string | null;

@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function GET() {
     try {
-        const supabase = await createServerSupabaseClient();
+        const supabase = (await createServerSupabaseClient()) as any;
         const { data, error } = await supabase
             .from("class_routines")
             .select(CLASS_ROUTINE_COLUMNS)
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ success: false, error: "end_time must be after start_time" }, { status: 400 });
         }
 
-        const supabase = await createServerSupabaseClient();
+        const supabase = (await createServerSupabaseClient()) as any;
 
         // Teacher conflict detection
         const { data: teacherSlots } = await supabase
@@ -121,7 +121,7 @@ export async function DELETE(request: NextRequest) {
             return NextResponse.json({ success: false, error: "Missing id parameter" }, { status: 400 });
         }
 
-        const supabase = await createServerSupabaseClient();
+        const supabase = (await createServerSupabaseClient()) as any;
         const { error } = await supabase.from("class_routines").delete().eq("id", id);
 
         if (error) {

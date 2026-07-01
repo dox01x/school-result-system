@@ -88,7 +88,7 @@ function parseDateHeader(
 }
 
 export async function POST(req: NextRequest) {
-    const supabase = await createServerSupabaseClient();
+    const supabase = (await createServerSupabaseClient()) as any;
     const authHeader = req.headers.get("authorization");
     const bearerToken = authHeader?.toLowerCase().startsWith("bearer ")
         ? authHeader.slice(7).trim()
@@ -181,7 +181,7 @@ export async function POST(req: NextRequest) {
 
     const byRoll = new Map<string, { id: string; name: string; student_id: string | null }>();
     const byStudentId = new Map<string, { id: string; name: string; roll: string }>();
-    (students || []).forEach((s) => {
+    (students || []).forEach((s: any) => {
         byRoll.set(String(s.roll).trim(), { id: s.id, name: s.name, student_id: s.student_id });
         if (s.student_id) byStudentId.set(String(s.student_id).trim(), { id: s.id, name: s.name, roll: s.roll });
     });

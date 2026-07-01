@@ -61,7 +61,7 @@ export default function SubjectsPage() {
     const [editingSubject, setEditingSubject] = useState<Subject | null>(null);
     const [form, setForm] = useState(defaultSubject);
     const [confirmState, setConfirmState] = useState<{ open: boolean; title: string; description: string; onConfirm: () => void }>({ open: false, title: "", description: "", onConfirm: () => {} });
-    const supabase = useMemo(() => createClient(), []);
+    const supabase = useMemo(() => createClient() as any, []);
 
     const fetchClasses = useCallback(async () => {
         try {

@@ -12,7 +12,7 @@ type BatchRecord = {
 };
 
 export async function POST(req: NextRequest) {
-    const supabase = await createServerSupabaseClient();
+    const supabase = (await createServerSupabaseClient()) as any;
 
     const authHeader = req.headers.get("authorization");
     const bearerToken = authHeader?.toLowerCase().startsWith("bearer ")

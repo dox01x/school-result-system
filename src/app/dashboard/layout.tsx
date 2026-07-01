@@ -16,7 +16,7 @@ export default async function DashboardLayout({
     let assignments: { class_id: string; section_id: string; class_name?: string; section_name?: string }[] = [];
 
     try {
-        const supabase = await createServerSupabaseClient();
+        const supabase = (await createServerSupabaseClient()) as any;
         const { data: { user } } = await supabase.auth.getUser();
 
         if (user) {

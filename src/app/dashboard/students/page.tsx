@@ -81,7 +81,7 @@ function StudentsPageContent() {
     const [bgSyncing, setBgSyncing] = useState(false);
     // Confirm dialog state
     const [confirmState, setConfirmState] = useState<{ open: boolean; title: string; description: string; onConfirm: () => void }>({ open: false, title: "", description: "", onConfirm: () => {} });
-    const supabase = useMemo(() => createClient(), []);
+    const supabase = useMemo(() => createClient() as any, []);
     const router = useRouter();
     const searchParams = useSearchParams();
     const studentIdParam = searchParams.get("studentId");
@@ -251,7 +251,7 @@ function StudentsPageContent() {
             .select("roll, group_name")
             .eq("class_id", selectedClass)
             .eq("section_id", selectedSection);
-        const existingGroups = new Map((existingStudents || []).map(s => [s.roll, s.group_name]));
+        const existingGroups = new Map(((existingStudents || []) as any[]).map((s: any) => [s.roll, s.group_name]));
 
         const toUpsert = [];
         for (let i = 1; i < rows.length; i++) {

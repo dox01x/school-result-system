@@ -22,7 +22,7 @@ type Room = {
 };
 
 export function RoomsTab() {
-    const supabase = useMemo(() => createClient(), []);
+    const supabase = useMemo(() => createClient() as any, []);
 
     const [rooms, setRooms] = useState<Room[]>([]);
     const [loading, setLoading] = useState(true);
@@ -38,7 +38,7 @@ export function RoomsTab() {
         if (error) {
             toast.error("Failed to load rooms");
         } else {
-            const r = (data || []).map(row => ({
+            const r = ((data || []) as any[]).map((row: any) => ({
                 id: row.id,
                 name: row.name,
                 capacity: row.capacity,

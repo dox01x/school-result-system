@@ -10,7 +10,7 @@ export default function FinanceLayout({ children }: { children: React.ReactNode 
   useEffect(() => {
     const checkAccess = async () => {
       try {
-        const supabase = createClient();
+        const supabase = createClient() as any;
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) { setAllowed(false); return; }
 

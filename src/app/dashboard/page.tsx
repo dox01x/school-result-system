@@ -20,7 +20,7 @@ type AttendanceItem = { name: "Present" | "Absent"; value: number; color: string
 
 /* ── Server-side data fetching ── */
 async function fetchDashboardData() {
-    const supabase = await createServerSupabaseClient();
+    const supabase = (await createServerSupabaseClient()) as any;
     const todayIso = new Date().toISOString().slice(0, 10);
 
     // ── Single parallel batch: ALL queries at once (no waterfall) ──
@@ -51,8 +51,8 @@ async function fetchDashboardData() {
 
     const stats = { classes: cRes.count ?? 0, students: stuRes.count ?? 0, subjects: subRes.count ?? 0, exams: exRes.count ?? 0, sections: secRes.count ?? 0 };
     const school = schoolRes.data as unknown as SchoolData | null;
-    const classes = classesRes.data || [];
-    const subjects = subjectsRes.data || [];
+    const classes = (classesRes.data || []) as any[];
+    const subjects = (subjectsRes.data || []) as any[];
     const classMap: Record<string, string> = {};
     classes.forEach((c) => { classMap[c.id] = c.name; });
     const subjectMap: Record<string, string> = {};
@@ -65,14 +65,14 @@ async function fetchDashboardData() {
         return "bg-muted";
     };
     const fmt = (iso: string) => new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-    const notices: NoticeItem[] = (noticesRes.data || []).map((n) => ({
+    const notices: NoticeItem[] = ((noticesRes.data || []) as any[]).map((n) => ({
         title: n.title,
         date: fmt(n.created_at),
         color: noticeColor(n.priority),
     }));
 
     // Upcoming exams — process from parallel results
-    const upcomingExams: UpcomingExamItem[] = (upcomingSchedulesRes.data || []).map((r) => ({
+    const upcomingExams: UpcomingExamItem[] = ((upcomingSchedulesRes.data || []) as any[]).map((r) => ({
         subject: subjectMap[r.subject_id] || "Subject",
         date: fmt(r.exam_date),
         className: classMap[r.class_id] || "Class",
@@ -81,8 +81,8 @@ async function fetchDashboardData() {
     // Section distribution — process from parallel results
     let sectionRows: SectionRow[] = [];
     if (classes.length > 0) {
-        const secs = allSectionsRes.data || [];
-        const studs = allStudentsRes.data || [];
+        const secs = (allSectionsRes.data || []) as any[];
+        const studs = (allStudentsRes.data || []) as any[];
         const countMap: Record<string, number> = {};
         studs.forEach((s) => { countMap[s.section_id] = (countMap[s.section_id] || 0) + 1; });
         sectionRows = secs.map((sec) => ({ class_name: classMap[sec.class_id] || "", section_name: sec.name, student_count: countMap[sec.id] || 0 }));
@@ -90,7 +90,7 @@ async function fetchDashboardData() {
 
     // Attendance snapshot — process with single fallback query if needed
     let attendanceLabel = "Today";
-    let records: { status: string; att_date: string }[] = todayAttendanceRes.data || [];
+    let records: any[] = (todayAttendanceRes.data || []) as any[];
     if (records.length === 0) {
         const { data: latest } = await supabase
             .from("attendance_records")
@@ -99,7 +99,7 @@ async function fetchDashboardData() {
             .limit(100);
         if (latest && latest.length > 0) {
             const latestDate = latest[0].att_date;
-            records = latest.filter((r) => r.att_date === latestDate);
+            records = (latest as any[]).filter((r) => r.att_date === latestDate);
             attendanceLabel = new Date(latestDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
         }
     }
@@ -305,4 +305,3 @@ export default async function DashboardPage() {
         </div>
     );
 }
-

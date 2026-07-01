@@ -2,12 +2,9 @@ import { NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import {
   SCHOOL_INFO_COLUMNS,
-  STAFF_SALARY_CONFIG_COLUMNS,
-  SALARY_PAYMENT_COLUMNS,
 } from '@/lib/supabase/select-columns';
 import { generateSlipNumber, getMonthName } from '@/lib/finance-utils';
 import { sendSalaryConfirmationSms } from '@/lib/sms-gateway';
-import { ApiResponse, SalaryPayment } from '@/types/finance';
 
 export async function POST(request: Request) {
   try {
@@ -20,11 +17,10 @@ export async function POST(request: Request) {
 
     const supabase = (await createServerSupabaseClient()) as any;
     
-    // 1. Fetch Staff Config
-    // @ts-ignore
+    // 1. Fetch Staff Salary Config from staff_salary_configs
     const { data: config, error: configError } = await supabase
-      .from('staff_salary_config')
-      .select(STAFF_SALARY_CONFIG_COLUMNS)
+      .from('staff_salary_configs')
+      .select('id,staff_id,basic_salary,allowances,deductions,effective_from,is_active,created_at')
       .eq('staff_id', staff_id)
       .eq('is_active', true)
       .single();
@@ -34,9 +30,8 @@ export async function POST(request: Request) {
     }
 
     // 2. Check if already paid
-    // @ts-ignore
     const { data: existing } = await supabase
-      .from('salary_payments')
+      .from('staff_salary_payments')
       .select('id')
       .match({ staff_id, month, year })
       .single();
@@ -53,25 +48,21 @@ export async function POST(request: Request) {
     const gross_salary = config.basic_salary + totalAllowances;
     const net_salary = gross_salary - totalDeductions;
 
-    // Fetch staff info for typing and expense description
-    // @ts-ignore
-    const { data: staff } = await supabase.from('teachers').select('name, designation, employee_type, phone').eq('id', staff_id).single();
+    // Fetch staff info
+    const { data: staff } = await supabase.from('staffs').select('name, designation, phone').eq('id', staff_id).single();
     if (!staff) {
         return NextResponse.json({ success: false, error: "Staff not found" }, { status: 404 });
     }
 
     // 4. Generate Slip Number
-    // @ts-ignore
     const slip_number = await generateSlipNumber(supabase, year);
 
-    // 5. Insert into salary_payments
-    // @ts-ignore
+    // 5. Insert into staff_salary_payments
     const { data: salaryResult, error: insertError } = await supabase
-      .from('salary_payments')
+      .from('staff_salary_payments')
       .insert({
         slip_number,
         staff_id,
-        staff_type: 'teacher',
         month,
         year,
         basic_salary: config.basic_salary,
@@ -83,17 +74,16 @@ export async function POST(request: Request) {
         paid_by,
         note
       })
-      .select(SALARY_PAYMENT_COLUMNS)
+      .select('*')
       .single();
       
     if (insertError) throw insertError;
 
     // 6. Automatically add to expense_entries
-    // @ts-ignore
     await supabase.from('expense_entries').insert({
       category: 'salary',
       amount: net_salary,
-      description: `Salary paid to ${staff.name} for ${month}/${year} (Slip: ${slip_number})`,
+      description: `Staff salary paid to ${staff.name} for ${month}/${year} (Slip: ${slip_number})`,
       payment_method,
       paid_by,
       expense_date: new Date().toISOString().split('T')[0],
@@ -102,10 +92,9 @@ export async function POST(request: Request) {
     });
 
     // 7. Fetch School Info
-    // @ts-ignore
     const { data: school } = await supabase.from('school_info').select(SCHOOL_INFO_COLUMNS).single();
 
-    // ═══════════════════ SMS CONFIRMATION (fire-and-forget) ═══════════════════
+    // SMS confirmation (fire-and-forget)
     try {
       if (staff.phone) {
         sendSalaryConfirmationSms({
@@ -116,14 +105,13 @@ export async function POST(request: Request) {
           year,
           slipNumber: slip_number,
           schoolName: school?.name
-        }).catch(() => {}); // silently ignore SMS errors
+        }).catch(() => {});
       }
     } catch {
       // SMS errors must never affect salary flow
     }
-    // ═══════════════════ END SMS ═══════════════════
 
-    return NextResponse.json({ success: true, data: { ...salaryResult, staff, school } } as unknown as ApiResponse<SalaryPayment>);
+    return NextResponse.json({ success: true, data: { ...salaryResult, staff, school } });
 
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });

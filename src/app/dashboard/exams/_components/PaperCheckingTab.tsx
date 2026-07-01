@@ -86,7 +86,7 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
     const [editingId, setEditingId] = useState<string | null>(null);
     const [form, setForm] = useState<FormData>(emptyForm);
 
-    const supabase = useMemo(() => createClient(), []);
+    const supabase = useMemo(() => createClient() as any, []);
 
     // Load classes, subjects, teachers on mount
     useEffect(() => {

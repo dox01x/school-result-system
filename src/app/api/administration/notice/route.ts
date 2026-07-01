@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
         const { searchParams } = new URL(request.url);
         const audience = searchParams.get("audience");
 
-        const supabase = await createServerSupabaseClient();
+        const supabase = (await createServerSupabaseClient()) as any;
         let query = supabase
             .from("notices")
             .select(NOTICE_COLUMNS)
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ success: false, error: "priority must be: low, normal, high, or urgent" }, { status: 400 });
         }
 
-        const supabase = await createServerSupabaseClient();
+        const supabase = (await createServerSupabaseClient()) as any;
 
         if (body.id) {
             const { data, error } = await supabase
@@ -100,7 +100,7 @@ export async function DELETE(request: NextRequest) {
             return NextResponse.json({ success: false, error: "Missing id parameter" }, { status: 400 });
         }
 
-        const supabase = await createServerSupabaseClient();
+        const supabase = (await createServerSupabaseClient()) as any;
         const { error } = await supabase.from("notices").delete().eq("id", id);
 
         if (error) {

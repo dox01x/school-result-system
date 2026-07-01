@@ -83,7 +83,7 @@ export default function MarksPage() {
     const [syncStatus, setSyncStatus] = useState<"idle" | "syncing" | "error">("idle");
     const autoSyncRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-    const supabase = useMemo(() => createClient(), []);
+    const supabase = useMemo(() => createClient() as any, []);
 
     // ── Derived values ──
     const currentSubject = subjects.find((s) => s.id === selectedSubject);
@@ -186,7 +186,7 @@ export default function MarksPage() {
                 }
                 const { data: stdData } = await query.order("roll");
 
-                sortedStudents = (stdData || []).sort((a, b) => {
+                sortedStudents = ((stdData || []) as any[]).sort((a: any, b: any) => {
                     const na = parseInt(a.roll), nb = parseInt(b.roll);
                     if (!isNaN(na) && !isNaN(nb)) return na - nb;
                     return a.roll.localeCompare(b.roll);
@@ -208,7 +208,7 @@ export default function MarksPage() {
 
             const entries: Record<string, MarkEntryData> = {};
             sortedStudents.forEach((student) => {
-                const existing = (markData || []).find((m) => m.student_id === student.id);
+                const existing = ((markData || []) as any[]).find((m: any) => m.student_id === student.id);
                 entries[student.id] = {
                     student_id: student.id,
                     marks: existing?.total?.toString() || "",

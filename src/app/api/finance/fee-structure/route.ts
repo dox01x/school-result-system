@@ -13,7 +13,7 @@ export async function GET(request: Request) {
         const className = searchParams.get("class_name");
         const academicYear = searchParams.get("academic_year");
 
-        const supabase = await createServerSupabaseClient();
+        const supabase = (await createServerSupabaseClient()) as any;
 
         let query = supabase.from("fee_structure").select(FEE_STRUCTURE_COLUMNS).eq("is_active", true);
 
@@ -40,7 +40,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ success: false, error: "Missing required fields or invalid amount" }, { status: 400 });
         }
 
-        const supabase = await createServerSupabaseClient();
+        const supabase = (await createServerSupabaseClient()) as any;
 
         const { data: existing } = await supabase
             .from("fee_structure")
@@ -77,7 +77,7 @@ export async function PUT(request: Request) {
             return NextResponse.json({ success: false, error: "Missing required fields or invalid amount" }, { status: 400 });
         }
 
-        const supabase = await createServerSupabaseClient();
+        const supabase = (await createServerSupabaseClient()) as any;
         const { data, error } = await supabase
             .from("fee_structure")
             .update({ amount, description })
@@ -101,7 +101,7 @@ export async function DELETE(request: Request) {
             return NextResponse.json({ success: false, error: "ID is required" }, { status: 400 });
         }
 
-        const supabase = await createServerSupabaseClient();
+        const supabase = (await createServerSupabaseClient()) as any;
         const { error } = await supabase.from("fee_structure").delete().eq("id", id);
 
         if (error) throw error;

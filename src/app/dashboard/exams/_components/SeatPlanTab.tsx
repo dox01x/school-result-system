@@ -39,7 +39,7 @@ export function SeatPlanTab({ exams }: { exams: { id: string; name: string }[] }
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
 
-    const supabase = useMemo(() => createClient(), []);
+    const supabase = useMemo(() => createClient() as any, []);
 
     const fetchBaseData = useCallback(async () => {
         setLoading(true);
@@ -52,7 +52,7 @@ export function SeatPlanTab({ exams }: { exams: { id: string; name: string }[] }
                 supabase.from("subjects").select("id, name")
             ]);
 
-            const parsedRooms: RoomCapacity[] = (roomsRes.data || []).map(r => ({
+            const parsedRooms: RoomCapacity[] = ((roomsRes.data || []) as any[]).map((r: any) => ({
                 id: r.id,
                 name: r.name,
                 tables_count: r.tables_count ?? 0,
@@ -121,7 +121,7 @@ export function SeatPlanTab({ exams }: { exams: { id: string; name: string }[] }
                 .eq("start_time", start)
                 .eq("end_time", end);
             if (error) throw error;
-            setAllocations((data || []).map(d => ({
+            setAllocations(((data || []) as any[]).map((d: any) => ({
                 room_id: d.room_id,
                 class_id: d.class_id,
                 section_id: d.section_id,

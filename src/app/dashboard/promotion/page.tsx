@@ -34,7 +34,7 @@ type PromotionResult = {
 const STEPS = ["Configure", "Preview", "Confirm", "Report"];
 
 export default function PromotionPage() {
-    const supabase = useMemo(() => createClient(), []);
+    const supabase = useMemo(() => createClient() as any, []);
     const [step, setStep] = useState(0);
     const [schoolInfo, setSchoolInfo] = useState<{
         current_academic_year: string; last_promotion_year: string;

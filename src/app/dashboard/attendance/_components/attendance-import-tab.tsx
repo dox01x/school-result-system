@@ -42,7 +42,7 @@ function extractGoogleSheetId(input: string): string {
 }
 
 export function AttendanceImportTab({ filters, onImportComplete }: Props) {
-    const supabase = useMemo(() => createClient(), []);
+    const supabase = useMemo(() => createClient() as any, []);
     const { selectedClass, selectedSection, year, month } = filters;
 
     const [sheetId, setSheetId] = useState("");

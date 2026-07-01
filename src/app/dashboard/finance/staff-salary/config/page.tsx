@@ -1,17 +1,17 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { createClient } from '@/lib/supabase/client';
-import { STAFF_SALARY_CONFIG_COLUMNS } from '@/lib/supabase/select-columns';
+import { STAFF_COLUMNS } from '@/lib/supabase/select-columns';
 import { Loader2 as SpinnerGap, Plus, Trash, CheckCircle } from "lucide-react";
 
-export default function SalaryConfigPage() {
+export default function StaffSalaryConfigPage() {
   const [staffList, setStaffList] = useState<any[]>([]);
   const [selectedStaffId, setSelectedStaffId] = useState("");
   const [loadingConfig, setLoadingConfig] = useState(false);
@@ -26,7 +26,7 @@ export default function SalaryConfigPage() {
 
   useEffect(() => {
     const fetchStaff = async () => {
-      const { data } = await supabase.from('teachers').select('id, name, designation, phone').order('name');
+      const { data } = await supabase.from('staffs').select(STAFF_COLUMNS).order('name');
       if (data) setStaffList(data);
     };
     const fetchRole = async () => {
@@ -40,14 +40,13 @@ export default function SalaryConfigPage() {
     fetchRole();
   }, [supabase]);
 
-  // Load existing config
   useEffect(() => {
     if (!selectedStaffId) return;
     const loadConfig = async () => {
       setLoadingConfig(true);
       const { data } = await supabase
-        .from('staff_salary_config')
-        .select(STAFF_SALARY_CONFIG_COLUMNS)
+        .from('staff_salary_configs')
+        .select('id,staff_id,basic_salary,allowances,deductions,effective_from,is_active,created_at')
         .eq('staff_id', selectedStaffId)
         .eq('is_active', true)
         .maybeSingle();
@@ -85,7 +84,7 @@ export default function SalaryConfigPage() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedStaffId) { toast.error("Select a teacher first"); return; }
+    if (!selectedStaffId) { toast.error("Select a staff member first"); return; }
     setSubmitting(true);
 
     const allowObj = allowances.reduce((acc: any, curr) => {
@@ -99,11 +98,10 @@ export default function SalaryConfigPage() {
     }, {});
 
     try {
-      // Upsert: First try to update, if 0 rows returned, insert
-      const { data: existing } = await supabase.from('staff_salary_config').select('id').eq('staff_id', selectedStaffId).maybeSingle();
+      const { data: existing } = await supabase.from('staff_salary_configs').select('id').eq('staff_id', selectedStaffId).maybeSingle();
 
       if (existing) {
-        const { error } = await supabase.from('staff_salary_config').update({
+        const { error } = await supabase.from('staff_salary_configs').update({
           basic_salary: Number(basicSalary),
           allowances: allowObj,
           deductions: dedObj,
@@ -111,7 +109,7 @@ export default function SalaryConfigPage() {
         }).eq('id', existing.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from('staff_salary_config').insert({
+        const { error } = await supabase.from('staff_salary_configs').insert({
           staff_id: selectedStaffId,
           basic_salary: Number(basicSalary),
           allowances: allowObj,
@@ -120,13 +118,9 @@ export default function SalaryConfigPage() {
         });
         if (error) throw error;
       }
-      toast.success("Salary Configuration Saved!");
+      toast.success("Staff Salary Configuration Saved!");
     } catch (err: any) {
-      if (err?.code === '23503') {
-         toast.error("Database Error: Foreign Key Constraint. Please tell your developer to run 'ALTER TABLE staff_salary_config DROP CONSTRAINT staff_salary_config_staff_id_fkey'");
-      } else {
-         toast.error(err?.message || "Failed to save configuration");
-      }
+      toast.error(err?.message || "Failed to save configuration");
     } finally {
       setSubmitting(false);
     }
@@ -139,19 +133,19 @@ export default function SalaryConfigPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground font-heading mb-1">Teacher Salary Configuration</h1>
-        <p className="text-muted-foreground text-sm mt-1">Set basic salary, allowances and deductions for teachers.</p>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground font-heading mb-1">Staff Salary Configuration</h1>
+        <p className="text-muted-foreground text-sm mt-1">Set basic salary, allowances and deductions for general staff.</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <Card className="lg:col-span-8 shadow-none border border-border/50 rounded-2xl overflow-hidden">
           <CardHeader className="bg-muted/30 border-b border-border/50">
-            <CardTitle className="text-lg font-bold text-foreground">Teacher Configuration</CardTitle>
+            <CardTitle className="text-lg font-bold text-foreground">Staff Configuration</CardTitle>
           </CardHeader>
           <CardContent className="pt-6">
             <form onSubmit={handleSave} className="space-y-6">
               <div className="space-y-2">
-                <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground px-1">Select Teacher</Label>
+                <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground px-1">Select Staff</Label>
                 <Select value={selectedStaffId} onValueChange={setSelectedStaffId}>
                   <SelectTrigger className="h-11 rounded-xl bg-muted border-0 font-bold text-foreground focus:ring-1 focus:ring-ring/30 shadow-none"><SelectValue placeholder="Select staff member..." /></SelectTrigger>
                   <SelectContent className="border-border/50 rounded-xl shadow-md max-h-[300px]">

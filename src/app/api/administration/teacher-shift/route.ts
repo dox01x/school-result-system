@@ -6,7 +6,7 @@ export async function GET(request: NextRequest) {
     try {
         const { searchParams } = new URL(request.url);
         const type = searchParams.get("type");
-        const supabase = await createServerSupabaseClient();
+        const supabase = (await createServerSupabaseClient()) as any;
 
         if (type === "leave") {
             const { data, error } = await supabase
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
         const { type } = body;
-        const supabase = await createServerSupabaseClient();
+        const supabase = (await createServerSupabaseClient()) as any;
 
         if (type === "leave") {
             const { teacher_id, start_date, end_date, reason, proxies } = body;
@@ -180,7 +180,7 @@ export async function DELETE(request: NextRequest) {
             return NextResponse.json({ success: false, error: "Missing id parameter" }, { status: 400 });
         }
 
-        const supabase = await createServerSupabaseClient();
+        const supabase = (await createServerSupabaseClient()) as any;
         const table = type === "leave" ? "leave_requests" : "teacher_shifts";
         const { error } = await supabase.from(table).delete().eq("id", id);
 

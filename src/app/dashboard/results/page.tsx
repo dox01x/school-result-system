@@ -57,7 +57,7 @@ export default function ResultsPage() {
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedAcademicYear, setSelectedAcademicYear] = useState(new Date().getFullYear().toString());
 
-    const supabase = useMemo(() => createClient(), []);
+    const supabase = useMemo(() => createClient() as any, []);
 
     useEffect(() => {
         (async () => {
@@ -228,36 +228,36 @@ export default function ResultsPage() {
                 if (pairedMct) {
                     const mC = examSubjectConfigs.find((c) => c.exam_id === pairedMct.id && c.subject_id === subject.id);
                     const sC = examSubjectConfigs.find((c) => c.exam_id === examId && c.subject_id === subject.id);
-                    const hasMctMarks = mctMarks.some((m) => m.subject_id === subject.id);
+                    const hasMctMarks = (mctMarks as any[]).some((m: any) => m.subject_id === subject.id);
                     const hasMctConfig = !!mC;
 
                     if (hasMctConfig || hasMctMarks) {
-                        const mM = mctMarks.find((m) => m.student_id === student.id && m.subject_id === subject.id);
-                        const sM = (directMarks || []).find((m) => m.student_id === student.id && m.subject_id === subject.id);
+                        const mM = (mctMarks as any[]).find((m: any) => m.student_id === student.id && m.subject_id === subject.id);
+                        const sM = ((directMarks || []) as any[]).find((m: any) => m.student_id === student.id && m.subject_id === subject.id);
                         
                         mctO = mM?.total ?? 0;
                         semO = sM?.total ?? 0;
                         const mctW = mC?.weight_percent ?? 100;
                         const semW = sC?.weight_percent ?? 100;
                         
-                        wO = (mctO * (mctW / 100)) + (semO * (semW / 100));
+                        wO = ((mctO ?? 0) * (mctW / 100)) + ((semO ?? 0) * (semW / 100));
                         wF = subject.full_marks;
                         
                         mark = { id: "", student_id: student.id, subject_id: subject.id, exam_id: examId, academic_year: "", theory: null, mcq: null, practical: null, total: wO, created_at: "" };
                     } else {
                         const sC = examSubjectConfigs.find((c) => c.exam_id === examId && c.subject_id === subject.id);
                         const semW = sC?.weight_percent ?? 100;
-                        mark = (directMarks || []).find((m) => m.student_id === student.id && m.subject_id === subject.id) || null;
+                        mark = ((directMarks || []) as any[]).find((m: any) => m.student_id === student.id && m.subject_id === subject.id) || null;
                         semO = mark?.total ?? 0;
-                        wO = semO * (semW / 100);
+                        wO = (semO ?? 0) * (semW / 100);
                         wF = subject.full_marks;
                     }
                 } else {
                     const sC = examSubjectConfigs.find((c) => c.exam_id === examId && c.subject_id === subject.id);
                     const semW = sC?.weight_percent ?? 100;
-                    mark = (directMarks || []).find((m) => m.student_id === student.id && m.subject_id === subject.id) || null;
+                    mark = ((directMarks || []) as any[]).find((m: any) => m.student_id === student.id && m.subject_id === subject.id) || null;
                     semO = mark?.total ?? 0;
-                    wO = semO * (semW / 100);
+                    wO = (semO ?? 0) * (semW / 100);
                     wF = subject.full_marks;
                 }
                 
@@ -377,13 +377,14 @@ export default function ResultsPage() {
         setProcessing(true);
 
         try {
-            const { data: subjects } = await supabase.from("subjects").select(SUBJECT_COLUMNS).eq("class_id", selectedClass).order("name");
-            if (!isFinal && !subjects?.length) { toast.error("No subjects found"); setProcessing(false); return; }
+            const { data: subjectsData } = await supabase.from("subjects").select(SUBJECT_COLUMNS).eq("class_id", selectedClass).order("name");
+            const subjects = (subjectsData || []) as any[];
+            if (!isFinal && !subjects.length) { toast.error("No subjects found"); setProcessing(false); return; }
 
             let studentQuery = supabase.from("students").select(STUDENT_COLUMNS).eq("class_id", selectedClass).order("roll");
             if (selectedSection && selectedSection !== "all") studentQuery = studentQuery.eq("section_id", selectedSection);
             const { data: students } = await studentQuery;
-            let studentsToUse = (students || []).sort((a: any, b: any) => {
+            let studentsToUse = ((students || []) as any[]).sort((a: any, b: any) => {
                 const na = parseInt(a.roll), nb = parseInt(b.roll);
                 if (!isNaN(na) && !isNaN(nb)) return na - nb;
                 return (a.roll || '').localeCompare(b.roll || '');
@@ -395,8 +396,8 @@ export default function ResultsPage() {
             // Historical fallback:
             // after yearly promotion, a previous class may have no active students,
             // but result generation should still work from that class's marks.
-            if (!isFinal && studentsToUse.length === 0 && subjects && subjects.length > 0) {
-                const subjectIds = subjects.map((s) => s.id);
+            if (!isFinal && studentsToUse.length === 0 && subjects.length > 0) {
+                const subjectIds = subjects.map((s: any) => s.id);
                 const { data: oldMarks } = await supabase
                     .from("marks")
                     .select("student_id")
@@ -404,7 +405,7 @@ export default function ResultsPage() {
                     .eq("academic_year", selectedAcademicYear || "")
                     .in("subject_id", subjectIds);
 
-                const oldStudentIds = Array.from(new Set((oldMarks || []).map((m) => m.student_id).filter(Boolean)));
+                const oldStudentIds = Array.from(new Set(((oldMarks || []) as any[]).map((m: any) => m.student_id).filter(Boolean)));
                 historicalMarkStudents = oldStudentIds.length;
                 if (oldStudentIds.length > 0) {
                     const { data: oldStudents } = await supabase
@@ -412,7 +413,7 @@ export default function ResultsPage() {
                         .select(STUDENT_COLUMNS)
                         .in("id", oldStudentIds)
                         .order("roll");
-                    studentsToUse = (oldStudents || []).sort((a: any, b: any) => {
+                    studentsToUse = ((oldStudents || []) as any[]).sort((a: any, b: any) => {
                         const na = parseInt(a.roll), nb = parseInt(b.roll);
                         if (!isNaN(na) && !isNaN(nb)) return na - nb;
                         return (a.roll || '').localeCompare(b.roll || '');
@@ -471,7 +472,7 @@ export default function ResultsPage() {
 
                 // Batch upsert all semester detail rows
                 if (frRows && frRows.length > 0) {
-                    const frMap = new Map(frRows.map((fr) => [fr.student_id, fr.id]));
+                    const frMap = new Map(((frRows || []) as any[]).map((fr: any) => [fr.student_id, fr.id]));
                     const allDetails: any[] = [];
                     for (const r of studentResults) {
                         const frId = frMap.get(r.student.id);

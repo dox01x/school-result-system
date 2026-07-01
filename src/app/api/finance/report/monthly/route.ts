@@ -19,7 +19,9 @@ export async function GET(request: Request) {
     // @ts-ignore
     const { data: expenseEntries } = await supabase.from('expense_entries').select('category, amount').match({ month, year });
     // @ts-ignore
-    const { data: salaryPayments } = await supabase.from('salary_payments').select('staff_type, net_salary').match({ month, year });
+    const { data: salaryPayments } = await supabase.from('salary_payments').select('net_salary').match({ month, year });
+    // @ts-ignore
+    const { data: staffSalaryPayments } = await supabase.from('staff_salary_payments').select('net_salary').match({ month, year });
     // Fetch ALL tuition payments for this month/year (including fee_type='multiple' which may contain tuition)
     // @ts-ignore
     const { data: tuitionPayments } = await supabase.from('tuition_payments').select('amount_due, amount_paid, fee_type, fee_details').match({ month, year });
@@ -86,13 +88,15 @@ export async function GET(request: Request) {
       collection_rate: parseFloat(collection_rate.toFixed(2))
     };
 
-    let total_teachers = 0;
-    let total_staff = 0;
+    let total_teachers = salaryPayments?.length || 0;
+    let total_staff = staffSalaryPayments?.length || 0;
     let total_paid_salary = 0;
 
     (salaryPayments || []).forEach((sp: any) => {
-      if (sp.staff_type === 'teacher') total_teachers++;
-      else total_staff++;
+      total_paid_salary += Number(sp.net_salary);
+    });
+
+    (staffSalaryPayments || []).forEach((sp: any) => {
       total_paid_salary += Number(sp.net_salary);
     });
 

@@ -16,10 +16,9 @@ export async function GET(request: Request) {
     const m = parseInt(month);
     const y = parseInt(year);
 
-    const supabase = await createServerSupabaseClient();
+    const supabase = (await createServerSupabaseClient()) as any;
 
     // 1. Get Fee Structure for Tuition
-    // @ts-ignore
     let feeQuery = supabase.from('fee_structure').select('class_name, amount').match({ fee_type: 'tuition', is_active: true, academic_year: year });
     if (className) feeQuery = feeQuery.eq('class_name', className);
     const { data: fees } = await feeQuery;
@@ -31,7 +30,6 @@ export async function GET(request: Request) {
     const feeMap = new Map(fees.map((f: any) => [f.class_name, f.amount]));
 
     // 2. Get Students — JOIN with classes to get class name (students table has class_id, not class_name)
-    // @ts-ignore
     let stdQuery = supabase.from('students').select('id, name, roll, phone, class_id, classes!inner(name)');
     if (className) {
       // Filter by class name via the joined classes table
@@ -55,7 +53,6 @@ export async function GET(request: Request) {
     
     if (studentIds.length === 0) return NextResponse.json({ success: true, data: [] });
 
-    // @ts-ignore
     const { data: payments } = await supabase
       .from('tuition_payments')
       .select('student_id, amount_due, amount_paid, discount, fine')
@@ -64,7 +61,6 @@ export async function GET(request: Request) {
 
     // Build a map: for each student, sum ALL payments in this year that include this month's tuition
     // We check fee_details for month-specific matching via a separate query
-    // @ts-ignore
     const { data: detailedPayments } = await supabase
       .from('tuition_payments')
       .select('student_id, fee_details, amount_paid')

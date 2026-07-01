@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function GET() {
     try {
-        const supabase = await createServerSupabaseClient();
+        const supabase = (await createServerSupabaseClient()) as any;
         const { data, error } = await supabase
             .from("exam_schedules")
             .select(EXAM_SCHEDULE_COLUMNS)
@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
             }, { status: 400 });
         }
 
-        const supabase = await createServerSupabaseClient();
+        const supabase = (await createServerSupabaseClient()) as any;
 
         if (body.id) {
             const { data, error } = await supabase
@@ -82,7 +82,7 @@ export async function DELETE(request: NextRequest) {
             return NextResponse.json({ success: false, error: "Missing id parameter" }, { status: 400 });
         }
 
-        const supabase = await createServerSupabaseClient();
+        const supabase = (await createServerSupabaseClient()) as any;
         const { error } = await supabase.from("exam_schedules").delete().eq("id", id);
 
         if (error) {

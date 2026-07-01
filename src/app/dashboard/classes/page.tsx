@@ -43,7 +43,7 @@ export default function ClassesPage() {
     const [dialogOpen, setDialogOpen] = useState(false);
     const [sectionDialogOpen, setSectionDialogOpen] = useState(false);
     const [confirmState, setConfirmState] = useState<{ open: boolean; title: string; description: string; onConfirm: () => void }>({ open: false, title: "", description: "", onConfirm: () => {} });
-    const supabase = useMemo(() => createClient(), []);
+    const supabase = useMemo(() => createClient() as any, []);
 
     const fetchClasses = useCallback(async () => {
         try {
@@ -61,9 +61,9 @@ export default function ClassesPage() {
 
             if (sectionError) throw sectionError;
 
-            const classesWithSections = (classData || []).map((cls) => ({
+            const classesWithSections = (classData as any[] || []).map((cls: any) => ({
                 ...cls,
-                sections: (sectionData || []).filter((s) => s.class_id === cls.id),
+                sections: (sectionData as any[] || []).filter((s: any) => s.class_id === cls.id),
             }));
 
             setClasses(classesWithSections);

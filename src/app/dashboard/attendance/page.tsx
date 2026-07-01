@@ -14,7 +14,7 @@ import { AttendanceImportTab } from "./_components/attendance-import-tab";
 import { AttendanceManualTab } from "./_components/attendance-manual-tab";
 
 export default function AttendancePage() {
-    const supabase = useMemo(() => createClient(), []);
+    const supabase = useMemo(() => createClient() as any, []);
     const now = new Date();
 
     // Shared filter state
@@ -49,7 +49,7 @@ export default function AttendancePage() {
         if (data && data.length > 0 && !selectionLoadedRef.current) {
             const savedClassId = localStorage.getItem("attendance:selectedClass");
             const preferred =
-                savedClassId && data.some((c) => c.id === savedClassId)
+                savedClassId && (data as any[]).some((c: any) => c.id === savedClassId)
                     ? savedClassId
                     : data[0].id;
             setSelectedClass(preferred);
@@ -72,7 +72,7 @@ export default function AttendancePage() {
                 `attendance:selectedSection:${selectedClass}`
             );
             const preferred =
-                savedSectionId && data.some((s) => s.id === savedSectionId)
+                savedSectionId && (data as any[]).some((s: any) => s.id === savedSectionId)
                     ? savedSectionId
                     : data[0].id;
             setSelectedSection(preferred);

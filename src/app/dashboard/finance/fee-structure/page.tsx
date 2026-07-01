@@ -43,7 +43,7 @@ export default function FeeStructurePage() {
     academic_year: new Date().getFullYear().toString()
   });
 
-  const supabase = createClient();
+  const supabase = createClient() as any;
 
   const fetchData = async () => {
     setLoading(true);

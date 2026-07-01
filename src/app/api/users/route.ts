@@ -5,7 +5,7 @@ import { isValidRole } from "@/lib/rbac";
 
 /** Helper: check caller is super_admin */
 async function requireSuperAdmin() {
-  const supabase = await createServerSupabaseClient();
+  const supabase = (await createServerSupabaseClient()) as any;
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "Unauthorized", status: 401 };
 
@@ -36,8 +36,8 @@ export async function GET() {
   if (authError) return NextResponse.json({ error: authError.message }, { status: 500 });
 
   // Get all profiles
-  const { data: profiles } = await admin.from("profiles").select("id, role, full_name, updated_at");
-  const profileMap = new Map((profiles || []).map(p => [p.id, p]));
+  const { data: profiles } = await (admin as any).from("profiles").select("id, role, full_name, updated_at");
+  const profileMap = new Map<string, any>((profiles || []).map((p: any) => [p.id, p]));
 
   // Get class teacher assignments (table may not exist yet until migration)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -113,7 +113,7 @@ export async function POST(request: Request) {
   }
 
   // Update profile role
-  const { error: profileError } = await admin
+  const { error: profileError } = await (admin as any)
     .from("profiles")
     .upsert({
       id: newUser.user.id,
@@ -181,7 +181,7 @@ export async function PATCH(request: Request) {
   if (full_name !== undefined) updates.full_name = full_name;
 
   if (Object.keys(updates).length > 0) {
-    const { error } = await admin
+    const { error } = await (admin as any)
       .from("profiles")
       .update(updates)
       .eq("id", user_id);

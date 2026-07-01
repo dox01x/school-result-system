@@ -62,7 +62,7 @@ export default function SettingsPage() {
     const [genderSplitClassId, setGenderSplitClassId] = useState<string>("_none");
     const [savingPrefs, setSavingPrefs] = useState(false);
     const [dbConnected, setDbConnected] = useState<boolean | null>(null);
-    const supabase = useMemo(() => createClient(), []);
+    const supabase = useMemo(() => createClient() as any, []);
 
     // Check DB connection + fetch school info
     useEffect(() => {

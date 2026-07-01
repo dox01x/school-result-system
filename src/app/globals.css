@@ -388,7 +388,7 @@
   }
   body.printing-routine .print-header p {
     margin: 1px 0 !important;
-    color: #333 !important;
+    color: #000 !important;
     font-size: 11px !important;
     line-height: 1.4 !important;
   }
@@ -404,7 +404,7 @@
   }
   body.printing-routine .print-header .print-header-divider p:last-child {
     font-size: 10px !important;
-    color: #555 !important;
+    color: #000 !important;
     font-weight: 500 !important;
   }
 
@@ -431,7 +431,7 @@
   /* Every cell — solid black border, white bg, centered */
   body.printing-routine .routine-table th,
   body.printing-routine .routine-table td {
-    border: 1px solid #333 !important;
+    border: 1px solid #000 !important;
     padding: 5px 4px !important;
     text-align: center !important;
     vertical-align: middle !important;
@@ -450,7 +450,7 @@
     text-transform: uppercase !important;
     letter-spacing: 0.8px !important;
     padding: 6px 3px !important;
-    border: 1px solid #333 !important;
+    border: 1px solid #000 !important;
     border-bottom: 3px solid #000 !important;
     color: #000 !important;
     background: none !important;
@@ -463,7 +463,7 @@
   body.printing-routine .period-header div:last-child {
     font-size: 7.5px !important;
     font-weight: 400 !important;
-    color: #444 !important;
+    color: #000 !important;
     margin-top: 1px !important;
     opacity: 1 !important;
   }
@@ -475,7 +475,7 @@
     text-transform: uppercase !important;
     letter-spacing: 0.5px !important;
     color: #000 !important;
-    border: 1px solid #333 !important;
+    border: 1px solid #000 !important;
     border-right: 2px solid #000 !important;
     width: 75px !important;
     min-width: 75px !important;
@@ -510,14 +510,14 @@
   }
   body.printing-routine .teacher-name {
     font-size: 8px !important;
-    color: #333 !important;
+    color: #000 !important;
     font-weight: 400 !important;
     margin-top: 1px !important;
     font-style: italic !important;
   }
   body.printing-routine .teacher-phone {
     font-size: 7.5px !important;
-    color: #555 !important;
+    color: #000 !important;
     font-weight: 400 !important;
     margin-top: 1px !important;
     opacity: 1 !important;
@@ -525,9 +525,9 @@
 
   /* Empty cell */
   body.printing-routine .empty-cell {
-    opacity: 0.15 !important;
+    opacity: 1 !important;
     font-size: 12px !important;
-    color: #999 !important;
+    color: #000 !important;
   }
 
   /* Hide interactive elements */

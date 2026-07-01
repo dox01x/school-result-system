@@ -710,6 +710,33 @@ export type Database = {
                 };
                 Relationships: [];
             };
+            staffs: {
+                Row: {
+                    id: string;
+                    name: string;
+                    phone: string;
+                    email: string;
+                    designation: string;
+                    created_at: string;
+                };
+                Insert: {
+                    id?: string;
+                    name: string;
+                    phone?: string;
+                    email?: string;
+                    designation?: string;
+                    created_at?: string;
+                };
+                Update: {
+                    id?: string;
+                    name?: string;
+                    phone?: string;
+                    email?: string;
+                    designation?: string;
+                    created_at?: string;
+                };
+                Relationships: [];
+            };
             rooms: {
                 Row: {
                     id: string;
@@ -1756,6 +1783,109 @@ export type Database = {
                     }
                 ];
             };
+            staff_salary_configs: {
+                Row: {
+                    id: string;
+                    staff_id: string;
+                    basic_salary: number;
+                    allowances: unknown;
+                    deductions: unknown;
+                    effective_from: string;
+                    is_active: boolean | null;
+                    created_at: string | null;
+                };
+                Insert: {
+                    id?: string;
+                    staff_id: string;
+                    basic_salary: number;
+                    allowances?: unknown;
+                    deductions?: unknown;
+                    effective_from: string;
+                    is_active?: boolean | null;
+                    created_at?: string | null;
+                };
+                Update: {
+                    id?: string;
+                    staff_id?: string;
+                    basic_salary?: number;
+                    allowances?: unknown;
+                    deductions?: unknown;
+                    effective_from?: string;
+                    is_active?: boolean | null;
+                    created_at?: string | null;
+                };
+                Relationships: [
+                    {
+                        foreignKeyName: "staff_salary_configs_staff_id_fkey";
+                        columns: ["staff_id"];
+                        isOneToOne: true;
+                        referencedRelation: "staffs";
+                        referencedColumns: ["id"];
+                    }
+                ];
+            };
+            staff_salary_payments: {
+                Row: {
+                    id: string;
+                    slip_number: string;
+                    staff_id: string;
+                    month: number;
+                    year: number;
+                    basic_salary: number;
+                    allowances: unknown;
+                    deductions: unknown;
+                    gross_salary: number | null;
+                    net_salary: number | null;
+                    payment_method: string | null;
+                    paid_by: string | null;
+                    payment_date: string | null;
+                    note: string | null;
+                    is_printed: boolean | null;
+                };
+                Insert: {
+                    id?: string;
+                    slip_number: string;
+                    staff_id: string;
+                    month: number;
+                    year: number;
+                    basic_salary: number;
+                    allowances?: unknown;
+                    deductions?: unknown;
+                    gross_salary?: number | null;
+                    net_salary?: number | null;
+                    payment_method?: string | null;
+                    paid_by?: string | null;
+                    payment_date?: string | null;
+                    note?: string | null;
+                    is_printed?: boolean | null;
+                };
+                Update: {
+                    id?: string;
+                    slip_number?: string;
+                    staff_id?: string;
+                    month?: number;
+                    year?: number;
+                    basic_salary?: number;
+                    allowances?: unknown;
+                    deductions?: unknown;
+                    gross_salary?: number | null;
+                    net_salary?: number | null;
+                    payment_method?: string | null;
+                    paid_by?: string | null;
+                    payment_date?: string | null;
+                    note?: string | null;
+                    is_printed?: boolean | null;
+                };
+                Relationships: [
+                    {
+                        foreignKeyName: "staff_salary_payments_staff_id_fkey";
+                        columns: ["staff_id"];
+                        isOneToOne: false;
+                        referencedRelation: "staffs";
+                        referencedColumns: ["id"];
+                    }
+                ];
+            };
             promotion_logs: {
                 Row: {
                     id: string;
@@ -1850,4 +1980,7 @@ export type PromotionLog = Database["public"]["Tables"]["promotion_logs"]["Row"]
 export type ExamSeatPlan = Database["public"]["Tables"]["exam_seat_plans"]["Row"];
 export type ExamDuty = Database["public"]["Tables"]["exam_duties"]["Row"];
 export type ExamPaperDistribution = Database["public"]["Tables"]["exam_paper_distributions"]["Row"];
+export type Staff = Database["public"]["Tables"]["staffs"]["Row"];
+export type StaffSalaryConfig = Database["public"]["Tables"]["staff_salary_configs"]["Row"];
+export type StaffSalaryPayment = Database["public"]["Tables"]["staff_salary_payments"]["Row"];
 

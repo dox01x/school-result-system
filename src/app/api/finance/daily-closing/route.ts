@@ -11,7 +11,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ success: false, error: "date is required (YYYY-MM-DD)" }, { status: 400 });
     }
 
-    const supabase = await createServerSupabaseClient();
+    const supabase = (await createServerSupabaseClient()) as any;
     const dateStart = `${dateStr}T00:00:00`;
     const dateEnd = `${dateStr}T23:59:59`;
 
@@ -43,6 +43,14 @@ export async function GET(request: Request) {
     const { data: salaryPayments } = await supabase
       .from('salary_payments')
       .select('slip_number, net_salary, payment_method, payment_date, teachers!salary_payments_staff_id_fkey(name)')
+      .gte('payment_date', dateStart)
+      .lte('payment_date', dateEnd);
+
+    // Fetch staff salary payments for this date
+    // @ts-ignore
+    const { data: staffSalaryPayments } = await supabase
+      .from('staff_salary_payments')
+      .select('slip_number, net_salary, payment_method, payment_date, staffs!staff_salary_payments_staff_id_fkey(name)')
       .gte('payment_date', dateStart)
       .lte('payment_date', dateEnd);
 
@@ -89,6 +97,10 @@ export async function GET(request: Request) {
       totalSalaryPaid += Number(s.net_salary);
     });
 
+    (staffSalaryPayments || []).forEach((s: any) => {
+      totalSalaryPaid += Number(s.net_salary);
+    });
+
     const totalIncome = totalTuitionCollected + totalOtherIncome;
     const netCashInHand = methodBreakdown.cash.income - methodBreakdown.cash.expense;
 
@@ -115,12 +127,20 @@ export async function GET(request: Request) {
         description: e.description,
         method: e.payment_method
       })),
-      salary_payments: (salaryPayments || []).map((s: any) => ({
-        slip: s.slip_number,
-        staff: s.teachers?.name || 'Unknown',
-        amount: s.net_salary,
-        method: s.payment_method
-      }))
+      salary_payments: [
+        ...(salaryPayments || []).map((s: any) => ({
+          slip: s.slip_number,
+          staff: s.teachers?.name || 'Unknown',
+          amount: s.net_salary,
+          method: s.payment_method
+        })),
+        ...(staffSalaryPayments || []).map((s: any) => ({
+          slip: s.slip_number,
+          staff: s.staffs?.name || 'Unknown',
+          amount: s.net_salary,
+          method: s.payment_method
+        }))
+      ]
     };
 
     return NextResponse.json({ success: true, data: summary } as ApiResponse<any>);

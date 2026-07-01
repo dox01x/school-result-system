@@ -124,7 +124,7 @@ export default function RoutinePage() {
                 supabase.from("classes").select(CLASS_COLUMNS).order("numeric_value"),
                 supabase.from("teachers").select(TEACHER_COLUMNS).eq("employee_type", "teacher").order("name"),
                 fetch("/api/administration/routine/settings").then((r) => r.json()),
-                supabase.from("school_info").select("name, address, phone, email, logo_url").limit(1).single(),
+                (supabase as any).from("school_info").select("name, address, phone, email, logo_url").limit(1).single(),
             ]);
             setClasses(cRes.data || []);
             setTeachers(tRes.data || []);
@@ -136,7 +136,7 @@ export default function RoutinePage() {
 
     useEffect(() => {
         (async () => {
-            const { data } = await supabase.from("class_routines").select(CLASS_ROUTINE_COLUMNS).order("day_of_week").order("start_time");
+            const { data } = await (supabase as any).from("class_routines").select(CLASS_ROUTINE_COLUMNS).order("day_of_week").order("start_time");
             setAllRoutines(data || []);
         })();
     }, [supabase]);
@@ -332,7 +332,7 @@ export default function RoutinePage() {
     const handlePrint = () => {
         // Build table HTML from current data
         const headerCells = periodSlots.map((slot) =>
-            `<th>Period ${slot.period}<br><span style="font-weight:400;font-size:8px;opacity:0.7">${formatTime12(slot.start)} - ${formatTime12(slot.end)}</span></th>`
+            `<th>Period ${slot.period}<br><span style="font-weight:400;font-size:8px;color:#000">${formatTime12(slot.start)} - ${formatTime12(slot.end)}</span></th>`
         ).join("");
 
         const bodyRows = workingDays.map((dayName, dayIndex) => {
@@ -368,30 +368,30 @@ body { font-family: 'Inter', sans-serif; color: #000; font-size: 12px; line-heig
 
 .school-info { text-align: center; margin-bottom: 20px; }
 .school-info img { max-height: 46px; margin-bottom: 8px; }
-.school-info h2 { font-size: 20px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; }
-.school-info p { font-size: 11px; color: #666; margin-top: 3px; }
+.school-info h2 { font-size: 20px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; color: #000; }
+.school-info p { font-size: 11px; color: #000; margin-top: 3px; }
 
-.header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; padding-bottom: 14px; border-bottom: 1px solid #e5e5e5; }
-.header-title h1 { font-size: 22px; font-weight: 900; letter-spacing: -1px; line-height: 1; text-transform: uppercase; }
-.header-title p { font-size: 11px; font-weight: 600; color: #666; letter-spacing: 2px; text-transform: uppercase; margin-top: 5px; }
+.header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; padding-bottom: 14px; border-bottom: 2px solid #000; }
+.header-title h1 { font-size: 22px; font-weight: 900; letter-spacing: -1px; line-height: 1; text-transform: uppercase; color: #000; }
+.header-title p { font-size: 11px; font-weight: 600; color: #000; letter-spacing: 2px; text-transform: uppercase; margin-top: 5px; }
 
 .info-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 18px; }
 .info-item { display: flex; align-items: baseline; }
 .info-item .lbl { flex-shrink: 0; display: flex; justify-content: space-between; margin-right: 6px; font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: #000; }
 .info-item .lbl::after { content: ':'; }
-.info-item .val { font-size: 13px; font-weight: 600; color: #333; }
+.info-item .val { font-size: 13px; font-weight: 600; color: #000; }
 
-table { width: 100%; border-collapse: collapse; border: 1px solid #e5e5e5; }
-th { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: #000; padding: 8px 4px; text-align: center; border: 1px solid #e5e5e5; border-bottom: 2px solid #ccc; vertical-align: middle; }
-td { padding: 6px 4px; text-align: center; vertical-align: middle; font-size: 11px; border: 1px solid #e5e5e5; }
-td.day-col { font-weight: 800; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; width: 85px; min-width: 85px; }
-td.empty { color: #ccc; }
+table { width: 100%; border-collapse: collapse; border: 2px solid #000; }
+th { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: #000; padding: 8px 4px; text-align: center; border: 1px solid #000; border-bottom: 2.5px solid #000; vertical-align: middle; }
+td { padding: 6px 4px; text-align: center; vertical-align: middle; font-size: 11px; border: 1px solid #000; color: #000; }
+td.day-col { font-weight: 800; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; width: 85px; min-width: 85px; color: #000; }
+td.empty { color: #000; }
 .subj { font-weight: 700; font-size: 10px; color: #000; }
-.tchr { font-size: 8.5px; color: #555; margin-top: 1px; }
-.tchr-ph { font-size: 7.5px; color: #888; margin-top: 1px; }
-.multi-sep { border-top: 1px dashed #ccc; margin: 3px 0; }
+.tchr { font-size: 8.5px; color: #000; margin-top: 1px; }
+.tchr-ph { font-size: 7.5px; color: #000; margin-top: 1px; }
+.multi-sep { border-top: 1px dashed #000; margin: 3px 0; }
 
-.footer { text-align: center; font-size: 9px; color: #999; margin-top: 24px; padding-top: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+.footer { text-align: center; font-size: 9px; color: #000; margin-top: 24px; padding-top: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
 @media print { body { padding: 10px; } }
 </style></head><body>
 

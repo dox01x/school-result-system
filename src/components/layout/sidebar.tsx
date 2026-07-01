@@ -8,7 +8,7 @@ import {
     Menu, X, ChevronsLeft, ChevronsRight, Building2, BookOpen,
     ClipboardList, PenLine, CalendarPlus, CalendarDays,
     CalendarCheck, ArrowUpCircle, Bell, User, Wallet, Receipt, Coins,
-    CircleDollarSign, TrendingUp, ListChecks, Sun, FileText, Shield
+    CircleDollarSign, TrendingUp, ListChecks, Sun, FileText, Shield, Briefcase
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useState, useEffect, useCallback, useMemo } from "react";
@@ -30,6 +30,7 @@ const navGroups: NavGroup[] = [
         items: [
             { title: "Students", icon: GraduationCap, href: "/dashboard/students" },
             { title: "Teachers", icon: Users, href: "/dashboard/administration/teachers-rooms" },
+            { title: "General Staff", icon: Briefcase, href: "/dashboard/administration/staff" },
             { title: "Classes", icon: Building2, href: "/dashboard/classes" },
             { title: "Subjects", icon: BookOpen, href: "/dashboard/subjects" },
             { title: "Routine", icon: CalendarDays, href: "/dashboard/administration/routine" },
@@ -72,6 +73,7 @@ const navGroups: NavGroup[] = [
             { title: "Settings", icon: Settings, href: "/dashboard/settings" },
             { title: "Fee Structure", icon: CircleDollarSign, href: "/dashboard/finance/fee-structure" },
             { title: "Salary Config", icon: Settings, href: "/dashboard/finance/salary/config" },
+            { title: "Staff Salary Config", icon: Briefcase, href: "/dashboard/finance/staff-salary/config" },
         ],
     },
 ];

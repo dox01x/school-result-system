@@ -23,6 +23,7 @@ export async function GET(request: Request) {
       incomeResult,
       expenseResult,
       salaryResult,
+      staffSalaryResult,
       expectedTuitionResult
     ] = await Promise.all([
       // @ts-ignore
@@ -33,6 +34,8 @@ export async function GET(request: Request) {
       supabase.from('expense_entries').select('amount').match({ month, year }),
       // @ts-ignore
       supabase.from('salary_payments').select('net_salary').match({ month, year }),
+      // @ts-ignore
+      supabase.from('staff_salary_payments').select('net_salary').match({ month, year }),
 
       // Calculate expected tuition: students table has class_id, not class_name.
       // We must join students → classes → fee_structure by class name.
@@ -62,7 +65,7 @@ export async function GET(request: Request) {
     const tuition_collected = sumValues(tuitionResult.data, 'amount_paid');
     const total_income = sumValues(incomeResult.data, 'amount');
     const total_expense = sumValues(expenseResult.data, 'amount');
-    const salary_paid = sumValues(salaryResult.data, 'net_salary');
+    const salary_paid = sumValues(salaryResult.data, 'net_salary') + sumValues(staffSalaryResult.data, 'net_salary');
     const tuition_due = expectedTuitionResult - tuition_collected;
 
     const net_balance = total_income - total_expense;

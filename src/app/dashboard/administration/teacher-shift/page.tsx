@@ -20,7 +20,7 @@ import { UserCog, Plus, Trash2, CheckCircle, XCircle } from "lucide-react";
 import { toast } from "sonner";
 
 export default function TeacherShiftPage() {
-    const supabase = useMemo(() => createClient(), []);
+    const supabase = useMemo(() => createClient() as any, []);
 
     const [teachers, setTeachers] = useState<Teacher[]>([]);
     const [shifts, setShifts] = useState<TeacherShift[]>([]);
@@ -88,8 +88,8 @@ export default function TeacherShiftPage() {
                     const cover = [];
                     for (const d of dates) {
                         const day = dateToSchoolDay(d);
-                        const routinesForDay = data.filter(r => r.day_of_week === day);
-                        for (const r of routinesForDay) {
+                        const routinesForDay = data.filter((r: any) => r.day_of_week === day);
+                        for (const r of (routinesForDay as any[])) {
                             cover.push({
                                 date: d.toISOString().split("T")[0],
                                 routine: r,

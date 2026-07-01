@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ success: false, error: "Missing required fields" }, { status: 400 });
         }
 
-        const supabase = await createServerSupabaseClient();
+        const supabase = (await createServerSupabaseClient()) as any;
         const conflicts: { type: string; message: string; entry: Record<string, unknown> }[] = [];
 
         // Teacher conflict check

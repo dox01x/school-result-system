@@ -126,7 +126,7 @@ export default function ExamsPage() {
     const [savingConfig, setSavingConfig] = useState(false);
     const inputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
-    const supabase = useMemo(() => createClient(), []);
+    const supabase = useMemo(() => createClient() as any, []);
 
     const fetchAll = useCallback(async () => {
         try {

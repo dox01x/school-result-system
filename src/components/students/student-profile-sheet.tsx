@@ -62,7 +62,7 @@ export function StudentProfileSheet({
     onRequestTransfer,
     onRequestDelete,
 }: Props) {
-    const supabase = useMemo(() => createClient(), []);
+    const supabase = useMemo(() => createClient() as any, []);
     const [loading, setLoading] = useState(false);
     const [student, setStudent] = useState<Student | null>(null);
     const [classes, setClasses] = useState<Class[]>([]);

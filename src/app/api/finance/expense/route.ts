@@ -12,9 +12,8 @@ export async function GET(request: Request) {
     const from = searchParams.get('from');
     const to = searchParams.get('to');
 
-    const supabase = await createServerSupabaseClient();
+    const supabase = (await createServerSupabaseClient()) as any;
     
-    // @ts-ignore
     let query = supabase.from('expense_entries').select(EXPENSE_ENTRY_COLUMNS);
     
     if (category) query = query.eq('category', category);
@@ -47,9 +46,8 @@ export async function POST(request: Request) {
     const month = dateStr.getMonth() + 1;
     const year = dateStr.getFullYear();
 
-    const supabase = await createServerSupabaseClient();
+    const supabase = (await createServerSupabaseClient()) as any;
     
-    // @ts-ignore
     const { data, error } = await supabase
       .from('expense_entries')
       .insert({ category, amount, description, vendor, payment_method, paid_by, expense_date, receipt_url, month, year })

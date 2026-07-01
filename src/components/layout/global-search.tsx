@@ -11,12 +11,13 @@ import {
     BookOpen,
     ClipboardList,
     Megaphone,
+    Briefcase,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { GlobalSearchHit } from "@/lib/global-search-types";
 import { createClient } from "@/lib/supabase/client";
 import { STUDENT_COLUMNS } from "@/lib/supabase/select-columns";
-import type { Student, Teacher } from "@/lib/database.types";
+import type { Student, Teacher, Staff } from "@/lib/database.types";
 import {
     Dialog,
     DialogContent,
@@ -29,6 +30,7 @@ import { Button } from "@/components/ui/button";
 const typeIcons: Record<GlobalSearchHit["type"], typeof GraduationCap> = {
     student: GraduationCap,
     teacher: User,
+    staff: Briefcase,
     class: School,
     subject: BookOpen,
     exam: ClipboardList,
@@ -38,6 +40,7 @@ const typeIcons: Record<GlobalSearchHit["type"], typeof GraduationCap> = {
 const typeLabel: Record<GlobalSearchHit["type"], string> = {
     student: "Student",
     teacher: "Teacher",
+    staff: "Staff",
     class: "Class",
     subject: "Subject",
     exam: "Exam",
@@ -58,6 +61,9 @@ export function GlobalSearch() {
     const [teacherOpen, setTeacherOpen] = useState(false);
     const [teacherLoading, setTeacherLoading] = useState(false);
     const [teacher, setTeacher] = useState<Teacher | null>(null);
+    const [staffOpen, setStaffOpen] = useState(false);
+    const [staffLoading, setStaffLoading] = useState(false);
+    const [staff, setStaff] = useState<Staff | null>(null);
     const wrapRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
     const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -147,7 +153,7 @@ export function GlobalSearch() {
             setResults([]);
             setFocused(false);
 
-            if (hit.type !== "student" && hit.type !== "teacher") {
+            if (hit.type !== "student" && hit.type !== "teacher" && hit.type !== "staff") {
                 router.push(hit.href);
                 return;
             }
@@ -170,6 +176,26 @@ export function GlobalSearch() {
                     setStudentOpen(true);
                 } finally {
                     setStudentLoading(false);
+                }
+                return;
+            }
+
+            if (hit.type === "staff") {
+                setStaffLoading(true);
+                try {
+                    const { data, error } = await supabase
+                        .from("staffs")
+                        .select("id,name,email,phone,designation,created_at")
+                        .eq("id", hit.id)
+                        .maybeSingle();
+                    if (error || !data) {
+                        router.push(hit.href);
+                        return;
+                    }
+                    setStaff(data as unknown as Staff);
+                    setStaffOpen(true);
+                } finally {
+                    setStaffLoading(false);
                 }
                 return;
             }
@@ -454,6 +480,65 @@ export function GlobalSearch() {
                             <div className="flex justify-end">
                                 <Button type="button" variant="outline" onClick={() => router.push("/dashboard/administration/teachers-rooms")}>
                                     Open Teachers Page
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+                </DialogContent>
+            </Dialog>
+
+            <Dialog
+                open={staffOpen}
+                onOpenChange={(open) => {
+                    setStaffOpen(open);
+                    if (!open) setStaff(null);
+                }}
+            >
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Briefcase className="h-5 w-5 text-emerald-600" /> Staff Profile
+                        </DialogTitle>
+                    </DialogHeader>
+                    {staff && (
+                        <div className="space-y-4 py-4">
+                            <div className="relative overflow-hidden rounded-xl border bg-card shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)]">
+                                <div className="absolute top-0 inset-x-0 h-20 bg-emerald-600" />
+                                <div className="relative pt-10 pb-6 px-6 flex flex-col items-center text-center">
+                                    <div className="h-20 w-20 rounded-full border-4 border-card bg-muted flex items-center justify-center text-emerald-600 font-bold text-3xl shadow-sm relative z-10">
+                                        {staff.name.charAt(0).toUpperCase()}
+                                    </div>
+                                    <h3 className="mt-3 font-bold text-[19px] text-foreground tracking-tight leading-tight">
+                                        {staff.name}
+                                    </h3>
+                                    <div className="mt-2 flex flex-wrap items-center justify-center gap-1.5">
+                                        {staff.designation && (
+                                            <Badge
+                                                variant="secondary"
+                                                className="bg-slate-100 hover:bg-slate-100 text-slate-600 font-mono text-[10px] uppercase tracking-wider px-2 py-0.5"
+                                            >
+                                                {staff.designation}
+                                            </Badge>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3 text-sm">
+                                {[
+                                    { label: "Email", value: staff.email },
+                                    { label: "Phone", value: staff.phone },
+                                ].map((item) => (
+                                    <div key={item.label} className="space-y-0.5">
+                                        <p className="text-xs text-muted-foreground">{item.label}</p>
+                                        <p className="font-medium truncate">{item.value || "—"}</p>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <div className="flex justify-end">
+                                <Button type="button" variant="outline" onClick={() => router.push("/dashboard/administration/staff")}>
+                                    Open Staff Page
                                 </Button>
                             </div>
                         </div>

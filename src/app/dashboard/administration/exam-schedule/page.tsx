@@ -113,7 +113,7 @@ export default function ExamSchedulePage() {
             const [cRes, eRes, schoolRes] = await Promise.all([
                 supabase.from("classes").select(CLASS_COLUMNS).order("numeric_value"),
                 supabase.from("exams").select(EXAM_COLUMNS).order("term").order("exam_type"),
-                supabase.from("school_info").select("name, address, phone, email, logo_url").limit(1).single(),
+                (supabase as any).from("school_info").select("name, address, phone, email, logo_url").limit(1).single(),
             ]);
             setClasses(cRes.data || []);
             setExams(eRes.data || []);
@@ -126,10 +126,10 @@ export default function ExamSchedulePage() {
     useEffect(() => {
         if (classes.length === 0) return;
         (async () => {
-            const { data } = await supabase.from("subjects").select(SUBJECT_COLUMNS).order("name");
+            const { data } = await (supabase as any).from("subjects").select(SUBJECT_COLUMNS).order("name");
             if (data) {
                 const map: Record<string, Subject[]> = {};
-                for (const s of data) {
+                for (const s of (data as any[])) {
                     if (!map[s.class_id]) map[s.class_id] = [];
                     map[s.class_id].push(s);
                 }
@@ -349,7 +349,7 @@ export default function ExamSchedulePage() {
         // Build table header cells from exam dates
         const headerCells = examDates.map((date) => {
             const { date: formatted, day } = formatDateDisplay(date);
-            return `<th>${formatted}<br><span style="font-weight:400;font-size:8px;opacity:0.7">${day}</span></th>`;
+            return `<th>${formatted}<br><span style="font-weight:400;font-size:8px;color:#000">${day}</span></th>`;
         }).join("");
 
         // Build table body rows
@@ -385,28 +385,28 @@ body { font-family: 'Inter', sans-serif; color: #000; font-size: 12px; line-heig
 
 .school-info { text-align: center; margin-bottom: 20px; }
 .school-info img { max-height: 46px; margin-bottom: 8px; }
-.school-info h2 { font-size: 20px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; }
-.school-info p { font-size: 11px; color: #666; margin-top: 3px; }
+.school-info h2 { font-size: 20px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; color: #000; }
+.school-info p { font-size: 11px; color: #000; margin-top: 3px; }
 
-.header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; padding-bottom: 14px; border-bottom: 1px solid #e5e5e5; }
-.header-title h1 { font-size: 22px; font-weight: 900; letter-spacing: -1px; line-height: 1; text-transform: uppercase; }
-.header-title p { font-size: 11px; font-weight: 600; color: #666; letter-spacing: 2px; text-transform: uppercase; margin-top: 5px; }
+.header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; padding-bottom: 14px; border-bottom: 2px solid #000; }
+.header-title h1 { font-size: 22px; font-weight: 900; letter-spacing: -1px; line-height: 1; text-transform: uppercase; color: #000; }
+.header-title p { font-size: 11px; font-weight: 600; color: #000; letter-spacing: 2px; text-transform: uppercase; margin-top: 5px; }
 
-table { width: 100%; border-collapse: collapse; border: 1px solid #e5e5e5; }
-th { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: #000; padding: 8px 4px; text-align: center; border: 1px solid #e5e5e5; border-bottom: 2px solid #ccc; vertical-align: middle; }
-td { padding: 6px 4px; text-align: center; vertical-align: middle; font-size: 11px; border: 1px solid #e5e5e5; }
-td.day-col { font-weight: 800; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; width: 85px; min-width: 85px; }
-td.empty { color: #ccc; }
+table { width: 100%; border-collapse: collapse; border: 2px solid #000; }
+th { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: #000; padding: 8px 4px; text-align: center; border: 1px solid #000; border-bottom: 2.5px solid #000; vertical-align: middle; }
+td { padding: 6px 4px; text-align: center; vertical-align: middle; font-size: 11px; border: 1px solid #000; color: #000; }
+td.day-col { font-weight: 800; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; width: 85px; min-width: 85px; color: #000; }
+td.empty { color: #000; }
 .subj { font-weight: 700; font-size: 10px; color: #000; }
-.multi-sep { border-top: 1px dashed #ccc; margin: 3px 0; }
+.multi-sep { border-top: 1px dashed #000; margin: 3px 0; }
 
 .inst-section { margin-top: 24px; }
 .inst-section h4 { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: #000; margin-bottom: 8px; }
-.inst-section ul { list-style: none; padding: 0; }
-.inst-section li { font-size: 11px; line-height: 1.6; display: flex; align-items: flex-start; gap: 4px; }
+.inst-section ul { list-style: none; padding: 0; color: #000; }
+.inst-section li { font-size: 11px; line-height: 1.6; display: flex; align-items: flex-start; gap: 4px; color: #000; }
 .inst-num { font-weight: 800; min-width: 16px; color: #000; }
 
-.footer { text-align: center; font-size: 9px; color: #999; margin-top: 24px; padding-top: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+.footer { text-align: center; font-size: 9px; color: #000; margin-top: 24px; padding-top: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
 @media print { body { padding: 10px; } }
 </style></head><body>
 

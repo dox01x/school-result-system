@@ -49,7 +49,7 @@ export function TeacherProfileSheet({
     onRequestEdit,
     onRequestDelete,
 }: TeacherProfileProps) {
-    const supabase = useMemo(() => createClient(), []);
+    const supabase = useMemo(() => createClient() as any, []);
     const [loading, setLoading] = useState(false);
     const [teacher, setTeacher] = useState<Teacher | null>(null);
     const [routineRows, setRoutineRows] = useState<any[]>([]);
@@ -63,7 +63,6 @@ export function TeacherProfileSheet({
         email: "",
         subject_specialty: "",
         designation: "",
-        employee_type: "teacher",
     });
     const [saving, setSaving] = useState(false);
 
@@ -73,8 +72,6 @@ export function TeacherProfileSheet({
     const [availableExams, setAvailableExams] = useState<{ id: string; name: string }[]>([]);
     const [selectedExamId, setSelectedExamId] = useState<string>("all");
     const [academicYear, setAcademicYear] = useState<string>("");
-
-    const isTeacher = teacher?.employee_type !== "staff";
 
     useEffect(() => {
         if (!open || !teacherId) return;
@@ -98,7 +95,6 @@ export function TeacherProfileSheet({
                 email: teacherData.email || "",
                 subject_specialty: teacherData.subject_specialty || "",
                 designation: teacherData.designation || "",
-                employee_type: teacherData.employee_type || "teacher",
             });
 
             const [routineRes, leaveRes, proxyRes, configRes, salaryRes] = await Promise.all([
@@ -127,9 +123,9 @@ export function TeacherProfileSheet({
         };
     }, [open, teacherId, supabase]);
 
-    // Load student performance data when "Student Performance" tab is likely accessed
+    // Load student performance data
     useEffect(() => {
-        if (!open || !teacherId || !isTeacher) return;
+        if (!open || !teacherId) return;
         let cancelled = false;
         setPerfLoading(true);
         void (async () => {
@@ -232,7 +228,7 @@ export function TeacherProfileSheet({
             setPerfLoading(false);
         })();
         return () => { cancelled = true; };
-    }, [open, teacherId, isTeacher, supabase, selectedExamId]);
+    }, [open, teacherId, supabase, selectedExamId]);
 
     const timetable = useMemo(() => {
         const table: Record<string, any[]> = {};
@@ -282,7 +278,6 @@ export function TeacherProfileSheet({
                 email: actionForm.email.trim(),
                 subject_specialty: actionForm.subject_specialty.trim(),
                 designation: actionForm.designation.trim(),
-                employee_type: actionForm.employee_type,
             })
             .eq("id", teacher.id)
             .select("id,name,phone,email,subject_specialty,designation,employee_type,proxy_count,created_at")
@@ -301,11 +296,9 @@ export function TeacherProfileSheet({
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="w-[96vw] sm:max-w-[900px] p-0 gap-0 overflow-hidden bg-background">
                 <DialogHeader className="border-b border-border/50 bg-muted/30 p-6">
-                    <DialogTitle className="text-xl">{isTeacher ? "Teacher" : "Staff"} Profile</DialogTitle>
+                    <DialogTitle className="text-xl">Teacher Profile</DialogTitle>
                     <DialogDescription>
-                        {isTeacher
-                            ? "Detailed profile, routine, student performance, payroll and actions."
-                            : "Staff profile, payroll information and actions."}
+                        Detailed profile, routine, student performance, payroll and actions.
                     </DialogDescription>
                 </DialogHeader>
                 <ScrollArea className="max-h-[80vh] h-[800px]">
@@ -317,17 +310,17 @@ export function TeacherProfileSheet({
                             <div className="rounded-2xl border-0 bg-muted/50 p-5">
                                 <div className="flex items-start justify-between gap-4 flex-wrap">
                                     <div className="flex items-center gap-4">
-                                        <div className={`h-16 w-16 rounded-2xl flex items-center justify-center text-2xl font-bold ${isTeacher ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'}`}>
+                                        <div className="h-16 w-16 rounded-2xl flex items-center justify-center text-2xl font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
                                             {teacher.name.charAt(0).toUpperCase()}
                                         </div>
                                         <div>
                                             <h3 className="text-2xl font-semibold text-foreground">{teacher.name}</h3>
                                             <div className="flex flex-wrap gap-2 mt-2">
-                                                <Badge variant="secondary" className="bg-muted/80 text-foreground border-0 rounded-lg font-medium">{teacher.designation || (isTeacher ? "Teacher" : "Staff")}</Badge>
-                                                <Badge variant="secondary" className={`border-0 rounded-lg font-medium ${isTeacher ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'}`}>
-                                                    {isTeacher ? "TEACHER" : "STAFF"}
+                                                <Badge variant="secondary" className="bg-muted/80 text-foreground border-0 rounded-lg font-medium">{teacher.designation || "Teacher"}</Badge>
+                                                <Badge variant="secondary" className="border-0 rounded-lg font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                                                    TEACHER
                                                 </Badge>
-                                                {isTeacher && teacher.subject_specialty && <Badge variant="secondary" className="bg-muted/80 text-foreground border-0 rounded-lg font-medium">{teacher.subject_specialty}</Badge>}
+                                                {teacher.subject_specialty && <Badge variant="secondary" className="bg-muted/80 text-foreground border-0 rounded-lg font-medium">{teacher.subject_specialty}</Badge>}
                                             </div>
                                         </div>
                                     </div>
@@ -342,9 +335,9 @@ export function TeacherProfileSheet({
                             <Tabs defaultValue="overview" className="space-y-4">
                                 <TabsList className="w-full justify-start overflow-x-auto bg-muted border-0 rounded-xl p-1">
                                     <TabsTrigger value="overview" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-none">Overview</TabsTrigger>
-                                    {isTeacher && <TabsTrigger value="routine" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-none">Class Routine</TabsTrigger>}
-                                    {isTeacher && <TabsTrigger value="attendance" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-none">Attendance & Proxy</TabsTrigger>}
-                                    {isTeacher && <TabsTrigger value="performance" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-none">Student Performance</TabsTrigger>}
+                                    <TabsTrigger value="routine" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-none">Class Routine</TabsTrigger>
+                                    <TabsTrigger value="attendance" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-none">Attendance & Proxy</TabsTrigger>
+                                    <TabsTrigger value="performance" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-none">Student Performance</TabsTrigger>
                                     <TabsTrigger value="payroll" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-none">Payroll</TabsTrigger>
                                     <TabsTrigger value="actions" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-none">Actions</TabsTrigger>
                                 </TabsList>
@@ -356,203 +349,188 @@ export function TeacherProfileSheet({
                                             <div><p className="text-muted-foreground text-xs uppercase tracking-wider mb-1">Phone</p><p className="font-medium">{teacher.phone || "-"}</p></div>
                                             <div><p className="text-muted-foreground text-xs uppercase tracking-wider mb-1">Email</p><p className="font-medium">{teacher.email || "-"}</p></div>
                                             <div><p className="text-muted-foreground text-xs uppercase tracking-wider mb-1">Designation</p><p className="font-medium">{teacher.designation || "-"}</p></div>
-                                            {isTeacher && (
-                                                <div><p className="text-muted-foreground text-xs uppercase tracking-wider mb-1">Subject Specialty</p><p className="font-medium">{teacher.subject_specialty || "-"}</p></div>
-                                            )}
-                                            {isTeacher && (
-                                                <div><p className="text-muted-foreground text-xs uppercase tracking-wider mb-1">Proxy Classes Taken</p><p className="font-medium">{teacher.proxy_count || 0}</p></div>
-                                            )}
-                                            {isTeacher && (
-                                                <div><p className="text-muted-foreground text-xs uppercase tracking-wider mb-1">Routine Entries</p><p className="font-medium">{routineRows.length}</p></div>
-                                            )}
-                                            {!isTeacher && (
-                                                <div><p className="text-muted-foreground text-xs uppercase tracking-wider mb-1">Employee Type</p><p className="font-medium">General Staff</p></div>
-                                            )}
+                                            <div><p className="text-muted-foreground text-xs uppercase tracking-wider mb-1">Subject Specialty</p><p className="font-medium">{teacher.subject_specialty || "-"}</p></div>
+                                            <div><p className="text-muted-foreground text-xs uppercase tracking-wider mb-1">Proxy Classes Taken</p><p className="font-medium">{teacher.proxy_count || 0}</p></div>
+                                            <div><p className="text-muted-foreground text-xs uppercase tracking-wider mb-1">Routine Entries</p><p className="font-medium">{routineRows.length}</p></div>
                                         </CardContent>
                                     </Card>
                                 </TabsContent>
 
-                                {isTeacher && (
-                                    <TabsContent value="routine" className="space-y-4">
-                                        <Card>
-                                            <CardHeader><CardTitle className="text-sm">Weekly Timetable</CardTitle></CardHeader>
-                                            <CardContent className="grid md:grid-cols-2 gap-4">
-                                                {days.map((day) => (
-                                                    <div key={day} className="rounded-xl border border-border/50 bg-muted/30 p-4">
-                                                        <p className="font-semibold text-foreground mb-3">{day}</p>
-                                                        {timetable[day]?.length ? timetable[day].map((r: any) => (
-                                                            <div key={r.id} className="rounded-lg border-0 bg-white shadow-sm p-3 mb-2 text-sm flex flex-col gap-1">
-                                                                <p className="font-semibold text-foreground">{r.start_time} - {r.end_time}</p>
-                                                                <div className="flex justify-between items-center text-xs">
-                                                                    <span className="text-muted-foreground font-medium">{r.classes?.name} / {r.sections?.name}</span>
-                                                                    <span className="bg-muted text-foreground px-2 py-0.5 rounded-md font-medium">{r.subjects?.name}</span>
-                                                                </div>
-                                                                {r.rooms?.name && <p className="text-[10px] uppercase text-muted-foreground/80 mt-1">Room {r.rooms.name}</p>}
+                                <TabsContent value="routine" className="space-y-4">
+                                    <Card>
+                                        <CardHeader><CardTitle className="text-sm">Weekly Timetable</CardTitle></CardHeader>
+                                        <CardContent className="grid md:grid-cols-2 gap-4">
+                                            {days.map((day) => (
+                                                <div key={day} className="rounded-xl border border-border/50 bg-muted/30 p-4">
+                                                    <p className="font-semibold text-foreground mb-3">{day}</p>
+                                                    {timetable[day]?.length ? timetable[day].map((r: any) => (
+                                                        <div key={r.id} className="rounded-lg border-0 bg-white shadow-sm p-3 mb-2 text-sm flex flex-col gap-1">
+                                                            <p className="font-semibold text-foreground">{r.start_time} - {r.end_time}</p>
+                                                            <div className="flex justify-between items-center text-xs">
+                                                                <span className="text-muted-foreground font-medium">{r.classes?.name} / {r.sections?.name}</span>
+                                                                <span className="bg-muted text-foreground px-2 py-0.5 rounded-md font-medium">{r.subjects?.name}</span>
                                                             </div>
-                                                        )) : <p className="text-sm text-muted-foreground font-medium">No classes.</p>}
-                                                    </div>
-                                                ))}
-                                            </CardContent>
-                                        </Card>
-                                    </TabsContent>
-                                )}
-
-                                {isTeacher && (
-                                    <TabsContent value="attendance" className="space-y-4">
-                                        <Card>
-                                            <CardHeader><CardTitle className="text-sm">Leave Records</CardTitle></CardHeader>
-                                            <CardContent className="space-y-2">
-                                                {leaveRows.length === 0 && <p className="text-sm text-muted-foreground font-medium">No leave records.</p>}
-                                                {leaveRows.map((l: any) => (
-                                                    <div key={l.id} className="flex items-center justify-between border-b border-border/40 pb-3 last:border-0 last:pb-0">
-                                                        <div className="flex flex-col gap-1">
-                                                            <p className="text-sm font-semibold text-foreground">{l.start_date} to {l.end_date}</p>
-                                                            <p className="text-xs text-muted-foreground font-medium">{l.reason || "-"}</p>
+                                                            {r.rooms?.name && <p className="text-[10px] uppercase text-muted-foreground/80 mt-1">Room {r.rooms.name}</p>}
                                                         </div>
-                                                        <Badge variant="secondary" className="bg-muted text-foreground border-0 rounded-md">{l.status}</Badge>
-                                                    </div>
-                                                ))}
-                                            </CardContent>
-                                        </Card>
-                                        <Card>
-                                            <CardHeader><CardTitle className="text-sm">Proxy Class Log</CardTitle></CardHeader>
-                                            <CardContent className="space-y-2">
-                                                {proxyRows.length === 0 && <p className="text-sm text-muted-foreground font-medium">No proxy assignments.</p>}
-                                                {proxyRows.map((p: any) => (
-                                                    <div key={p.id} className="flex items-center justify-between border-b border-border/40 pb-3 text-sm last:border-0 last:pb-0">
-                                                        <span className="font-semibold text-foreground">{p.assignment_date}</span>
-                                                        <span className="bg-muted text-muted-foreground px-2 py-1 rounded-md text-xs font-mono font-medium">Routine: {p.routine_id.slice(0, 8)}</span>
-                                                    </div>
-                                                ))}
-                                            </CardContent>
-                                        </Card>
-                                    </TabsContent>
-                                )}
-
-                                {/* Student Performance Tab — Teachers Only */}
-                                {isTeacher && (
-                                    <TabsContent value="performance" className="space-y-4">
-                                        {/* Exam Filter */}
-                                        <div className="flex items-center gap-3 flex-wrap">
-                                            <div className="flex items-center gap-2">
-                                                <Label className="text-sm font-medium text-muted-foreground whitespace-nowrap">Filter by Exam:</Label>
-                                                <Select value={selectedExamId} onValueChange={setSelectedExamId}>
-                                                    <SelectTrigger className="w-[200px] h-9">
-                                                        <SelectValue placeholder="All Exams" />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="all">All Exams</SelectItem>
-                                                        {availableExams.map((e) => (
-                                                            <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
-                                            </div>
-                                            {academicYear && (
-                                                <Badge variant="secondary" className="bg-muted/80 text-foreground border-0 rounded-lg font-medium">
-                                                    Year: {academicYear}
-                                                </Badge>
-                                            )}
-                                        </div>
-
-                                        {perfLoading ? (
-                                            <div className="p-8 text-center text-sm text-muted-foreground">Loading student performance data...</div>
-                                        ) : subjectPerformance.length === 0 ? (
-                                            <Card className="border-dashed border-2 border-border/50 bg-transparent shadow-none">
-                                                <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-                                                    <BarChart3 size={48} strokeWidth={1.2} className="text-muted-foreground/40 mb-4" />
-                                                    <h3 className="font-semibold text-lg mb-1">No Performance Data</h3>
-                                                    <p className="text-sm text-muted-foreground max-w-sm">
-                                                        This teacher has no class routine assignments or no marks have been entered yet for the current academic year.
-                                                    </p>
-                                                </CardContent>
-                                            </Card>
-                                        ) : (
-                                            <>
-                                                {/* Summary Cards */}
-                                                <div className="grid grid-cols-3 gap-3">
-                                                    <Card>
-                                                        <CardContent className="p-4 flex flex-col items-center justify-center">
-                                                            <Users size={20} strokeWidth={1.5} className="text-muted-foreground mb-2" />
-                                                            <p className="text-xs font-medium text-muted-foreground mb-1">Total Students</p>
-                                                            <p className="text-2xl font-bold text-foreground">{perfSummary.totalStudents}</p>
-                                                        </CardContent>
-                                                    </Card>
-                                                    <Card>
-                                                        <CardContent className="p-4 flex flex-col items-center justify-center">
-                                                            <TrendingUp size={20} strokeWidth={1.5} className="text-emerald-600 mb-2" />
-                                                            <p className="text-xs font-medium text-muted-foreground mb-1">Pass Rate</p>
-                                                            <p className={`text-2xl font-bold ${perfSummary.overallPassRate >= 60 ? 'text-emerald-600' : perfSummary.overallPassRate >= 40 ? 'text-amber-600' : 'text-red-600'}`}>
-                                                                {perfSummary.overallPassRate}%
-                                                            </p>
-                                                        </CardContent>
-                                                    </Card>
-                                                    <Card>
-                                                        <CardContent className="p-4 flex flex-col items-center justify-center">
-                                                            <BookOpen size={20} strokeWidth={1.5} className="text-muted-foreground mb-2" />
-                                                            <p className="text-xs font-medium text-muted-foreground mb-1">Avg Score</p>
-                                                            <p className="text-2xl font-bold text-foreground">{perfSummary.avgScore}</p>
-                                                        </CardContent>
-                                                    </Card>
+                                                    )) : <p className="text-sm text-muted-foreground font-medium">No classes.</p>}
                                                 </div>
+                                            ))}
+                                        </CardContent>
+                                    </Card>
+                                </TabsContent>
 
-                                                {/* Per-Subject Breakdown */}
+                                <TabsContent value="attendance" className="space-y-4">
+                                    <Card>
+                                        <CardHeader><CardTitle className="text-sm">Leave Records</CardTitle></CardHeader>
+                                        <CardContent className="space-y-2">
+                                            {leaveRows.length === 0 && <p className="text-sm text-muted-foreground font-medium">No leave records.</p>}
+                                            {leaveRows.map((l: any) => (
+                                                <div key={l.id} className="flex items-center justify-between border-b border-border/40 pb-3 last:border-0 last:pb-0">
+                                                    <div className="flex flex-col gap-1">
+                                                        <p className="text-sm font-semibold text-foreground">{l.start_date} to {l.end_date}</p>
+                                                        <p className="text-xs text-muted-foreground font-medium">{l.reason || "-"}</p>
+                                                    </div>
+                                                    <Badge variant="secondary" className="bg-muted text-foreground border-0 rounded-md">{l.status}</Badge>
+                                                </div>
+                                            ))}
+                                        </CardContent>
+                                    </Card>
+                                    <Card>
+                                        <CardHeader><CardTitle className="text-sm">Proxy Class Log</CardTitle></CardHeader>
+                                        <CardContent className="space-y-2">
+                                            {proxyRows.length === 0 && <p className="text-sm text-muted-foreground font-medium">No proxy assignments.</p>}
+                                            {proxyRows.map((p: any) => (
+                                                <div key={p.id} className="flex items-center justify-between border-b border-border/40 pb-3 text-sm last:border-0 last:pb-0">
+                                                    <span className="font-semibold text-foreground">{p.assignment_date}</span>
+                                                    <span className="bg-muted text-muted-foreground px-2 py-1 rounded-md text-xs font-mono font-medium">Routine: {p.routine_id.slice(0, 8)}</span>
+                                                </div>
+                                            ))}
+                                        </CardContent>
+                                    </Card>
+                                </TabsContent>
+
+                                {/* Student Performance Tab */}
+                                <TabsContent value="performance" className="space-y-4">
+                                    {/* Exam Filter */}
+                                    <div className="flex items-center gap-3 flex-wrap">
+                                        <div className="flex items-center gap-2">
+                                            <Label className="text-sm font-medium text-muted-foreground whitespace-nowrap">Filter by Exam:</Label>
+                                            <Select value={selectedExamId} onValueChange={setSelectedExamId}>
+                                                <SelectTrigger className="w-[200px] h-9">
+                                                    <SelectValue placeholder="All Exams" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="all">All Exams</SelectItem>
+                                                    {availableExams.map((e) => (
+                                                        <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        {academicYear && (
+                                            <Badge variant="secondary" className="bg-muted/80 text-foreground border-0 rounded-lg font-medium">
+                                                Year: {academicYear}
+                                            </Badge>
+                                        )}
+                                    </div>
+
+                                    {perfLoading ? (
+                                        <div className="p-8 text-center text-sm text-muted-foreground">Loading student performance data...</div>
+                                    ) : subjectPerformance.length === 0 ? (
+                                        <Card className="border-dashed border-2 border-border/50 bg-transparent shadow-none">
+                                            <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+                                                <BarChart3 size={48} strokeWidth={1.2} className="text-muted-foreground/40 mb-4" />
+                                                <h3 className="font-semibold text-lg mb-1">No Performance Data</h3>
+                                                <p className="text-sm text-muted-foreground max-w-sm">
+                                                    This teacher has no class routine assignments or no marks have been entered yet for the current academic year.
+                                                </p>
+                                            </CardContent>
+                                        </Card>
+                                    ) : (
+                                        <>
+                                            {/* Summary Cards */}
+                                            <div className="grid grid-cols-3 gap-3">
                                                 <Card>
-                                                    <CardHeader>
-                                                        <CardTitle className="text-sm flex items-center gap-2">
-                                                            <BarChart3 size={16} strokeWidth={1.5} className="text-muted-foreground" />
-                                                            Subject-wise Performance
-                                                        </CardTitle>
-                                                    </CardHeader>
-                                                    <CardContent className="space-y-4">
-                                                        {subjectPerformance.map((perf, idx) => (
-                                                            <div key={idx} className="rounded-xl border border-border/50 bg-muted/20 p-4">
-                                                                <div className="flex items-center justify-between mb-3">
-                                                                    <div>
-                                                                        <p className="font-semibold text-foreground">{perf.subjectName}</p>
-                                                                        <p className="text-xs text-muted-foreground font-medium">{perf.className} / {perf.sectionName}</p>
-                                                                    </div>
-                                                                    <div className="flex items-center gap-2">
-                                                                        <Badge variant="secondary" className="bg-muted/80 text-foreground border-0 rounded-md text-xs">
-                                                                            {perf.totalStudents} students
-                                                                        </Badge>
-                                                                    </div>
-                                                                </div>
-
-                                                                {/* Pass/Fail Bar */}
-                                                                <div className="h-3 rounded-full overflow-hidden bg-red-200 dark:bg-red-900/30 flex mb-3">
-                                                                    <div
-                                                                        className="h-full bg-emerald-500 dark:bg-emerald-400 rounded-l-full transition-all duration-500"
-                                                                        style={{ width: `${perf.passPercentage}%` }}
-                                                                    />
-                                                                </div>
-
-                                                                <div className="grid grid-cols-4 gap-3 text-center text-sm">
-                                                                    <div>
-                                                                        <p className="text-xs text-muted-foreground font-medium">Passed</p>
-                                                                        <p className="font-bold text-emerald-600 dark:text-emerald-400">{perf.passedCount}</p>
-                                                                    </div>
-                                                                    <div>
-                                                                        <p className="text-xs text-muted-foreground font-medium">Failed</p>
-                                                                        <p className="font-bold text-red-600 dark:text-red-400">{perf.failedCount}</p>
-                                                                    </div>
-                                                                    <div>
-                                                                        <p className="text-xs text-muted-foreground font-medium">Average</p>
-                                                                        <p className="font-bold text-foreground">{perf.averageMarks}</p>
-                                                                    </div>
-                                                                    <div>
-                                                                        <p className="text-xs text-muted-foreground font-medium">Highest</p>
-                                                                        <p className="font-bold text-foreground">{perf.highestMarks}</p>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        ))}
+                                                    <CardContent className="p-4 flex flex-col items-center justify-center">
+                                                        <Users size={20} strokeWidth={1.5} className="text-muted-foreground mb-2" />
+                                                        <p className="text-xs font-medium text-muted-foreground mb-1">Total Students</p>
+                                                        <p className="text-2xl font-bold text-foreground">{perfSummary.totalStudents}</p>
                                                     </CardContent>
                                                 </Card>
-                                            </>
-                                        )}
-                                    </TabsContent>
-                                )}
+                                                <Card>
+                                                    <CardContent className="p-4 flex flex-col items-center justify-center">
+                                                        <TrendingUp size={20} strokeWidth={1.5} className="text-emerald-600 mb-2" />
+                                                        <p className="text-xs font-medium text-muted-foreground mb-1">Pass Rate</p>
+                                                        <p className={`text-2xl font-bold ${perfSummary.overallPassRate >= 60 ? 'text-emerald-600' : perfSummary.overallPassRate >= 40 ? 'text-amber-600' : 'text-red-600'}`}>
+                                                            {perfSummary.overallPassRate}%
+                                                        </p>
+                                                    </CardContent>
+                                                </Card>
+                                                <Card>
+                                                    <CardContent className="p-4 flex flex-col items-center justify-center">
+                                                        <BookOpen size={20} strokeWidth={1.5} className="text-muted-foreground mb-2" />
+                                                        <p className="text-xs font-medium text-muted-foreground mb-1">Avg Score</p>
+                                                        <p className="text-2xl font-bold text-foreground">{perfSummary.avgScore}</p>
+                                                    </CardContent>
+                                                </Card>
+                                            </div>
+
+                                            {/* Per-Subject Breakdown */}
+                                            <Card>
+                                                <CardHeader>
+                                                    <CardTitle className="text-sm flex items-center gap-2">
+                                                        <BarChart3 size={16} strokeWidth={1.5} className="text-muted-foreground" />
+                                                        Subject-wise Performance
+                                                    </CardTitle>
+                                                </CardHeader>
+                                                <CardContent className="space-y-4">
+                                                    {subjectPerformance.map((perf, idx) => (
+                                                        <div key={idx} className="rounded-xl border border-border/50 bg-muted/20 p-4">
+                                                            <div className="flex items-center justify-between mb-3">
+                                                                <div>
+                                                                    <p className="font-semibold text-foreground">{perf.subjectName}</p>
+                                                                    <p className="text-xs text-muted-foreground font-medium">{perf.className} / {perf.sectionName}</p>
+                                                                </div>
+                                                                <div className="flex items-center gap-2">
+                                                                    <Badge variant="secondary" className="bg-muted/80 text-foreground border-0 rounded-md text-xs">
+                                                                        {perf.totalStudents} students
+                                                                    </Badge>
+                                                                </div>
+                                                            </div>
+
+                                                            {/* Pass/Fail Bar */}
+                                                            <div className="h-3 rounded-full overflow-hidden bg-red-200 dark:bg-red-900/30 flex mb-3">
+                                                                <div
+                                                                    className="h-full bg-emerald-500 dark:bg-emerald-400 rounded-l-full transition-all duration-500"
+                                                                    style={{ width: `${perf.passPercentage}%` }}
+                                                                />
+                                                            </div>
+
+                                                            <div className="grid grid-cols-4 gap-3 text-center text-sm">
+                                                                <div>
+                                                                    <p className="text-xs text-muted-foreground font-medium">Passed</p>
+                                                                    <p className="font-bold text-emerald-600 dark:text-emerald-400">{perf.passedCount}</p>
+                                                                </div>
+                                                                <div>
+                                                                    <p className="text-xs text-muted-foreground font-medium">Failed</p>
+                                                                    <p className="font-bold text-red-600 dark:text-red-400">{perf.failedCount}</p>
+                                                                </div>
+                                                                <div>
+                                                                    <p className="text-xs text-muted-foreground font-medium">Average</p>
+                                                                    <p className="font-bold text-foreground">{perf.averageMarks}</p>
+                                                                </div>
+                                                                <div>
+                                                                    <p className="text-xs text-muted-foreground font-medium">Highest</p>
+                                                                    <p className="font-bold text-foreground">{perf.highestMarks}</p>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </CardContent>
+                                            </Card>
+                                        </>
+                                    )}
+                                </TabsContent>
 
                                 <TabsContent value="payroll" className="space-y-4">
                                     <Card>
@@ -604,19 +582,7 @@ export function TeacherProfileSheet({
                                             <div className="space-y-1"><Label>Phone</Label><Input value={actionForm.phone} onChange={(e) => setActionForm((p) => ({ ...p, phone: e.target.value }))} /></div>
                                             <div className="space-y-1"><Label>Email</Label><Input value={actionForm.email} onChange={(e) => setActionForm((p) => ({ ...p, email: e.target.value }))} /></div>
                                             <div className="space-y-1"><Label>Designation</Label><Input value={actionForm.designation} onChange={(e) => setActionForm((p) => ({ ...p, designation: e.target.value }))} /></div>
-                                            {isTeacher && (
-                                                <div className="space-y-1"><Label>Subject Specialty</Label><Input value={actionForm.subject_specialty} onChange={(e) => setActionForm((p) => ({ ...p, subject_specialty: e.target.value }))} /></div>
-                                            )}
-                                            <div className="space-y-1">
-                                                <Label>Employee Type</Label>
-                                                <Select value={actionForm.employee_type} onValueChange={(v) => setActionForm((p) => ({ ...p, employee_type: v }))}>
-                                                    <SelectTrigger><SelectValue /></SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="teacher">Teacher</SelectItem>
-                                                        <SelectItem value="staff">Staff</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
-                                            </div>
+                                            <div className="space-y-1"><Label>Subject Specialty</Label><Input value={actionForm.subject_specialty} onChange={(e) => setActionForm((p) => ({ ...p, subject_specialty: e.target.value }))} /></div>
                                             <div className="md:col-span-2 mt-2">
                                                 <Button onClick={handleSaveInline} disabled={saving}>{saving ? "Saving..." : "Save Changes"}</Button>
                                             </div>
@@ -631,7 +597,7 @@ export function TeacherProfileSheet({
                                     <Card className="border-red-200 bg-red-50/30">
                                         <CardHeader><CardTitle className="text-sm text-red-600">Danger Zone</CardTitle></CardHeader>
                                         <CardContent className="flex gap-2">
-                                            <Button variant="destructive" onClick={() => onRequestDelete?.(teacher)}><Trash2 className="h-4 w-4 mr-2" strokeWidth={1.5} />Delete Employee</Button>
+                                            <Button variant="destructive" onClick={() => onRequestDelete?.(teacher)}><Trash2 className="h-4 w-4 mr-2" strokeWidth={1.5} />Delete Teacher</Button>
                                         </CardContent>
                                     </Card>
                                 </TabsContent>

@@ -53,7 +53,7 @@ export function RoleProvider({ children, initialRole, initialUserId, initialEmai
   const [fullName, setFullName] = useState<string | null>(initialFullName ?? null);
   const [loading, setLoading] = useState(!initialRole);
   const [assignments, setAssignments] = useState<ClassTeacherAssignment[]>(initialAssignments ?? []);
-  const supabase = useMemo(() => createClient(), []);
+  const supabase = useMemo(() => createClient() as any, []);
 
   const fetchRoleData = useCallback(async () => {
     try {

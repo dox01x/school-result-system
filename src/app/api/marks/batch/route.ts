@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const supabase = await createServerSupabaseClient();
+        const supabase = (await createServerSupabaseClient()) as any;
 
         // ── 2. Fetch subject to get base max marks ──
         const { data: subject, error: subjectErr } = await supabase

@@ -51,7 +51,7 @@ export default function ExpensePage() {
   };
 
   const fetchRole = async () => {
-    const supabase = createClient();
+    const supabase = createClient() as any;
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
       const { data } = await supabase.from('profiles').select('role').eq('id', user.id).single();
@@ -66,7 +66,7 @@ export default function ExpensePage() {
     if (!form.amount || !form.description) { toast.error('Amount and Description are required'); return; }
     setSubmitting(true);
     try {
-      const supabase = createClient();
+      const supabase = createClient() as any;
       const { data: user } = await supabase.auth.getUser();
       const res = await fetch('/api/finance/expense', {
         method: 'POST',

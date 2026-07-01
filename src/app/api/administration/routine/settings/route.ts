@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function GET() {
     try {
-        const supabase = await createServerSupabaseClient();
+        const supabase = (await createServerSupabaseClient()) as any;
         const { data, error } = await supabase
             .from("routine_settings")
             .select(ROUTINE_SETTINGS_COLUMNS)
@@ -43,7 +43,7 @@ export async function PUT(request: NextRequest) {
         const body = await request.json();
         const { working_days, periods_per_day, period_duration_minutes, period_durations, break_after_period, break_duration_minutes, class_start_time } = body;
 
-        const supabase = await createServerSupabaseClient();
+        const supabase = (await createServerSupabaseClient()) as any;
 
         // Check if a settings row exists
         const { data: existing } = await supabase

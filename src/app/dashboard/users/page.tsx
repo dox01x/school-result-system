@@ -62,7 +62,7 @@ export default function UsersPage() {
     const [editFullName, setEditFullName] = useState("");
     const [editAssignments, setEditAssignments] = useState<{ class_id: string; section_id: string }[]>([]);
 
-    const supabase = useMemo(() => createClient(), []);
+    const supabase = useMemo(() => createClient() as any, []);
 
     const fetchUsers = useCallback(async () => {
         setLoading(true);
@@ -87,8 +87,8 @@ export default function UsersPage() {
         const { data: sections } = await supabase.from("sections").select("id, name, class_id").order("name");
 
         if (classes && sections) {
-            const classMap = new Map(classes.map(c => [c.id, c.name]));
-            const result: ClassSection[] = sections.map(s => ({
+            const classMap = new Map(((classes || []) as any[]).map((c: any) => [c.id, c.name]));
+            const result: ClassSection[] = ((sections || []) as any[]).map((s: any) => ({
                 class_id: s.class_id,
                 class_name: classMap.get(s.class_id) || "",
                 section_id: s.id,

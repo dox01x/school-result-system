@@ -27,7 +27,7 @@ function pad2(n: number): string {
 }
 
 export function AttendanceManualTab({ filters, onSaveComplete }: Props) {
-    const supabase = useMemo(() => createClient(), []);
+    const supabase = useMemo(() => createClient() as any, []);
     const { selectedClass, selectedSection, year, month } = filters;
     const daysInMonth = getDaysInMonth(year, month);
 

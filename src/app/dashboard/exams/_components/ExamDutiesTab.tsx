@@ -112,7 +112,7 @@ export function ExamDutiesTab({ exams }: { exams: { id: string; name: string }[]
 
     const selectKeyRef = useRef(0);
 
-    const supabase = useMemo(() => createClient(), []);
+    const supabase = useMemo(() => createClient() as any, []);
 
     // Fetch base data
     useEffect(() => {
@@ -126,7 +126,7 @@ export function ExamDutiesTab({ exams }: { exams: { id: string; name: string }[]
                 supabase.from("school_info").select("name, address, phone, logo_url").limit(1).single(),
             ]);
             setRooms(roomsRes.data || []);
-            setTeachers((teachersRes.data || []).map(t => ({
+            setTeachers(((teachersRes.data || []) as any[]).map((t: any) => ({
                 id: t.id,
                 name: t.name,
                 designation: t.designation || "",
@@ -275,13 +275,13 @@ export function ExamDutiesTab({ exams }: { exams: { id: string; name: string }[]
                 supabase.from("exam_duties").select("teacher_id")
             ]);
 
-            setDuties((currentDutiesRes.data || []).map(d => ({
+            setDuties(((currentDutiesRes.data || []) as any[]).map((d: any) => ({
                 room_id: d.room_id,
                 teacher_id: d.teacher_id
             })));
             
             const counts: Record<string, number> = {};
-            (allDutiesRes.data || []).forEach(d => {
+            ((allDutiesRes.data || []) as any[]).forEach((d: any) => {
                 counts[d.teacher_id] = (counts[d.teacher_id] || 0) + 1;
             });
             setDutyCounts(counts);
