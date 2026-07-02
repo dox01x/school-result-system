@@ -7,8 +7,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Save, Wand2, AlertTriangle } from "lucide-react";
+import { Save, Wand2, AlertTriangle, Plus, Trash2 } from "lucide-react";
 import { autoAllocateSeats, RoomCapacity, SectionDemand } from "@/lib/exam-seat-utils";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface SeatAllocationLocal {
     room_id: string;
@@ -38,6 +41,110 @@ export function SeatPlanTab({ exams }: { exams: { id: string; name: string }[] }
     const [allocations, setAllocations] = useState<SeatAllocationLocal[]>([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+
+    // States for manual seat allocation
+    const [isManualDialogOpen, setIsManualDialogOpen] = useState(false);
+    const [manualClassId, setManualClassId] = useState<string>("");
+    const [manualSectionId, setManualSectionId] = useState<string>("");
+    const [manualRoomId, setManualRoomId] = useState<string>("");
+    const [manualStudentCount, setManualStudentCount] = useState<number>(0);
+
+    // Custom demands state to allow specifying/editing student counts for auto seat planning
+    const [customDemands, setCustomDemands] = useState<Record<string, number>>({});
+
+    // Automatically calculate and prefill manual student count based on selection
+    useEffect(() => {
+        if (manualClassId && manualSectionId) {
+            const total = students.filter(s => s.class_id === manualClassId && s.section_id === manualSectionId).length;
+            const allocated = allocations
+                .filter(a => a.class_id === manualClassId && a.section_id === manualSectionId)
+                .reduce((sum, a) => sum + a.allocated_students, 0);
+            setManualStudentCount(Math.max(0, total - allocated));
+        } else {
+            setManualStudentCount(0);
+        }
+    }, [manualClassId, manualSectionId, students, allocations]);
+
+    const handleAddManualAllocation = () => {
+        if (!selectedExam || !selectedShift) {
+            toast.warning("Please select exam and shift first");
+            return;
+        }
+        if (!manualClassId || !manualSectionId || !manualRoomId) {
+            toast.error("Please select class, section, and room");
+            return;
+        }
+        if (manualStudentCount <= 0) {
+            toast.error("Number of students must be greater than 0");
+            return;
+        }
+
+        const room = rooms.find(r => r.id === manualRoomId);
+        if (!room) return;
+
+        const otherAllocatedInRoom = allocations
+            .filter(a => a.room_id === manualRoomId && !(a.class_id === manualClassId && a.section_id === manualSectionId))
+            .reduce((sum, a) => sum + a.allocated_students, 0);
+        
+        if (otherAllocatedInRoom + manualStudentCount > room.capacity) {
+            toast.warning(`Warning: Total allocations (${otherAllocatedInRoom + manualStudentCount}) exceed room capacity (${room.capacity})`);
+        }
+
+        setAllocations(prev => {
+            const existingIdx = prev.findIndex(
+                a => a.room_id === manualRoomId && a.class_id === manualClassId && a.section_id === manualSectionId
+            );
+            if (existingIdx > -1) {
+                const next = [...prev];
+                next[existingIdx] = {
+                    ...next[existingIdx],
+                    allocated_students: manualStudentCount
+                };
+                return next;
+            } else {
+                return [...prev, {
+                    room_id: manualRoomId,
+                    class_id: manualClassId,
+                    section_id: manualSectionId,
+                    allocated_students: manualStudentCount
+                }];
+            }
+        });
+
+        toast.success("Seat allocation added/updated");
+        setIsManualDialogOpen(false);
+        setManualClassId("");
+        setManualSectionId("");
+        setManualRoomId("");
+        setManualStudentCount(0);
+    };
+
+    const handleUpdateAllocationCount = (roomId: string, classId: string, sectionId: string, count: number) => {
+        if (count < 0) return;
+        
+        setAllocations(prev => {
+            const idx = prev.findIndex(a => a.room_id === roomId && a.class_id === classId && a.section_id === sectionId);
+            if (idx === -1) return prev;
+
+            const next = [...prev];
+            if (count === 0) {
+                next.splice(idx, 1);
+            } else {
+                next[idx] = {
+                    ...next[idx],
+                    allocated_students: count
+                };
+            }
+            return next;
+        });
+    };
+
+    const handleRemoveAllocation = (roomId: string, classId: string, sectionId: string) => {
+        setAllocations(prev => prev.filter(
+            a => !(a.room_id === roomId && a.class_id === classId && a.section_id === sectionId)
+        ));
+        toast.success("Allocation removed");
+    };
 
     const supabase = useMemo(() => createClient() as any, []);
 
@@ -139,24 +246,51 @@ export function SeatPlanTab({ exams }: { exams: { id: string; name: string }[] }
     const unconfiguredRooms = useMemo(() => rooms.filter(r => r.tables_count === 0), [rooms]);
     const configuredRooms = useMemo(() => rooms.filter(r => r.tables_count > 0), [rooms]);
 
-    // Generate demands from active students whose class is in the active schedule
-    const activeDemands = useMemo(() => {
+    // Generate scheduled demands list containing all classes & sections scheduled in this shift
+    const scheduledDemands = useMemo(() => {
         const activeClassIds = new Set(activeSchedules.map(s => s.class_id));
-        const demandsMap = new Map<string, number>();
-        students.forEach(s => {
-            if (activeClassIds.has(s.class_id)) {
-                const key = `${s.class_id}||${s.section_id}`;
-                demandsMap.set(key, (demandsMap.get(key) || 0) + 1);
+        const list: { class_id: string; section_id: string; class_name: string; section_name: string; db_count: number }[] = [];
+        
+        sections.forEach(sec => {
+            if (activeClassIds.has(sec.class_id)) {
+                const cls = classes.find(c => c.id === sec.class_id);
+                if (cls) {
+                    const dbCount = students.filter(s => s.class_id === sec.class_id && s.section_id === sec.id).length;
+                    list.push({
+                        class_id: sec.class_id,
+                        section_id: sec.id,
+                        class_name: cls.name,
+                        section_name: sec.name,
+                        db_count: dbCount
+                    });
+                }
             }
         });
-
-        const demands: SectionDemand[] = [];
-        demandsMap.forEach((count, key) => {
-            const [class_id, section_id] = key.split("||");
-            demands.push({ class_id, section_id, student_count: count });
+        
+        return list.sort((a, b) => {
+            const classCompare = a.class_name.localeCompare(b.class_name, undefined, { numeric: true });
+            if (classCompare !== 0) return classCompare;
+            return a.section_name.localeCompare(b.section_name, undefined, { numeric: true });
         });
-        return demands;
-    }, [students, activeSchedules]);
+    }, [activeSchedules, classes, sections, students]);
+
+    // Populate custom demands with database counts whenever scheduledDemands changes
+    useEffect(() => {
+        const initialDemands: Record<string, number> = {};
+        scheduledDemands.forEach(d => {
+            const key = `${d.class_id}||${d.section_id}`;
+            initialDemands[key] = d.db_count;
+        });
+        setCustomDemands(initialDemands);
+    }, [scheduledDemands]);
+
+    const handleUpdateCustomDemand = (classId: string, sectionId: string, count: number) => {
+        const key = `${classId}||${sectionId}`;
+        setCustomDemands(prev => ({
+            ...prev,
+            [key]: Math.max(0, count)
+        }));
+    };
 
     const handleAutoAllocate = () => {
         if (!selectedExam || !selectedShift) {
@@ -169,10 +303,23 @@ export function SeatPlanTab({ exams }: { exams: { id: string; name: string }[] }
             return;
         }
 
-        const newAllocations = autoAllocateSeats(activeDemands, configuredRooms);
+        // Convert customDemands record to SectionDemand array
+        const demands: SectionDemand[] = Object.entries(customDemands)
+            .map(([key, count]) => {
+                const [class_id, section_id] = key.split("||");
+                return { class_id, section_id, student_count: count };
+            })
+            .filter(d => d.student_count > 0);
+
+        if (demands.length === 0) {
+            toast.warning("Please specify student counts for at least one class/section");
+            return;
+        }
+
+        const newAllocations = autoAllocateSeats(demands, configuredRooms);
         setAllocations(newAllocations);
 
-        const totalStudents = activeDemands.reduce((sum, d) => sum + d.student_count, 0);
+        const totalStudents = demands.reduce((sum, d) => sum + d.student_count, 0);
         const placedStudents = newAllocations.reduce((sum, a) => sum + a.allocated_students, 0);
         
         if (placedStudents < totalStudents) {
@@ -217,7 +364,7 @@ export function SeatPlanTab({ exams }: { exams: { id: string; name: string }[] }
     };
 
     const roomUtilization = useMemo(() => {
-        const util = new Map<string, { used: number; sections: { name: string; count: number }[] }>();
+        const util = new Map<string, { used: number; sections: { name: string; count: number; class_id: string; section_id: string }[] }>();
         allocations.forEach(a => {
             const current = util.get(a.room_id) || { used: 0, sections: [] };
             current.used += a.allocated_students;
@@ -228,7 +375,9 @@ export function SeatPlanTab({ exams }: { exams: { id: string; name: string }[] }
             if (cls && sec) {
                 current.sections.push({
                     name: `${cls.name} - ${sec.name}`,
-                    count: a.allocated_students
+                    count: a.allocated_students,
+                    class_id: a.class_id,
+                    section_id: a.section_id
                 });
             }
             util.set(a.room_id, current);
@@ -238,9 +387,9 @@ export function SeatPlanTab({ exams }: { exams: { id: string; name: string }[] }
 
     const unallocatedDemands = useMemo(() => {
         const demands = new Map<string, number>();
-        activeDemands.forEach(d => {
-            const key = `${d.class_id}||${d.section_id}`;
-            demands.set(key, d.student_count);
+        
+        Object.entries(customDemands).forEach(([key, count]) => {
+            demands.set(key, count);
         });
 
         allocations.forEach(a => {
@@ -263,7 +412,28 @@ export function SeatPlanTab({ exams }: { exams: { id: string; name: string }[] }
             }
         });
         return unallocated;
-    }, [activeDemands, allocations, classes, sections]);
+    }, [customDemands, allocations, classes, sections]);
+
+    const sectionTotalStudents = useMemo(() => {
+        if (!manualClassId || !manualSectionId) return 0;
+        return students.filter(s => s.class_id === manualClassId && s.section_id === manualSectionId).length;
+    }, [students, manualClassId, manualSectionId]);
+
+    const sectionAllocatedStudents = useMemo(() => {
+        if (!manualClassId || !manualSectionId) return 0;
+        return allocations
+            .filter(a => a.class_id === manualClassId && a.section_id === manualSectionId)
+            .reduce((sum, a) => sum + a.allocated_students, 0);
+    }, [allocations, manualClassId, manualSectionId]);
+
+    const sectionRemainingStudents = Math.max(0, sectionTotalStudents - sectionAllocatedStudents);
+
+    const selectedRoom = rooms.find(r => r.id === manualRoomId);
+    const roomCapacity = selectedRoom ? selectedRoom.capacity : 0;
+    const roomAllocated = allocations
+        .filter(a => a.room_id === manualRoomId)
+        .reduce((sum, a) => sum + a.allocated_students, 0);
+    const roomRemainingCapacity = Math.max(0, roomCapacity - roomAllocated);
 
     return (
         <div className="space-y-4">
@@ -290,12 +460,12 @@ export function SeatPlanTab({ exams }: { exams: { id: string; name: string }[] }
 
                 <div className="ml-auto flex gap-2">
                     <Button 
-                        variant="secondary" 
-                        onClick={handleAutoAllocate} 
+                        variant="outline" 
+                        onClick={() => setIsManualDialogOpen(true)} 
                         disabled={!selectedShift || loading}
-                        className="h-11 rounded-xl font-semibold shadow-none transition-all duration-200"
+                        className="h-11 rounded-xl font-semibold border-border/50 text-foreground bg-background hover:bg-muted shadow-none transition-all duration-200"
                     >
-                        <Wand2 className="mr-2 h-4 w-4" /> Auto Allocate
+                        <Plus className="mr-2 h-4 w-4" /> Add Allocation
                     </Button>
                     
                     <Button 
@@ -333,70 +503,220 @@ export function SeatPlanTab({ exams }: { exams: { id: string; name: string }[] }
                 </div>
             )}
 
-            {unallocatedDemands.length > 0 && selectedShift && (
-                <Card className="border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-700 shadow-none rounded-2xl mb-4">
-                    <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
-                        <CardTitle className="text-base font-semibold text-amber-700 dark:text-amber-300">Unallocated Students</CardTitle>
-                        <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-xs text-amber-600 dark:text-amber-400 mb-3">These students could not be placed due to insufficient room capacity.</p>
-                        <div className="space-y-1">
-                            {unallocatedDemands.map((u, idx) => (
-                                <div key={idx} className="flex justify-between text-sm bg-white/50 dark:bg-black/20 px-2 py-1 rounded-md">
-                                    <span className="text-amber-800 dark:text-amber-200 font-medium">{u.name}</span>
-                                    <span className="font-mono text-xs font-bold text-amber-700 dark:text-amber-300">{u.count} Left</span>
-                                </div>
-                            ))}
-                        </div>
-                    </CardContent>
-                </Card>
-            )}
-
             {selectedShift && (
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {rooms.map(room => {
-                        const util = roomUtilization.get(room.id);
-                        const used = util?.used || 0;
-                        const isFull = room.capacity > 0 && used >= room.capacity;
-                        const isOver = room.capacity > 0 && used > room.capacity;
-                        const isUnconfigured = room.tables_count === 0;
+                <div className="flex flex-col lg:flex-row gap-6">
+                    {/* Left Column: Student Demands box */}
+                    <div className="w-full lg:w-80 shrink-0">
+                        <Card className="border-border/50 shadow-none rounded-2xl">
+                            <CardHeader className="pb-3 border-b border-border/30">
+                                <CardTitle className="text-base font-bold text-foreground">Student Demands</CardTitle>
+                                <p className="text-xs text-muted-foreground">Specify total student counts for each class/section in this shift.</p>
+                            </CardHeader>
+                            <CardContent className="pt-4 space-y-4">
+                                <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1">
+                                    {scheduledDemands.map(d => {
+                                        const key = `${d.class_id}||${d.section_id}`;
+                                        const value = customDemands[key] ?? 0;
+                                        return (
+                                            <div key={key} className="flex items-center justify-between gap-3 text-sm">
+                                                <div className="flex flex-col">
+                                                    <span className="font-semibold text-foreground">{d.class_name} - {d.section_name}</span>
+                                                    <span className="text-[10px] text-muted-foreground">DB Count: {d.db_count}</span>
+                                                </div>
+                                                <Input
+                                                    type="number"
+                                                    min="0"
+                                                    value={value || ""}
+                                                    onChange={(e) => handleUpdateCustomDemand(d.class_id, d.section_id, parseInt(e.target.value) || 0)}
+                                                    className="w-20 h-9 text-center font-semibold rounded-lg bg-background text-foreground border-border/50 focus:ring-1"
+                                                    placeholder="0"
+                                                />
+                                            </div>
+                                        );
+                                    })}
+                                    {scheduledDemands.length === 0 && (
+                                        <div className="text-sm italic text-muted-foreground text-center py-4">No classes scheduled in this shift.</div>
+                                    )}
+                                </div>
+                                
+                                <Button 
+                                    onClick={handleAutoAllocate} 
+                                    disabled={loading || scheduledDemands.length === 0}
+                                    className="w-full h-11 rounded-xl bg-secondary hover:bg-secondary/80 text-secondary-foreground font-semibold shadow-none transition-all duration-200"
+                                >
+                                    <Wand2 className="mr-2 h-4 w-4" /> Auto Allocate
+                                </Button>
+                            </CardContent>
+                        </Card>
+                    </div>
 
-                        return (
-                            <Card key={room.id} className={`border-border/50 shadow-none rounded-2xl transition-colors ${isOver ? 'border-destructive' : ''} ${isUnconfigured ? 'opacity-50' : ''}`}>
+                    {/* Right Column: Rooms Grid and Unallocated Students list */}
+                    <div className="flex-1 space-y-4">
+                        {unallocatedDemands.length > 0 && (
+                            <Card className="border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-700 shadow-none rounded-2xl">
                                 <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
-                                    <CardTitle className="text-base font-semibold">{room.name}</CardTitle>
-                                    <Badge variant={isOver ? 'destructive' : isFull ? 'default' : 'secondary'} className="rounded-md">
-                                        {used} / {room.capacity}
-                                    </Badge>
+                                    <CardTitle className="text-base font-semibold text-amber-700 dark:text-amber-300">Unallocated Students</CardTitle>
+                                    <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                                 </CardHeader>
                                 <CardContent>
-                                    <div className="text-sm text-muted-foreground mb-3">
-                                        {isUnconfigured 
-                                            ? "Not configured" 
-                                            : `${room.tables_count} Tables × ${room.seats_per_table} Seats`
-                                        }
+                                    <p className="text-xs text-amber-600 dark:text-amber-400 mb-3">These students could not be placed due to insufficient room capacity.</p>
+                                    <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-3">
+                                        {unallocatedDemands.map((u, idx) => (
+                                            <div key={idx} className="flex justify-between text-sm bg-white/50 dark:bg-black/20 px-3 py-1.5 rounded-xl border border-amber-200 dark:border-amber-800">
+                                                <span className="text-amber-800 dark:text-amber-200 font-medium">{u.name}</span>
+                                                <span className="font-mono text-xs font-bold text-amber-700 dark:text-amber-300">{u.count} Left</span>
+                                            </div>
+                                        ))}
                                     </div>
-                                    {util?.sections && util.sections.length > 0 ? (
-                                        <div className="space-y-1.5">
-                                            {util.sections.map((s, idx) => (
-                                                <div key={idx} className="flex flex-col text-sm bg-muted/50 px-2 py-1.5 rounded-md border border-border/30">
-                                                    <div className="flex justify-between items-start">
-                                                        <span className="font-medium">{s.name}</span>
-                                                        <span className="font-mono text-xs font-bold">{s.count}</span>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    ) : (
-                                        <div className="text-sm italic text-muted-foreground">Empty</div>
-                                    )}
                                 </CardContent>
                             </Card>
-                        );
-                    })}
+                        )}
+
+                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                            {rooms.map(room => {
+                                const util = roomUtilization.get(room.id);
+                                const used = util?.used || 0;
+                                const isFull = room.capacity > 0 && used >= room.capacity;
+                                const isOver = room.capacity > 0 && used > room.capacity;
+                                const isUnconfigured = room.tables_count === 0;
+
+                                return (
+                                    <Card key={room.id} className={`border-border/50 shadow-none rounded-2xl transition-colors ${isOver ? 'border-destructive' : ''} ${isUnconfigured ? 'opacity-50' : ''}`}>
+                                        <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
+                                            <CardTitle className="text-base font-semibold">{room.name}</CardTitle>
+                                            <Badge variant={isOver ? 'destructive' : isFull ? 'default' : 'secondary'} className="rounded-md">
+                                                {used} / {room.capacity}
+                                            </Badge>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <div className="text-sm text-muted-foreground mb-3">
+                                                {isUnconfigured 
+                                                    ? "Not configured" 
+                                                    : `${room.tables_count} Tables × ${room.seats_per_table} Seats`
+                                                }
+                                            </div>
+                                            {util?.sections && util.sections.length > 0 ? (
+                                                <div className="space-y-2">
+                                                    {util.sections.map((s, idx) => (
+                                                        <div key={idx} className="flex items-center justify-between gap-2 text-sm bg-muted/50 pl-3 pr-2 py-1.5 rounded-xl border border-border/30">
+                                                            <span className="font-semibold text-foreground truncate">{s.name}</span>
+                                                            <div className="flex items-center gap-1.5 shrink-0">
+                                                                <Input
+                                                                    type="number"
+                                                                    min="0"
+                                                                    value={s.count}
+                                                                    onChange={(e) => {
+                                                                        const count = parseInt(e.target.value) || 0;
+                                                                        handleUpdateAllocationCount(room.id, s.class_id, s.section_id, count);
+                                                                    }}
+                                                                    className="w-16 h-8 text-center font-mono font-bold rounded-lg border-border/50 bg-background text-foreground"
+                                                                />
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive rounded-lg"
+                                                                    onClick={() => handleRemoveAllocation(room.id, s.class_id, s.section_id)}
+                                                                >
+                                                                    <Trash2 className="h-4 w-4" />
+                                                                </Button>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <div className="text-sm italic text-muted-foreground">Empty</div>
+                                            )}
+                                        </CardContent>
+                                    </Card>
+                                );
+                            })}
+                        </div>
+                    </div>
                 </div>
             )}
+            <Dialog open={isManualDialogOpen} onOpenChange={setIsManualDialogOpen}>
+                <DialogContent className="sm:max-w-md rounded-2xl">
+                    <DialogHeader>
+                        <DialogTitle>Add Seat Allocation</DialogTitle>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-2 text-foreground">
+                        <div className="grid gap-1.5">
+                            <Label>Class</Label>
+                            <Select value={manualClassId} onValueChange={(v) => { setManualClassId(v); setManualSectionId(""); }}>
+                                <SelectTrigger className="rounded-lg">
+                                    <SelectValue placeholder="Select Class" />
+                                </SelectTrigger>
+                                <SelectContent className="rounded-lg">
+                                    {classes.map(c => (
+                                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        
+                        <div className="grid gap-1.5">
+                            <Label>Section</Label>
+                            <Select value={manualSectionId} onValueChange={setManualSectionId} disabled={!manualClassId}>
+                                <SelectTrigger className="rounded-lg">
+                                    <SelectValue placeholder="Select Section" />
+                                </SelectTrigger>
+                                <SelectContent className="rounded-lg">
+                                    {sections.filter(s => s.class_id === manualClassId).map(s => (
+                                        <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        {manualClassId && manualSectionId && (
+                            <div className="text-xs text-muted-foreground bg-muted/30 px-3 py-2 rounded-lg border border-border/30 -mt-1">
+                                Registered students in database: <span className="font-semibold text-foreground">{sectionTotalStudents}</span> 
+                                {` `}(Remaining unallocated: <span className="font-semibold text-foreground">{sectionRemainingStudents}</span>)
+                            </div>
+                        )}
+
+                        <div className="grid gap-1.5">
+                            <Label>Room / Hall</Label>
+                            <Select value={manualRoomId} onValueChange={setManualRoomId}>
+                                <SelectTrigger className="rounded-lg">
+                                    <SelectValue placeholder="Select Room" />
+                                </SelectTrigger>
+                                <SelectContent className="rounded-lg">
+                                    {rooms.map(r => (
+                                        <SelectItem key={r.id} value={r.id}>{r.name} (Cap: {r.capacity})</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        {manualRoomId && (
+                            <div className="text-xs text-muted-foreground bg-muted/30 px-3 py-2 rounded-lg border border-border/30 -mt-1">
+                                Room capacity: <span className="font-semibold text-foreground">{roomCapacity}</span> 
+                                {` `}(Remaining: <span className="font-semibold text-foreground">{roomRemainingCapacity}</span>)
+                            </div>
+                        )}
+
+                        <div className="grid gap-1.5">
+                            <Label>Number of Students</Label>
+                            <Input
+                                type="number"
+                                min="1"
+                                value={manualStudentCount || ""}
+                                onChange={(e) => setManualStudentCount(parseInt(e.target.value) || 0)}
+                                placeholder="e.g. 25"
+                                className="rounded-lg"
+                            />
+                        </div>
+
+                        <Button 
+                            onClick={handleAddManualAllocation} 
+                            className="mt-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl font-semibold shadow-none"
+                        >
+                            Add Allocation
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
