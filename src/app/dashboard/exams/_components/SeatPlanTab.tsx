@@ -32,7 +32,7 @@ export function SeatPlanTab({ exams }: { exams: { id: string; name: string }[] }
     const [selectedShift, setSelectedShift] = useState<string>("");
 
     const [rooms, setRooms] = useState<RoomCapacity[]>([]);
-    const [classes, setClasses] = useState<{ id: string; name: string }[]>([]);
+    const [classes, setClasses] = useState<{ id: string; name: string; numeric_value?: number | null }[]>([]);
     const [sections, setSections] = useState<{ id: string; class_id: string; name: string }[]>([]);
     const [students, setStudents] = useState<{ id: string; class_id: string; section_id: string }[]>([]);
     const [subjects, setSubjects] = useState<{ id: string; name: string }[]>([]);
@@ -168,9 +168,29 @@ export function SeatPlanTab({ exams }: { exams: { id: string; name: string }[] }
                 capacity: (r.tables_count ?? 0) * (r.seats_per_table ?? 2)
             }));
 
+            let fetchedSections = sectionsRes.data || [];
+            const classesWithNoSections = (classesRes.data || []).filter(
+                (cls: any) => !fetchedSections.some((sec: any) => sec.class_id === cls.id)
+            );
+
+            if (classesWithNoSections.length > 0) {
+                const inserts = classesWithNoSections.map((cls: any) => ({
+                    class_id: cls.id,
+                    name: "A"
+                }));
+                const { data: newSecs, error: insertErr } = await supabase
+                    .from("sections")
+                    .insert(inserts)
+                    .select("id, class_id, name");
+                
+                if (!insertErr && newSecs) {
+                    fetchedSections = [...fetchedSections, ...newSecs];
+                }
+            }
+
             setRooms(parsedRooms);
             setClasses(classesRes.data || []);
-            setSections(sectionsRes.data || []);
+            setSections(fetchedSections);
             setStudents(studentsRes.data || []);
             setSubjects(subjectsRes.data || []);
         } catch {
@@ -246,13 +266,44 @@ export function SeatPlanTab({ exams }: { exams: { id: string; name: string }[] }
     const unconfiguredRooms = useMemo(() => rooms.filter(r => r.tables_count === 0), [rooms]);
     const configuredRooms = useMemo(() => rooms.filter(r => r.tables_count > 0), [rooms]);
 
-    // Generate scheduled demands list containing all classes & sections scheduled in this shift
-    const scheduledDemands = useMemo(() => {
-        const activeClassIds = new Set(activeSchedules.map(s => s.class_id));
-        const list: { class_id: string; section_id: string; class_name: string; section_name: string; db_count: number }[] = [];
+    const activeClassIds = useMemo(() => {
+        return new Set(activeSchedules.map(s => s.class_id));
+    }, [activeSchedules]);
+
+    // Read shift configuration from localStorage
+    const shiftClassIds = useMemo(() => {
+        if (!selectedExam || !selectedShift) return new Set<string>();
+        const [start, end] = selectedShift.split("||");
+        try {
+            const saved = localStorage.getItem(`exam_config_${selectedExam}`);
+            if (saved) {
+                const config = JSON.parse(saved);
+                const currentConfigShift = config.shifts?.find((s: any) => {
+                    const normTime = (t: string) => t.substring(0, 5); // Normalise to HH:MM format
+                    return normTime(s.start_time) === normTime(start) && normTime(s.end_time) === normTime(end);
+                });
+                if (currentConfigShift) {
+                    return new Set<string>(currentConfigShift.class_ids || []);
+                }
+            }
+        } catch (err) {
+            console.error("Error reading shift config from localStorage", err);
+        }
+        return new Set<string>();
+    }, [selectedExam, selectedShift]);
+
+    // Use shifts config class list if present, otherwise fallback to database schedules
+    const allowedClassIds = useMemo(() => {
+        if (shiftClassIds.size > 0) return shiftClassIds;
+        return activeClassIds;
+    }, [shiftClassIds, activeClassIds]);
+
+    // Generate demands list containing only classes & sections in this shift, sorted by class numeric_value
+    const classDemands = useMemo(() => {
+        const list: { class_id: string; section_id: string; class_name: string; section_name: string; db_count: number; numeric_value: number }[] = [];
         
         sections.forEach(sec => {
-            if (activeClassIds.has(sec.class_id)) {
+            if (allowedClassIds.has(sec.class_id)) {
                 const cls = classes.find(c => c.id === sec.class_id);
                 if (cls) {
                     const dbCount = students.filter(s => s.class_id === sec.class_id && s.section_id === sec.id).length;
@@ -261,28 +312,29 @@ export function SeatPlanTab({ exams }: { exams: { id: string; name: string }[] }
                         section_id: sec.id,
                         class_name: cls.name,
                         section_name: sec.name,
-                        db_count: dbCount
+                        db_count: dbCount,
+                        numeric_value: cls.numeric_value ?? 999
                     });
                 }
             }
         });
         
         return list.sort((a, b) => {
-            const classCompare = a.class_name.localeCompare(b.class_name, undefined, { numeric: true });
+            const classCompare = (a.numeric_value ?? 0) - (b.numeric_value ?? 0);
             if (classCompare !== 0) return classCompare;
             return a.section_name.localeCompare(b.section_name, undefined, { numeric: true });
         });
-    }, [activeSchedules, classes, sections, students]);
+    }, [classes, sections, students, allowedClassIds]);
 
-    // Populate custom demands with database counts whenever scheduledDemands changes
+    // Populate custom demands: prefill database counts for the visible classes
     useEffect(() => {
         const initialDemands: Record<string, number> = {};
-        scheduledDemands.forEach(d => {
+        classDemands.forEach(d => {
             const key = `${d.class_id}||${d.section_id}`;
             initialDemands[key] = d.db_count;
         });
         setCustomDemands(initialDemands);
-    }, [scheduledDemands]);
+    }, [classDemands]);
 
     const handleUpdateCustomDemand = (classId: string, sectionId: string, count: number) => {
         const key = `${classId}||${sectionId}`;
@@ -514,34 +566,44 @@ export function SeatPlanTab({ exams }: { exams: { id: string; name: string }[] }
                             </CardHeader>
                             <CardContent className="pt-4 space-y-4">
                                 <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1">
-                                    {scheduledDemands.map(d => {
+                                    {classDemands.map(d => {
                                         const key = `${d.class_id}||${d.section_id}`;
                                         const value = customDemands[key] ?? 0;
+                                        const isScheduled = activeClassIds.has(d.class_id);
                                         return (
-                                            <div key={key} className="flex items-center justify-between gap-3 text-sm">
+                                            <div key={key} className={`flex items-center justify-between gap-3 text-sm py-1.5 px-2 rounded-xl border border-transparent transition-colors ${isScheduled ? 'bg-primary/5 border-primary/10' : ''}`}>
                                                 <div className="flex flex-col">
-                                                    <span className="font-semibold text-foreground">{d.class_name} - {d.section_name}</span>
-                                                    <span className="text-[10px] text-muted-foreground">DB Count: {d.db_count}</span>
+                                                    <span className={`font-semibold text-foreground ${isScheduled ? 'text-primary' : ''}`}>
+                                                        {d.class_name} - {d.section_name}
+                                                    </span>
+                                                    <span className="text-[10px] text-muted-foreground flex items-center gap-1.5 mt-0.5">
+                                                        DB Count: {d.db_count}
+                                                        {isScheduled && (
+                                                            <Badge variant="outline" className="text-[8px] h-4 px-1 rounded bg-primary/10 text-primary border-0 font-medium uppercase tracking-wider scale-90 origin-left">
+                                                                Scheduled
+                                                            </Badge>
+                                                        )}
+                                                    </span>
                                                 </div>
                                                 <Input
                                                     type="number"
                                                     min="0"
                                                     value={value || ""}
                                                     onChange={(e) => handleUpdateCustomDemand(d.class_id, d.section_id, parseInt(e.target.value) || 0)}
-                                                    className="w-20 h-9 text-center font-semibold rounded-lg bg-background text-foreground border-border/50 focus:ring-1"
+                                                    className={`w-20 h-9 text-center font-semibold rounded-lg bg-background text-foreground border-border/50 focus:ring-1 ${isScheduled ? 'border-primary/20 focus:ring-primary' : ''}`}
                                                     placeholder="0"
                                                 />
                                             </div>
                                         );
                                     })}
-                                    {scheduledDemands.length === 0 && (
-                                        <div className="text-sm italic text-muted-foreground text-center py-4">No classes scheduled in this shift.</div>
+                                    {classDemands.length === 0 && (
+                                        <div className="text-sm italic text-muted-foreground text-center py-4">No classes found in the system.</div>
                                     )}
                                 </div>
                                 
                                 <Button 
                                     onClick={handleAutoAllocate} 
-                                    disabled={loading || scheduledDemands.length === 0}
+                                    disabled={loading || classDemands.length === 0}
                                     className="w-full h-11 rounded-xl bg-secondary hover:bg-secondary/80 text-secondary-foreground font-semibold shadow-none transition-all duration-200"
                                 >
                                     <Wand2 className="mr-2 h-4 w-4" /> Auto Allocate

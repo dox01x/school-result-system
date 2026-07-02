@@ -84,6 +84,7 @@ interface RoomDutyDetail {
         class_name: string;
         subject_id: string;
         subject_name: string;
+        teacher_names: string[];
     }[];
     assignedTeachers: string[];
 }
@@ -105,6 +106,7 @@ export function ExamDutiesTab({ exams }: { exams: { id: string; name: string }[]
     const [classes, setClasses] = useState<ClassInfo[]>([]);
     const [sections, setSections] = useState<SectionInfo[]>([]);
     const [subjects, setSubjects] = useState<SubjectInfo[]>([]);
+    const [routines, setRoutines] = useState<{ class_id: string; subject_id: string; teacher_id: string }[]>([]);
     const [schoolInfo, setSchoolInfo] = useState<SchoolInfo | null>(null);
     
     const [loading, setLoading] = useState(false);
@@ -117,13 +119,14 @@ export function ExamDutiesTab({ exams }: { exams: { id: string; name: string }[]
     // Fetch base data
     useEffect(() => {
         const fetchBase = async () => {
-            const [roomsRes, teachersRes, classesRes, sectionsRes, subjectsRes, schoolRes] = await Promise.all([
+            const [roomsRes, teachersRes, classesRes, sectionsRes, subjectsRes, schoolRes, routinesRes] = await Promise.all([
                 supabase.from("rooms").select("id, name, order_index").order("order_index"),
                 supabase.from("teachers").select("id, name, designation, phone").order("name"),
                 supabase.from("classes").select("id, name, numeric_value").order("numeric_value"),
                 supabase.from("sections").select("id, class_id, name"),
                 supabase.from("subjects").select("id, class_id, name"),
                 supabase.from("school_info").select("name, address, phone, logo_url").limit(1).single(),
+                supabase.from("class_routines").select("class_id, subject_id, teacher_id")
             ]);
             setRooms(roomsRes.data || []);
             setTeachers(((teachersRes.data || []) as any[]).map((t: any) => ({
@@ -135,6 +138,7 @@ export function ExamDutiesTab({ exams }: { exams: { id: string; name: string }[]
             setClasses(classesRes.data || []);
             setSections(sectionsRes.data || []);
             setSubjects(subjectsRes.data || []);
+            setRoutines(routinesRes.data || []);
             if (schoolRes.data) {
                 setSchoolInfo(schoolRes.data);
             }
@@ -242,11 +246,18 @@ export function ExamDutiesTab({ exams }: { exams: { id: string; name: string }[]
                 .map(es => {
                     const cls = classes.find(c => c.id === es.class_id);
                     const sub = subjects.find(s => s.id === es.subject_id);
+                    const matchingRoutines = routines.filter(r => r.class_id === es.class_id && r.subject_id === es.subject_id);
+                    const teacherIds = Array.from(new Set(matchingRoutines.map(r => r.teacher_id)));
+                    const names = teacherIds
+                        .map(tid => teachers.find(t => t.id === tid)?.name)
+                        .filter((name): name is string => !!name);
+
                     return {
                         class_id: es.class_id,
                         class_name: cls?.name || "Unknown",
                         subject_id: es.subject_id,
                         subject_name: sub?.name || "Unknown",
+                        teacher_names: names
                     };
                 });
 
@@ -255,7 +266,7 @@ export function ExamDutiesTab({ exams }: { exams: { id: string; name: string }[]
 
             return { room, seatedClasses, examSubjects, assignedTeachers };
         }).filter(rd => rd.seatedClasses.length > 0 || rd.assignedTeachers.length > 0);
-    }, [rooms, seatPlans, examSchedules, classes, sections, subjects, duties]);
+    }, [rooms, seatPlans, examSchedules, classes, sections, subjects, duties, routines, teachers]);
 
     // Fetch current duties and global counts
     const fetchDuties = useCallback(async () => {
@@ -383,18 +394,29 @@ export function ExamDutiesTab({ exams }: { exams: { id: string; name: string }[]
 
     const shiftSubjectsSummary = useMemo(() => {
         const seen = new Set<string>();
-        const result: { class_name: string; subject_name: string }[] = [];
+        const result: { class_name: string; subject_name: string; teacher_names: string[] }[] = [];
         examSchedules.forEach(es => {
             const cls = classes.find(c => c.id === es.class_id);
             const sub = subjects.find(s => s.id === es.subject_id);
             const key = `${es.class_id}-${es.subject_id}`;
             if (!seen.has(key) && cls && sub) {
                 seen.add(key);
-                result.push({ class_name: cls.name, subject_name: sub.name });
+
+                const matchingRoutines = routines.filter(r => r.class_id === es.class_id && r.subject_id === es.subject_id);
+                const teacherIds = Array.from(new Set(matchingRoutines.map(r => r.teacher_id)));
+                const names = teacherIds
+                    .map(tid => teachers.find(t => t.id === tid)?.name)
+                    .filter((name): name is string => !!name);
+
+                result.push({ 
+                    class_name: cls.name, 
+                    subject_name: sub.name,
+                    teacher_names: names
+                });
             }
         });
         return result;
-    }, [examSchedules, classes, subjects]);
+    }, [examSchedules, classes, subjects, routines, teachers]);
 
     const handlePrint = () => {
         // Build subject summary text
@@ -530,7 +552,10 @@ export function ExamDutiesTab({ exams }: { exams: { id: string; name: string }[]
                 : "—";
 
             const subjectText = detail.examSubjects.length > 0
-                ? detail.examSubjects.map(es => `${es.class_name}: ${es.subject_name}`).join(", ")
+                ? detail.examSubjects.map(es => {
+                    const teacherSuffix = es.teacher_names.length > 0 ? ` (${es.teacher_names.join(", ")})` : "";
+                    return `${es.class_name}: ${es.subject_name}${teacherSuffix}`;
+                }).join(", ")
                 : "—";
 
             const teacherList = detail.assignedTeachers.map(tid => {
@@ -626,11 +651,16 @@ export function ExamDutiesTab({ exams }: { exams: { id: string; name: string }[]
                                 <CardContent className="py-3 px-4">
                                     <p className="text-xs font-semibold text-blue-700 dark:text-blue-300 mb-2">Subjects in this shift:</p>
                                     <div className="flex flex-wrap gap-2">
-                                        {shiftSubjectsSummary.map((s, idx) => (
-                                            <Badge key={idx} variant="secondary" className="rounded-lg text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 border-0">
-                                                {s.class_name}: {s.subject_name}
-                                            </Badge>
-                                        ))}
+                                        {shiftSubjectsSummary.map((s, idx) => {
+                                            const teacherSuffix = s.teacher_names.length > 0 
+                                                ? ` (${s.teacher_names.join(", ")})` 
+                                                : "";
+                                            return (
+                                                <Badge key={idx} variant="secondary" className="rounded-lg text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 border-0">
+                                                    {s.class_name}: {s.subject_name}{teacherSuffix}
+                                                </Badge>
+                                            );
+                                        })}
                                     </div>
                                 </CardContent>
                             </Card>
@@ -666,14 +696,19 @@ export function ExamDutiesTab({ exams }: { exams: { id: string; name: string }[]
                                                         </div>
                                                     )}
                                                     {detail.examSubjects.length > 0 && (
-                                                        <div className="flex flex-wrap gap-1 mt-1">
-                                                            {detail.examSubjects.map((es, idx) => (
-                                                                <Badge key={idx} className="text-[10px] rounded-md bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border-0 font-normal px-1.5 py-0">
-                                                                    📝 {es.class_name}: {es.subject_name}
-                                                                </Badge>
-                                                            ))}
-                                                        </div>
-                                                    )}
+                                                         <div className="flex flex-wrap gap-1 mt-1">
+                                                             {detail.examSubjects.map((es, idx) => {
+                                                                 const teacherSuffix = es.teacher_names.length > 0 
+                                                                     ? ` (${es.teacher_names.join(", ")})` 
+                                                                     : "";
+                                                                 return (
+                                                                     <Badge key={idx} className="text-[10px] rounded-md bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border-0 font-normal px-1.5 py-0">
+                                                                         📝 {es.class_name}: {es.subject_name}{teacherSuffix}
+                                                                     </Badge>
+                                                                 );
+                                                             })}
+                                                         </div>
+                                                     )}
                                                 </CardHeader>
                                                 <CardContent className="pt-4 space-y-3">
                                                     <div className="flex flex-wrap gap-2 min-h-[28px]">
