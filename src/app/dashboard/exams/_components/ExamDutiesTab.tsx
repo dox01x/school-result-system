@@ -424,6 +424,12 @@ export function ExamDutiesTab({ exams }: { exams: { id: string; name: string }[]
             .map(s => `${s.class_name}: ${s.subject_name}`)
             .join(", ");
 
+        const totalRowsCount = printRows.reduce((acc, row) => acc + row.teachers.length, 0);
+        let cellHeight = 45;
+        if (totalRowsCount > 0) {
+            cellHeight = Math.max(35, Math.min(65, Math.floor(700 / totalRowsCount)));
+        }
+
         // Build table rows HTML
         let tableRowsHtml = "";
         if (printRows.length > 0) {
@@ -433,11 +439,11 @@ export function ExamDutiesTab({ exams }: { exams: { id: string; name: string }[]
                     if (tIdx === 0) {
                         tableRowsHtml += `<td style="border:1px solid #000;padding:4px 6px;text-align:center;vertical-align:top" rowspan="${row.teachers.length}">${roomIdx + 1}</td>`;
                         tableRowsHtml += `<td style="border:1px solid #000;padding:4px 6px;font-weight:bold;vertical-align:top" rowspan="${row.teachers.length}">${row.roomName}</td>`;
-                        tableRowsHtml += `<td style="border:1px solid #000;padding:4px 6px;font-size:10px;vertical-align:top" rowspan="${row.teachers.length}">${row.classText}</td>`;
-                        tableRowsHtml += `<td style="border:1px solid #000;padding:4px 6px;font-size:10px;vertical-align:top" rowspan="${row.teachers.length}">${row.subjectText}</td>`;
+                        tableRowsHtml += `<td style="border:1px solid #000;padding:4px 6px;font-size:11px;vertical-align:top" rowspan="${row.teachers.length}">${row.classText}</td>`;
+                        tableRowsHtml += `<td style="border:1px solid #000;padding:4px 6px;font-size:11px;vertical-align:top" rowspan="${row.teachers.length}">${row.subjectText}</td>`;
                     }
                     tableRowsHtml += `<td style="border:1px solid #000;padding:4px 6px;vertical-align:top">${teacher.name}</td>`;
-                    tableRowsHtml += `<td style="border:1px solid #000;padding:4px 6px;vertical-align:top;width:80px"></td>`;
+                    tableRowsHtml += `<td style="border:1px solid #000;padding:4px 6px;vertical-align:top;width:140px;height:${cellHeight}px"></td>`;
                     tableRowsHtml += "</tr>";
                 });
             });
@@ -445,7 +451,7 @@ export function ExamDutiesTab({ exams }: { exams: { id: string; name: string }[]
             tableRowsHtml = `<tr><td colspan="6" style="border:1px solid #000;padding:4px 6px;text-align:center">No duties assigned</td></tr>`;
         }
 
-        const thStyle = `border:1px solid #000;padding:5px 6px;text-align:center;font-weight:bold;background:#f0f0f0;font-size:11px`;
+        const thStyle = `border:1px solid #000;padding:5px 6px;text-align:center;font-weight:bold;background:#fff;font-size:12px`;
 
         const html = `<!DOCTYPE html>
 <html>
@@ -464,24 +470,24 @@ export function ExamDutiesTab({ exams }: { exams: { id: string; name: string }[]
     <!-- School Header -->
     <div style="text-align:center;margin-bottom:40px">
         <h2 style="font-size:24px;font-weight:900;text-transform:uppercase;letter-spacing:1px;margin:0">${schoolInfo?.name || "School Name"}</h2>
-        <p style="font-size:12px;color:#666;margin-top:4px">${schoolInfo?.address || ""} ${schoolInfo?.phone ? "• " + schoolInfo.phone : ""}</p>
+        <p style="font-size:12px;color:#000;margin-top:4px">${schoolInfo?.address || ""} ${schoolInfo?.phone ? "• " + schoolInfo.phone : ""}</p>
     </div>
 
     <!-- Title -->
-    <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid #e5e5e5">
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid #000">
         <div>
             <h1 style="font-size:28px;font-weight:900;letter-spacing:-1px;line-height:1;text-transform:uppercase;margin:0">Hall Guard Duty</h1>
-            <p style="font-size:12px;font-weight:600;color:#666;letter-spacing:2px;text-transform:uppercase;margin-top:6px">${selectedExamName} &bull; ${formatTime(shiftTimes[0])} — ${formatTime(shiftTimes[1])}</p>
+            <p style="font-size:12px;font-weight:600;color:#000;letter-spacing:2px;text-transform:uppercase;margin-top:6px">${selectedExamName} &bull; ${formatTime(shiftTimes[0])} — ${formatTime(shiftTimes[1])}</p>
         </div>
         <div style="text-align:right">
             <div style="font-size:24px;font-weight:800">${new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'long' })}</div>
-            <div style="font-size:12px;font-weight:600;color:#666;letter-spacing:2px;text-transform:uppercase">${new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}</div>
+            <div style="font-size:12px;font-weight:600;color:#000;letter-spacing:2px;text-transform:uppercase">${new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}</div>
         </div>
     </div>
 
 
     <!-- Duty Table -->
-    <table style="width:100%;border-collapse:collapse;font-size:11px">
+    <table style="width:100%;border-collapse:collapse;font-size:12px">
         <thead>
             <tr>
                 <th style="${thStyle}">Sl. No.</th>
@@ -489,14 +495,14 @@ export function ExamDutiesTab({ exams }: { exams: { id: string; name: string }[]
                 <th style="${thStyle}">Class (Section) &amp; Students</th>
                 <th style="${thStyle}">Subject</th>
                 <th style="${thStyle}">Invigilator Name</th>
-                <th style="${thStyle};width:80px">Signature</th>
+                <th style="${thStyle};width:140px">Signature</th>
             </tr>
         </thead>
         <tbody>${tableRowsHtml}</tbody>
     </table>
 
     <!-- Footer -->
-    <div style="text-align:center;font-size:10px;color:#999;margin-top:40px;padding-top:20px;font-weight:600;letter-spacing:1px">
+    <div style="text-align:center;font-size:10px;color:#000;margin-top:40px;padding-top:20px;font-weight:600;letter-spacing:1px">
         <p>Computer generated on ${new Date().toLocaleDateString('en-GB')}. No signature required.</p>
     </div>
 </body>
@@ -514,8 +520,8 @@ export function ExamDutiesTab({ exams }: { exams: { id: string; name: string }[]
         padding: "5px 6px",
         textAlign: "center",
         fontWeight: "bold",
-        backgroundColor: "#f0f0f0",
-        fontSize: "11px",
+        backgroundColor: "#fff",
+        fontSize: "12px",
     };
 
     const tdPrintStyle: React.CSSProperties = {
@@ -548,14 +554,13 @@ export function ExamDutiesTab({ exams }: { exams: { id: string; name: string }[]
             const classText = detail.seatedClasses.length > 0
                 ? detail.seatedClasses.map(sc =>
                     `${sc.class_name}${sc.section_name ? ` (${sc.section_name})` : ""} — ${sc.allocated_students} students`
-                ).join(", ")
+                ).join("<br />")
                 : "—";
 
             const subjectText = detail.examSubjects.length > 0
                 ? detail.examSubjects.map(es => {
-                    const teacherSuffix = es.teacher_names.length > 0 ? ` (${es.teacher_names.join(", ")})` : "";
-                    return `${es.class_name}: ${es.subject_name}${teacherSuffix}`;
-                }).join(", ")
+                    return `${es.class_name}: ${es.subject_name}`;
+                }).join("<br />")
                 : "—";
 
             const teacherList = detail.assignedTeachers.map(tid => {
