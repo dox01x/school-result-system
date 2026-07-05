@@ -83,6 +83,7 @@ export function detectConflicts(
             group[j].end_time
           )
         ) {
+          if (group[i].class_id === group[j].class_id) continue;
           const existing = conflicts.find(
             (c) =>
               c.type === "teacher" &&
@@ -151,6 +152,7 @@ export function detectConflicts(
             group[j].end_time
           )
         ) {
+          if (group[i].class_id === group[j].class_id) continue;
           const existing = conflicts.find(
             (c) =>
               c.type === "room" &&
@@ -212,6 +214,7 @@ export function checkSingleEntryConflict(
     day_of_week: number;
     start_time: string;
     end_time: string;
+    class_id?: string;
     id?: string;
   },
   existingEntries: RoutineEntry[]
@@ -225,6 +228,7 @@ export function checkSingleEntryConflict(
 
     if (
       entry.teacher_id === newEntry.teacher_id &&
+      entry.class_id !== newEntry.class_id &&
       timesOverlap(
         newEntry.start_time,
         newEntry.end_time,
@@ -238,6 +242,7 @@ export function checkSingleEntryConflict(
     if (
       newEntry.room_id &&
       entry.room_id === newEntry.room_id &&
+      entry.class_id !== newEntry.class_id &&
       timesOverlap(
         newEntry.start_time,
         newEntry.end_time,

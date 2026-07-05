@@ -1045,11 +1045,13 @@ export type Database = {
                     id: string;
                     exam_id: string;
                     class_id: string;
+                    section_id: string | null;
                     subject_id: string;
                     teacher_id: string;
                     total_copies: number;
                     date_given: string;
                     date_returned: string | null;
+                    date_received_from_hall: string | null;
                     status: string;
                     notes: string | null;
                     created_at: string;
@@ -1058,11 +1060,13 @@ export type Database = {
                     id?: string;
                     exam_id: string;
                     class_id: string;
+                    section_id?: string | null;
                     subject_id: string;
                     teacher_id: string;
                     total_copies: number;
                     date_given: string;
                     date_returned?: string | null;
+                    date_received_from_hall?: string | null;
                     status?: string;
                     notes?: string | null;
                     created_at?: string;
@@ -1071,11 +1075,13 @@ export type Database = {
                     id?: string;
                     exam_id?: string;
                     class_id?: string;
+                    section_id?: string | null;
                     subject_id?: string;
                     teacher_id?: string;
                     total_copies?: number;
                     date_given?: string;
                     date_returned?: string | null;
+                    date_received_from_hall?: string | null;
                     status?: string;
                     notes?: string | null;
                     created_at?: string;
@@ -1093,6 +1099,13 @@ export type Database = {
                         columns: ["class_id"];
                         isOneToOne: false;
                         referencedRelation: "classes";
+                        referencedColumns: ["id"];
+                    },
+                    {
+                        foreignKeyName: "exam_paper_distributions_section_id_fkey";
+                        columns: ["section_id"];
+                        isOneToOne: false;
+                        referencedRelation: "sections";
                         referencedColumns: ["id"];
                     },
                     {

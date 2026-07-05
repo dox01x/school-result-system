@@ -28,6 +28,12 @@ interface ClassInfo {
     numeric_value: number | null;
 }
 
+interface SectionInfo {
+    id: string;
+    name: string;
+    class_id: string;
+}
+
 interface SubjectInfo {
     id: string;
     name: string;
@@ -41,36 +47,49 @@ interface TeacherInfo {
     phone: string;
 }
 
+interface RoutineInfo {
+    class_id: string;
+    section_id: string;
+    subject_id: string;
+    teacher_id: string;
+}
+
 interface Distribution {
     id: string;
     exam_id: string;
     class_id: string;
+    section_id: string | null;
     subject_id: string;
     teacher_id: string;
     total_copies: number;
     date_given: string;
     date_returned: string | null;
+    date_received_from_hall: string | null;
     status: string;
     notes: string | null;
 }
 
 interface FormData {
     class_id: string;
+    section_id: string;
     subject_id: string;
     teacher_id: string;
     total_copies: string;
     date_given: string;
     date_returned: string;
+    date_received_from_hall: string;
     notes: string;
 }
 
 const emptyForm: FormData = {
     class_id: "",
+    section_id: "",
     subject_id: "",
     teacher_id: "",
     total_copies: "",
     date_given: new Date().toISOString().split("T")[0],
     date_returned: "",
+    date_received_from_hall: "",
     notes: "",
 };
 
@@ -78,38 +97,47 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
     const [selectedExam, setSelectedExam] = useState("");
     const [distributions, setDistributions] = useState<Distribution[]>([]);
     const [classes, setClasses] = useState<ClassInfo[]>([]);
+    const [sections, setSections] = useState<SectionInfo[]>([]);
     const [subjects, setSubjects] = useState<SubjectInfo[]>([]);
     const [teachers, setTeachers] = useState<TeacherInfo[]>([]);
+    const [routines, setRoutines] = useState<RoutineInfo[]>([]);
+    const [schedules, setSchedules] = useState<any[]>([]);
+    const [selectedDate, setSelectedDate] = useState<string>("all");
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [form, setForm] = useState<FormData>(emptyForm);
+    const [isFieldDisabled, setIsFieldDisabled] = useState(false);
 
     const supabase = useMemo(() => createClient() as any, []);
 
-    // Load classes, subjects, teachers on mount
+    // Load classes, subjects, teachers, sections, routines on mount
     useEffect(() => {
         const load = async () => {
-            const [classRes, subjectRes, teacherRes] = await Promise.all([
+            const [classRes, subjectRes, teacherRes, sectionRes, routineRes] = await Promise.all([
                 supabase.from("classes").select("id, name, numeric_value").order("numeric_value"),
                 supabase.from("subjects").select("id, name, class_id"),
                 supabase.from("teachers").select("id, name, designation, phone").order("name"),
+                supabase.from("sections").select("id, name, class_id"),
+                supabase.from("class_routines").select("class_id, section_id, subject_id, teacher_id"),
             ]);
             if (classRes.data) setClasses(classRes.data);
             if (subjectRes.data) setSubjects(subjectRes.data);
             if (teacherRes.data) setTeachers(teacherRes.data);
+            if (sectionRes.data) setSections(sectionRes.data);
+            if (routineRes.data) setRoutines(routineRes.data);
         };
         load();
     }, [supabase]);
 
-    // Load distributions when exam changes
-    const loadDistributions = useCallback(async (examId: string) => {
+    // Load distributions and schedules when exam changes
+    const loadDistributions = useCallback(async (examId: string, silent = false) => {
         if (!examId) return;
-        setLoading(true);
+        if (!silent) setLoading(true);
         const { data, error } = await supabase
             .from("exam_paper_distributions")
-            .select("id, exam_id, class_id, subject_id, teacher_id, total_copies, date_given, date_returned, status, notes")
+            .select("id, exam_id, class_id, section_id, subject_id, teacher_id, total_copies, date_given, date_returned, date_received_from_hall, status, notes")
             .eq("exam_id", examId)
             .order("date_given");
         if (error) {
@@ -117,13 +145,182 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
         } else {
             setDistributions(data || []);
         }
-        setLoading(false);
+        if (!silent) setLoading(false);
+    }, [supabase]);
+
+    const loadSchedules = useCallback(async (examId: string) => {
+        if (!examId) return;
+        const { data } = await supabase
+            .from("exam_schedules")
+            .select("id, class_id, subject_id, exam_date, start_time, end_time")
+            .eq("exam_id", examId);
+        setSchedules(data || []);
     }, [supabase]);
 
     useEffect(() => {
-        if (selectedExam) loadDistributions(selectedExam);
-        else setDistributions([]);
-    }, [selectedExam, loadDistributions]);
+        if (selectedExam) {
+            loadDistributions(selectedExam);
+            loadSchedules(selectedExam);
+        } else {
+            setDistributions([]);
+            setSchedules([]);
+        }
+    }, [selectedExam, loadDistributions, loadSchedules]);
+
+    // Derived unique exam dates from schedules
+    const availableDates = useMemo(() => {
+        const dates = schedules.map(s => s.exam_date);
+        return Array.from(new Set(dates)).sort();
+    }, [schedules]);
+
+    // Auto-select today's date if it has scheduled exams
+    useEffect(() => {
+        const d = new Date();
+        const todayStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        if (availableDates.includes(todayStr)) {
+            setSelectedDate(todayStr);
+        } else {
+            setSelectedDate("all");
+        }
+    }, [availableDates]);
+
+    // Map a distribution to its scheduled exam info
+    const getDistributionSchedule = useCallback((dist: Distribution) => {
+        return schedules.find(
+            s => s.class_id === dist.class_id && s.subject_id === dist.subject_id
+        );
+    }, [schedules]);
+
+    // Build the pre-populated (virtual + saved) list of distributions
+    const displayRows = useMemo(() => {
+        const rows: any[] = [];
+        const filteredSchedules = selectedDate === "all" 
+            ? schedules 
+            : schedules.filter(s => s.exam_date === selectedDate);
+
+        filteredSchedules.forEach(schedule => {
+            const classSections = sections.filter(s => s.class_id === schedule.class_id);
+            const classDists = distributions.filter(d => 
+                d.class_id === schedule.class_id && 
+                d.subject_id === schedule.subject_id
+            );
+
+            if (classSections.length === 0) {
+                const existing = classDists.find(d => !d.section_id);
+                if (existing) {
+                    rows.push(existing);
+                } else {
+                    rows.push({
+                        id: `virtual||${schedule.id}||${schedule.class_id}||none||${schedule.subject_id}`,
+                        exam_id: selectedExam,
+                        class_id: schedule.class_id,
+                        section_id: null,
+                        subject_id: schedule.subject_id,
+                        teacher_id: "",
+                        total_copies: 0,
+                        date_given: "",
+                        date_returned: null,
+                        date_received_from_hall: null,
+                        status: "pending_distribution",
+                        notes: "",
+                    });
+                }
+            } else {
+                const unmatchedDists = [...classDists];
+                const matchedRows: any[] = [];
+
+                // 1. Match exact section_id
+                classSections.forEach(sec => {
+                    const exactMatchIdx = unmatchedDists.findIndex(d => d.section_id === sec.id);
+                    if (exactMatchIdx !== -1) {
+                        matchedRows.push({
+                            sec,
+                            dist: unmatchedDists[exactMatchIdx],
+                            matched: true
+                        });
+                        unmatchedDists.splice(exactMatchIdx, 1);
+                    } else {
+                        matchedRows.push({
+                            sec,
+                            dist: null,
+                            matched: false
+                        });
+                    }
+                });
+
+                // 2. Assign old entries with section_id = null to remaining sections sequentially
+                matchedRows.forEach(item => {
+                    if (!item.matched) {
+                        const nullSecIdx = unmatchedDists.findIndex(d => !d.section_id);
+                        if (nullSecIdx !== -1) {
+                            item.dist = unmatchedDists[nullSecIdx];
+                            item.matched = true;
+                            unmatchedDists.splice(nullSecIdx, 1);
+                        }
+                    }
+                });
+
+                // 3. Push to main rows list
+                matchedRows.forEach(item => {
+                    if (item.matched && item.dist) {
+                        rows.push({
+                            ...item.dist,
+                            section_id: item.sec.id // Map to this section for correct display
+                        });
+                    } else {
+                        rows.push({
+                            id: `virtual||${schedule.id}||${schedule.class_id}||${item.sec.id}||${schedule.subject_id}`,
+                            exam_id: selectedExam,
+                            class_id: schedule.class_id,
+                            section_id: item.sec.id,
+                            subject_id: schedule.subject_id,
+                            teacher_id: "",
+                            total_copies: 0,
+                            date_given: "",
+                            date_returned: null,
+                            date_received_from_hall: null,
+                            status: "pending_distribution",
+                            notes: "",
+                        });
+                    }
+                });
+
+                // 4. Push any remaining unmatched distributions
+                unmatchedDists.forEach(d => {
+                    rows.push(d);
+                });
+            }
+        });
+
+        return rows;
+    }, [schedules, distributions, sections, selectedDate, selectedExam]);
+
+    // Sort display rows by Class (numeric_value) first, then by Shift (start_time)
+    const sortedDisplayRows = useMemo(() => {
+        return [...displayRows].sort((a, b) => {
+            const classA = classes.find(c => c.id === a.class_id);
+            const classB = classes.find(c => c.id === b.class_id);
+            const valA = classA?.numeric_value ?? 999;
+            const valB = classB?.numeric_value ?? 999;
+
+            if (valA !== valB) {
+                return valA - valB;
+            }
+
+            const schedA = schedules.find(s => s.class_id === a.class_id && s.subject_id === a.subject_id);
+            const schedB = schedules.find(s => s.class_id === b.class_id && s.subject_id === b.subject_id);
+            const timeA = schedA?.start_time || "";
+            const timeB = schedB?.start_time || "";
+
+            return timeA.localeCompare(timeB);
+        });
+    }, [displayRows, classes, schedules]);
+
+    // Filtered sections by selected class in form
+    const filteredSections = useMemo(() => {
+        if (!form.class_id) return [];
+        return sections.filter(s => s.class_id === form.class_id);
+    }, [sections, form.class_id]);
 
     // Filtered subjects by selected class in form
     const filteredSubjects = useMemo(() => {
@@ -131,10 +328,30 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
         return subjects.filter(s => s.class_id === form.class_id);
     }, [subjects, form.class_id]);
 
+    // Auto-fill teacher from class routine when Class, Section, Subject are selected
+    useEffect(() => {
+        if (form.class_id && form.section_id && form.subject_id) {
+            const match = routines.find(r => 
+                r.class_id === form.class_id && 
+                r.section_id === form.section_id && 
+                r.subject_id === form.subject_id
+            );
+            if (match && match.teacher_id) {
+                setForm(f => {
+                    if (!f.teacher_id) {
+                        return { ...f, teacher_id: match.teacher_id };
+                    }
+                    return f;
+                });
+            }
+        }
+    }, [form.class_id, form.section_id, form.subject_id, routines]);
+
     // Open dialog for add
     const handleAdd = () => {
         setEditingId(null);
         setForm(emptyForm);
+        setIsFieldDisabled(false);
         setDialogOpen(true);
     };
 
@@ -143,19 +360,41 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
         setEditingId(dist.id);
         setForm({
             class_id: dist.class_id,
+            section_id: dist.section_id || "",
             subject_id: dist.subject_id,
             teacher_id: dist.teacher_id,
             total_copies: String(dist.total_copies),
             date_given: dist.date_given,
             date_returned: dist.date_returned || "",
+            date_received_from_hall: dist.date_received_from_hall || "",
             notes: dist.notes || "",
         });
+        setIsFieldDisabled(true);
+        setDialogOpen(true);
+    };
+
+    // Open dialog for assigning a virtual row
+    const handleAssign = (d: any) => {
+        const routineTeacherId = getRoutineTeacherId(d.class_id, d.section_id, d.subject_id);
+        setEditingId(null);
+        setForm({
+            class_id: d.class_id,
+            section_id: d.section_id || "",
+            subject_id: d.subject_id,
+            teacher_id: routineTeacherId,
+            total_copies: "",
+            date_given: new Date().toISOString().split("T")[0],
+            date_returned: "",
+            date_received_from_hall: "",
+            notes: "",
+        });
+        setIsFieldDisabled(true);
         setDialogOpen(true);
     };
 
     // Save (add or update)
     const handleSave = async () => {
-        if (!form.class_id || !form.subject_id || !form.teacher_id || !form.total_copies || !form.date_given) {
+        if (!form.class_id || !form.section_id || !form.subject_id || !form.teacher_id || !form.total_copies || !form.date_given) {
             toast.error("Please fill all required fields");
             return;
         }
@@ -163,11 +402,13 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
         const record = {
             exam_id: selectedExam,
             class_id: form.class_id,
+            section_id: form.section_id || null,
             subject_id: form.subject_id,
             teacher_id: form.teacher_id,
             total_copies: parseInt(form.total_copies),
             date_given: form.date_given,
             date_returned: form.date_returned || null,
+            date_received_from_hall: form.date_received_from_hall || null,
             status: form.date_returned ? "returned" : "pending",
             notes: form.notes || null,
         };
@@ -188,7 +429,7 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
         }
         setSaving(false);
         setDialogOpen(false);
-        loadDistributions(selectedExam);
+        loadDistributions(selectedExam, true);
     };
 
     // Delete
@@ -200,7 +441,7 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
         if (error) toast.error("Failed to delete");
         else {
             toast.success("Distribution deleted");
-            loadDistributions(selectedExam);
+            loadDistributions(selectedExam, true);
         }
     };
 
@@ -214,12 +455,47 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
         if (error) toast.error("Failed to update");
         else {
             toast.success("Marked as returned");
-            loadDistributions(selectedExam);
+            loadDistributions(selectedExam, true);
         }
     };
 
+    // Mark as received from exam hall
+    const handleMarkReceivedFromHall = async (id: string) => {
+        const todayStr = new Date().toISOString().split("T")[0];
+        const { error } = await supabase
+            .from("exam_paper_distributions")
+            .update({ date_received_from_hall: todayStr })
+            .eq("id", id);
+        if (error) {
+            toast.error("Failed to update receipt date");
+        } else {
+            toast.success("Papers marked as received from hall");
+            loadDistributions(selectedExam, true);
+        }
+    };
+
+    // Helper to get routine teacher ID
+    const getRoutineTeacherId = useCallback((classId: string, sectionId: string | null, subjectId: string) => {
+        if (!sectionId) return "";
+        const match = routines.find(r => 
+            r.class_id === classId && 
+            r.section_id === sectionId && 
+            r.subject_id === subjectId
+        );
+        return match?.teacher_id || "";
+    }, [routines]);
+
     // Helper to get name by ID
     const getClassName = (id: string) => classes.find(c => c.id === id)?.name || "—";
+    const getSectionName = (id: string | null) => {
+        if (!id) return "";
+        return sections.find(s => s.id === id)?.name || "";
+    };
+    const getClassNameWithSection = (dist: Distribution) => {
+        const cls = getClassName(dist.class_id);
+        const sec = getSectionName(dist.section_id);
+        return sec ? `${cls} - ${sec}` : cls;
+    };
     const getSubjectName = (id: string) => subjects.find(s => s.id === id)?.name || "—";
     const getTeacherName = (id: string) => teachers.find(t => t.id === id)?.name || "—";
     const getTeacherDesignation = (id: string) => teachers.find(t => t.id === id)?.designation || "—";
@@ -230,31 +506,63 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
         return date.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
     };
 
-    // Summary stats
+    const formatTime12h = (t: string) => {
+        if (!t) return "";
+        const parts = t.split(":");
+        if (parts.length < 2) return t;
+        let hrs = parseInt(parts[0]);
+        const mins = parts[1];
+        const ampm = hrs >= 12 ? "PM" : "AM";
+        hrs = hrs % 12;
+        hrs = hrs ? hrs : 12;
+        return `${hrs}:${mins} ${ampm}`;
+    };
+
+    const getScheduleShiftStr = (sched: any) => {
+        if (!sched?.start_time || !sched?.end_time) return "—";
+        return `${formatTime12h(sched.start_time)} - ${formatTime12h(sched.end_time)}`;
+    };
+
+    // Summary stats (calculates totals of only actual saved distributions)
     const stats = useMemo(() => {
-        const total = distributions.length;
-        const pending = distributions.filter(d => d.status === "pending").length;
-        const returned = distributions.filter(d => d.status === "returned").length;
-        const totalCopies = distributions.reduce((sum, d) => sum + d.total_copies, 0);
+        const activeSchedules = selectedDate === "all"
+            ? schedules
+            : schedules.filter(s => s.exam_date === selectedDate);
+        
+        const activeDistributions = distributions.filter(d => 
+            activeSchedules.some(s => s.class_id === d.class_id && s.subject_id === d.subject_id)
+        );
+
+        const total = activeDistributions.length;
+        const pending = activeDistributions.filter(d => d.status === "pending").length;
+        const returned = activeDistributions.filter(d => d.status === "returned").length;
+        const totalCopies = activeDistributions.reduce((sum, d) => sum + d.total_copies, 0);
         return { total, pending, returned, totalCopies };
-    }, [distributions]);
+    }, [distributions, schedules, selectedDate]);
 
     // Print
     const handlePrint = () => {
         const examName = exams.find(e => e.id === selectedExam)?.name || "";
 
         let rowsHtml = "";
-        distributions.forEach((d, idx) => {
-            const statusBg = d.status === "returned" ? "#d4edda" : "#fff3cd";
-            const statusText = d.status === "returned" ? "Returned" : "Pending";
+        sortedDisplayRows.forEach((d, idx) => {
+            const isVirtual = d.status === "pending_distribution";
+            const statusBg = isVirtual ? "#e2e8f0" : d.status === "returned" ? "#d4edda" : "#fff3cd";
+            const statusText = isVirtual ? "Not Assigned" : d.status === "returned" ? "Returned" : "Pending";
             rowsHtml += `<tr>
                 <td style="border:1px solid #000;padding:4px 6px;text-align:center">${idx + 1}</td>
-                <td style="border:1px solid #000;padding:4px 6px">${getClassName(d.class_id)}</td>
+                <td style="border:1px solid #000;padding:4px 6px">${getClassNameWithSection(d)}</td>
                 <td style="border:1px solid #000;padding:4px 6px">${getSubjectName(d.subject_id)}</td>
-                <td style="border:1px solid #000;padding:4px 6px">${getTeacherName(d.teacher_id)}</td>
-                <td style="border:1px solid #000;padding:4px 6px;text-align:center">${d.total_copies}</td>
-                <td style="border:1px solid #000;padding:4px 6px;text-align:center">${formatDate(d.date_given)}</td>
-                <td style="border:1px solid #000;padding:4px 6px;text-align:center">${d.date_returned ? formatDate(d.date_returned) : "—"}</td>
+                <td style="border:1px solid #000;padding:4px 6px;text-align:center">${d.date_received_from_hall ? formatDate(d.date_received_from_hall) : ""}</td>
+                <td style="border:1px solid #000;padding:4px 6px">${(() => {
+                    const teacherId = isVirtual 
+                        ? getRoutineTeacherId(d.class_id, d.section_id, d.subject_id)
+                        : d.teacher_id;
+                    return teacherId ? getTeacherName(teacherId) : "";
+                })()}</td>
+                <td style="border:1px solid #000;padding:4px 6px;text-align:center">${isVirtual ? "" : d.total_copies}</td>
+                <td style="border:1px solid #000;padding:4px 6px;text-align:center">${isVirtual ? "" : formatDate(d.date_given)}</td>
+                <td style="border:1px solid #000;padding:4px 6px;text-align:center">${!isVirtual && d.date_returned ? formatDate(d.date_returned) : ""}</td>
                 <td style="border:1px solid #000;padding:4px 6px;text-align:center"><span style="background:${statusBg};padding:2px 8px;border-radius:4px;font-size:10px">${statusText}</span></td>
                 <td style="border:1px solid #000;padding:4px 6px;font-size:10px">${d.notes || ""}</td>
             </tr>`;
@@ -277,15 +585,17 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
     <div style="text-align:center;margin-bottom:12px;border-bottom:2px solid #000;padding-bottom:8px">
         <h2 style="font-size:16px;font-weight:bold;margin:0 0 4px 0">Paper Checking Distribution List</h2>
         <p style="font-size:12px;margin:2px 0"><strong>Exam:</strong> ${examName}</p>
+        ${selectedDate !== "all" ? `<p style="font-size:11px;margin:2px 0"><strong>Exam Date:</strong> ${formatDate(selectedDate)}</p>` : ""}
         <p style="font-size:11px;margin:2px 0;color:#555">Total: ${stats.total} distributions | ${stats.totalCopies} copies | Pending: ${stats.pending} | Returned: ${stats.returned}</p>
     </div>
 
-    <table style="width:100%;border-collapse:collapse;font-size:11px">
+    <table style="width:100%;border-collapse:collapse;font-size:10px">
         <thead>
             <tr>
                 <th style="${thStyle}">Sl.</th>
                 <th style="${thStyle}">Class</th>
                 <th style="${thStyle}">Subject</th>
+                <th style="${thStyle}">Received (Hall)</th>
                 <th style="${thStyle}">Teacher</th>
                 <th style="${thStyle}">Copies</th>
                 <th style="${thStyle}">Date Given</th>
@@ -326,8 +636,24 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
                     </SelectContent>
                 </Select>
 
+                {selectedExam && availableDates.length > 0 && (
+                    <Select value={selectedDate} onValueChange={setSelectedDate}>
+                        <SelectTrigger className="w-[200px] h-11 rounded-xl border-0 bg-muted hover:bg-muted/80 transition-colors text-foreground font-semibold shadow-none focus:ring-1 focus:ring-ring/30">
+                            <SelectValue placeholder="All Dates" />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-xl border-border/50 shadow-md">
+                            <SelectItem value="all" className="rounded-lg">All Dates</SelectItem>
+                            {availableDates.map(date => (
+                                <SelectItem key={date} value={date} className="rounded-lg">
+                                    {formatDate(date)}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                )}
+
                 <div className="ml-auto flex gap-2">
-                    {selectedExam && distributions.length > 0 && (
+                    {selectedExam && sortedDisplayRows.length > 0 && (
                         <Button
                             variant="outline"
                             onClick={handlePrint}
@@ -357,7 +683,7 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
             {selectedExam && (
                 <>
                     {/* Stats Cards */}
-                    {distributions.length > 0 && (
+                    {sortedDisplayRows.length > 0 && (
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                             <Card className="shadow-none border-border/50 rounded-2xl">
                                 <CardContent className="p-4 text-center">
@@ -394,11 +720,11 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
                         <CardContent className="p-0">
                             {loading ? (
                                 <div className="flex justify-center py-12 text-muted-foreground text-sm">Loading...</div>
-                            ) : distributions.length === 0 ? (
+                            ) : sortedDisplayRows.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center py-12 text-center">
                                     <FileText className="h-8 w-8 text-muted-foreground/30 mb-3" />
-                                    <p className="text-muted-foreground text-sm">No distributions added yet</p>
-                                    <p className="text-muted-foreground/60 text-xs mt-1">Click &quot;Add Distribution&quot; to assign papers to teachers</p>
+                                    <p className="text-muted-foreground text-sm">No scheduled exams found for this date</p>
+                                    <p className="text-muted-foreground/60 text-xs mt-1">Please schedule exams first under Seat Plan or Schedules</p>
                                 </div>
                             ) : (
                                 <div className="overflow-x-auto">
@@ -406,8 +732,9 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
                                         <TableHeader>
                                             <TableRow>
                                                 <TableHead className="text-xs w-10">#</TableHead>
-                                                <TableHead className="text-xs">Class</TableHead>
+                                                <TableHead className="text-xs">Class & Section</TableHead>
                                                 <TableHead className="text-xs">Subject</TableHead>
+                                                <TableHead className="text-xs">Received (Hall)</TableHead>
                                                 <TableHead className="text-xs">Teacher</TableHead>
                                                 <TableHead className="text-xs text-center">Copies</TableHead>
                                                 <TableHead className="text-xs">Date Given</TableHead>
@@ -418,66 +745,124 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>
-                                            {distributions.map((d, idx) => (
-                                                <TableRow key={d.id}>
-                                                    <TableCell className="text-xs text-muted-foreground">{idx + 1}</TableCell>
-                                                    <TableCell className="text-xs font-medium">{getClassName(d.class_id)}</TableCell>
-                                                    <TableCell className="text-xs">{getSubjectName(d.subject_id)}</TableCell>
-                                                    <TableCell className="text-xs">
-                                                        <div>{getTeacherName(d.teacher_id)}</div>
-                                                        <div className="text-[10px] text-muted-foreground">{getTeacherDesignation(d.teacher_id)}</div>
-                                                    </TableCell>
-                                                    <TableCell className="text-xs text-center font-mono font-bold">{d.total_copies}</TableCell>
-                                                    <TableCell className="text-xs">{formatDate(d.date_given)}</TableCell>
-                                                    <TableCell className="text-xs">{d.date_returned ? formatDate(d.date_returned) : "—"}</TableCell>
-                                                    <TableCell className="text-center">
-                                                        <Badge
-                                                            variant="secondary"
-                                                            className={`text-[10px] rounded-md border-0 ${
-                                                                d.status === "returned"
-                                                                    ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300"
-                                                                    : "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300"
-                                                            }`}
-                                                        >
-                                                            {d.status === "returned" ? "Returned" : "Pending"}
-                                                        </Badge>
-                                                    </TableCell>
-                                                    <TableCell className="text-xs text-muted-foreground max-w-[120px] truncate">{d.notes || "—"}</TableCell>
-                                                    <TableCell className="text-right">
-                                                        <div className="flex items-center justify-end gap-1">
-                                                            {d.status === "pending" && (
-                                                                <Button
-                                                                    variant="ghost"
-                                                                    size="icon"
-                                                                    className="h-7 w-7 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
-                                                                    onClick={() => handleMarkReturned(d.id)}
-                                                                    title="Mark as Returned"
-                                                                >
-                                                                    <CheckCircle className="h-3.5 w-3.5" />
-                                                                </Button>
-                                                            )}
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="icon"
-                                                                className="h-7 w-7"
-                                                                onClick={() => handleEdit(d)}
-                                                                title="Edit"
+                                            {sortedDisplayRows.map((d, idx) => {
+                                                const isVirtual = d.status === "pending_distribution";
+                                                return (
+                                                    <TableRow key={d.id}>
+                                                        <TableCell className="text-xs text-muted-foreground">{idx + 1}</TableCell>
+                                                        <TableCell className="text-xs font-semibold text-foreground">
+                                                            {getClassNameWithSection(d)}
+                                                        </TableCell>
+                                                        <TableCell className="text-xs">{getSubjectName(d.subject_id)}</TableCell>
+                                                         <TableCell className="text-xs">
+                                                             {d.date_received_from_hall ? (
+                                                                 <div className="flex items-center gap-1.5 text-emerald-600 font-semibold">
+                                                                     <CheckCircle className="h-3.5 w-3.5 text-emerald-500" />
+                                                                     <span>{formatDate(d.date_received_from_hall)}</span>
+                                                                 </div>
+                                                             ) : isVirtual ? (
+                                                                 <span className="text-muted-foreground/45">—</span>
+                                                             ) : (
+                                                                 <Button
+                                                                     variant="outline"
+                                                                     size="sm"
+                                                                     className="h-7 rounded-lg text-[10px] px-2 font-bold border-dashed border-emerald-500/50 hover:bg-emerald-50 hover:text-emerald-600 gap-1 text-emerald-600"
+                                                                     onClick={() => handleMarkReceivedFromHall(d.id)}
+                                                                     title="Mark as Received from Hall"
+                                                                 >
+                                                                     <CheckCircle className="h-3 w-3" /> Mark Received
+                                                                 </Button>
+                                                             )}
+                                                         </TableCell>
+                                                        <TableCell className="text-xs">
+                                                            {(() => {
+                                                                const teacherId = isVirtual 
+                                                                    ? getRoutineTeacherId(d.class_id, d.section_id, d.subject_id)
+                                                                    : d.teacher_id;
+                                                                if (teacherId) {
+                                                                    return (
+                                                                        <>
+                                                                            <div className="font-medium">{getTeacherName(teacherId)}</div>
+                                                                            <div className="text-[10px] text-muted-foreground">{getTeacherDesignation(teacherId)}</div>
+                                                                        </>
+                                                                    );
+                                                                }
+                                                                return <span className="text-muted-foreground/45">—</span>;
+                                                            })()}
+                                                        </TableCell>
+                                                        <TableCell className="text-xs text-center font-mono font-bold">
+                                                            {isVirtual ? <span className="text-muted-foreground/45">—</span> : d.total_copies}
+                                                        </TableCell>
+                                                        <TableCell className="text-xs">
+                                                            {isVirtual ? <span className="text-muted-foreground/45">—</span> : formatDate(d.date_given)}
+                                                        </TableCell>
+                                                        <TableCell className="text-xs">
+                                                            {!isVirtual && d.date_returned ? formatDate(d.date_returned) : "—"}
+                                                        </TableCell>
+                                                        <TableCell className="text-center">
+                                                            <Badge
+                                                                variant="secondary"
+                                                                className={`text-[10px] rounded-md border-0 ${
+                                                                    isVirtual
+                                                                        ? "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400"
+                                                                        : d.status === "returned"
+                                                                        ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300"
+                                                                        : "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300"
+                                                                }`}
                                                             >
-                                                                <Pencil className="h-3.5 w-3.5" />
-                                                            </Button>
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="icon"
-                                                                className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
-                                                                onClick={() => handleDelete(d.id)}
-                                                                title="Delete"
-                                                            >
-                                                                <Trash2 className="h-3.5 w-3.5" />
-                                                            </Button>
-                                                        </div>
-                                                    </TableCell>
-                                                </TableRow>
-                                            ))}
+                                                                {isVirtual ? "Not Assigned" : d.status === "returned" ? "Returned" : "Pending"}
+                                                            </Badge>
+                                                        </TableCell>
+                                                        <TableCell className="text-xs text-muted-foreground max-w-[120px] truncate">{d.notes || "—"}</TableCell>
+                                                        <TableCell className="text-right">
+                                                            <div className="flex items-center justify-end gap-1">
+                                                                {!isVirtual ? (
+                                                                    <>
+                                                                        {d.status === "pending" && (
+                                                                            <Button
+                                                                                variant="ghost"
+                                                                                size="icon"
+                                                                                className="h-7 w-7 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
+                                                                                onClick={() => handleMarkReturned(d.id)}
+                                                                                title="Mark as Returned"
+                                                                            >
+                                                                                <CheckCircle className="h-3.5 w-3.5" />
+                                                                            </Button>
+                                                                        )}
+                                                                        <Button
+                                                                            variant="ghost"
+                                                                            size="icon"
+                                                                            className="h-7 w-7"
+                                                                            onClick={() => handleEdit(d)}
+                                                                            title="Edit"
+                                                                        >
+                                                                            <Pencil className="h-3.5 w-3.5" />
+                                                                        </Button>
+                                                                        <Button
+                                                                            variant="ghost"
+                                                                            size="icon"
+                                                                            className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                                                            onClick={() => handleDelete(d.id)}
+                                                                            title="Delete"
+                                                                        >
+                                                                            <Trash2 className="h-3.5 w-3.5" />
+                                                                        </Button>
+                                                                    </>
+                                                                ) : (
+                                                                    <Button
+                                                                        variant="outline"
+                                                                        size="sm"
+                                                                        className="h-7 rounded-lg text-[10px] px-2 font-bold hover:bg-primary hover:text-primary-foreground transition-all duration-200"
+                                                                        onClick={() => handleAssign(d)}
+                                                                    >
+                                                                        Entry
+                                                                    </Button>
+                                                                )}
+                                                            </div>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                );
+                                            })}
                                         </TableBody>
                                     </Table>
                                 </div>
@@ -494,10 +879,10 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
                         <DialogTitle>{editingId ? "Edit Distribution" : "Add Paper Distribution"}</DialogTitle>
                     </DialogHeader>
                     <div className="grid gap-4 py-2">
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-3 gap-4">
                             <div className="space-y-2">
                                 <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Class *</Label>
-                                <Select value={form.class_id} onValueChange={v => setForm(f => ({ ...f, class_id: v, subject_id: "" }))}>
+                                <Select value={form.class_id} onValueChange={v => setForm(f => ({ ...f, class_id: v, section_id: "", subject_id: "" }))} disabled={isFieldDisabled}>
                                     <SelectTrigger className="h-10 rounded-xl">
                                         <SelectValue placeholder="Select Class" />
                                     </SelectTrigger>
@@ -509,8 +894,21 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
                                 </Select>
                             </div>
                             <div className="space-y-2">
+                                <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Section *</Label>
+                                <Select value={form.section_id} onValueChange={v => setForm(f => ({ ...f, section_id: v }))} disabled={isFieldDisabled || !form.class_id}>
+                                    <SelectTrigger className="h-10 rounded-xl">
+                                        <SelectValue placeholder="Select Section" />
+                                    </SelectTrigger>
+                                    <SelectContent className="rounded-xl">
+                                        {filteredSections.map(s => (
+                                            <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="space-y-2">
                                 <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Subject *</Label>
-                                <Select value={form.subject_id} onValueChange={v => setForm(f => ({ ...f, subject_id: v }))} disabled={!form.class_id}>
+                                <Select value={form.subject_id} onValueChange={v => setForm(f => ({ ...f, subject_id: v }))} disabled={isFieldDisabled || !form.class_id}>
                                     <SelectTrigger className="h-10 rounded-xl">
                                         <SelectValue placeholder="Select Subject" />
                                     </SelectTrigger>
@@ -537,7 +935,7 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
                             </Select>
                         </div>
 
-                        <div className="grid grid-cols-3 gap-4">
+                        <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Copies *</Label>
                                 <Input
@@ -549,6 +947,18 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
                                     placeholder="e.g. 40"
                                 />
                             </div>
+                            <div className="space-y-2">
+                                                                <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Received from Hall</Label>
+                                                                <Input
+                                                                    type="date"
+                                                                    value={form.date_received_from_hall}
+                                                                    onChange={e => setForm(f => ({ ...f, date_received_from_hall: e.target.value }))}
+                                                                    className="h-10 rounded-xl"
+                                                                />
+                                                            </div>
+                                                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Date Given *</Label>
                                 <Input

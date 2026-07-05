@@ -40,6 +40,12 @@ function timeToMinutes(t: string): number {
     return h * 60 + m;
 }
 
+function timesOverlap(s1: string, e1: string, s2: string, e2: string): boolean {
+    const a1 = timeToMinutes(s1), b1 = timeToMinutes(e1);
+    const a2 = timeToMinutes(s2), b2 = timeToMinutes(e2);
+    return a1 < b2 && a2 < b1;
+}
+
 function formatTime12(t: string): string {
     try {
         const [h, m] = t.split(":").map(Number);
@@ -83,7 +89,9 @@ export default function RoutinePage() {
 
     const [classes, setClasses] = useState<Class[]>([]);
     const [sections, setSections] = useState<Section[]>([]);
+    const [allSections, setAllSections] = useState<Section[]>([]);
     const [subjects, setSubjects] = useState<Subject[]>([]);
+    const [allSubjects, setAllSubjects] = useState<Subject[]>([]);
     const [teachers, setTeachers] = useState<Teacher[]>([]);
     const [routines, setRoutines] = useState<ClassRoutine[]>([]);
     const [allRoutines, setAllRoutines] = useState<ClassRoutine[]>([]);
@@ -120,16 +128,20 @@ export default function RoutinePage() {
     // Load initial data
     useEffect(() => {
         (async () => {
-            const [cRes, tRes, settingsRes, schoolRes] = await Promise.all([
+            const [cRes, tRes, settingsRes, schoolRes, secRes, subRes] = await Promise.all([
                 supabase.from("classes").select(CLASS_COLUMNS).order("numeric_value"),
                 supabase.from("teachers").select(TEACHER_COLUMNS).eq("employee_type", "teacher").order("name"),
                 fetch("/api/administration/routine/settings").then((r) => r.json()),
                 (supabase as any).from("school_info").select("name, address, phone, email, logo_url").limit(1).single(),
+                supabase.from("sections").select(SECTION_COLUMNS),
+                supabase.from("subjects").select(SUBJECT_COLUMNS),
             ]);
             setClasses(cRes.data || []);
             setTeachers(tRes.data || []);
             if (settingsRes.success && settingsRes.data) setSettings(settingsRes.data);
             if (schoolRes.data) setSchoolInfo(schoolRes.data as SchoolInfo);
+            setAllSections(secRes.data || []);
+            setAllSubjects(subRes.data || []);
             setLoading(false);
         })();
     }, [supabase]);
@@ -195,6 +207,7 @@ export default function RoutinePage() {
         if (!formData.teacher_id || !formData.start_time || !formData.end_time) { setConflictWarnings([]); return; }
         const check = async () => {
             try {
+                const classId = viewMode === "class" ? selectedClass : dialogClassId;
                 const res = await fetch("/api/administration/routine/conflict-check", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -202,23 +215,24 @@ export default function RoutinePage() {
                         teacher_id: formData.teacher_id,
                         day_of_week: formData.day_of_week, start_time: formData.start_time,
                         end_time: formData.end_time, exclude_id: formData.id || undefined,
+                        class_id: classId,
                     }),
                 });
                 const result = await res.json();
-                if (result.success && result.data.has_conflict) {
+                if (result.success && result.data.conflicts && result.data.conflicts.length > 0) {
                     setConflictWarnings(result.data.conflicts.map((c: { message: string }) => c.message));
                 } else { setConflictWarnings([]); }
             } catch { /* ignore */ }
         };
         const timer = setTimeout(check, 300);
         return () => clearTimeout(timer);
-    }, [formData.teacher_id, formData.day_of_week, formData.start_time, formData.end_time, formData.id]);
+    }, [formData.teacher_id, formData.day_of_week, formData.start_time, formData.end_time, formData.id, viewMode, selectedClass, dialogClassId]);
 
     const getName = (list: { id: string; name: string }[], id: string) => list.find((x) => x.id === id)?.name || "";
     const getTeacher = (id: string) => teachers.find((x) => x.id === id);
 
     const findRoutinesForSlot = (dayIndex: number, slot: { start: string; end: string }) => {
-        return routines.filter((r) => r.day_of_week === dayIndex && r.start_time === slot.start && r.end_time === slot.end);
+        return routines.filter((r) => r.day_of_week === dayIndex && timesOverlap(r.start_time, r.end_time, slot.start, slot.end));
     };
 
     const openCellDialog = (dayIndex: number, slot: { period: number; start: string; end: string }, existingId?: string) => {
@@ -259,7 +273,7 @@ export default function RoutinePage() {
             if (existingForSubject) {
                 const currentTeacherName = getName(teachers, existingForSubject.teacher_id);
                 const newTeacherName = getName(teachers, formData.teacher_id);
-                const subjectName = getName(viewMode === "class" ? subjects : dialogSubjects, formData.subject_id);
+                const subjectName = getName(allSubjects, formData.subject_id);
                 const confirmed = window.confirm(
                     `"${subjectName}" is currently assigned to "${currentTeacherName}".\n\nDo you want to change the teacher to "${newTeacherName}"?`
                 );
@@ -304,7 +318,16 @@ export default function RoutinePage() {
     const hasConflict = (r: ClassRoutine) => {
         return allRoutines.some((other) =>
             other.id !== r.id && other.teacher_id === r.teacher_id && other.day_of_week === r.day_of_week &&
-            timeToMinutes(other.start_time) < timeToMinutes(r.end_time) && timeToMinutes(r.start_time) < timeToMinutes(other.end_time)
+            timesOverlap(other.start_time, other.end_time, r.start_time, r.end_time) &&
+            other.class_id !== r.class_id
+        );
+    };
+
+    const hasWarning = (r: ClassRoutine) => {
+        return allRoutines.some((other) =>
+            other.id !== r.id && other.teacher_id === r.teacher_id && other.day_of_week === r.day_of_week &&
+            timesOverlap(other.start_time, other.end_time, r.start_time, r.end_time) &&
+            other.class_id === r.class_id
         );
     };
 
@@ -320,7 +343,8 @@ export default function RoutinePage() {
             for (let i = 0; i < group.length; i++) {
                 for (let j = i + 1; j < group.length; j++) {
                     const a = group[i], b = group[j];
-                    if (timeToMinutes(a.start_time) < timeToMinutes(b.end_time) && timeToMinutes(b.start_time) < timeToMinutes(a.end_time)) {
+                    if (timesOverlap(a.start_time, a.end_time, b.start_time, b.end_time)) {
+                        if (a.class_id === b.class_id) continue;
                         conflicts.push({ teacherName: getName(teachers, a.teacher_id), day: DAY_NAMES[a.day_of_week] || `Day ${a.day_of_week}`, details: `${formatTime12(a.start_time)}-${formatTime12(a.end_time)} ↔ ${formatTime12(b.start_time)}-${formatTime12(b.end_time)}` });
                     }
                 }
@@ -328,6 +352,29 @@ export default function RoutinePage() {
         }
         return conflicts;
     }, [allRoutines, teachers]);
+
+    const globalWarnings = useMemo(() => {
+        const warnings: { teacherName: string; day: string; details: string }[] = [];
+        const byTeacherDay = new Map<string, ClassRoutine[]>();
+        for (const r of allRoutines) {
+            const key = `${r.teacher_id}__${r.day_of_week}`;
+            if (!byTeacherDay.has(key)) byTeacherDay.set(key, []);
+            byTeacherDay.get(key)!.push(r);
+        }
+        for (const [, group] of byTeacherDay) {
+            for (let i = 0; i < group.length; i++) {
+                for (let j = i + 1; j < group.length; j++) {
+                    const a = group[i], b = group[j];
+                    if (timesOverlap(a.start_time, a.end_time, b.start_time, b.end_time)) {
+                        if (a.class_id === b.class_id) {
+                            warnings.push({ teacherName: getName(teachers, a.teacher_id), day: DAY_NAMES[a.day_of_week] || `Day ${a.day_of_week}`, details: `${formatTime12(a.start_time)}-${formatTime12(a.end_time)} (${getName(classes, a.class_id)})` });
+                        }
+                    }
+                }
+            }
+        }
+        return warnings;
+    }, [allRoutines, teachers, classes]);
 
     const handlePrint = () => {
         // Build table HTML from current data
@@ -342,12 +389,12 @@ export default function RoutinePage() {
                 if (viewMode === "class") {
                     const parts = entries.map((entry) => {
                         const teacher = getTeacher(entry.teacher_id);
-                        return `<div class="subj">${getName(subjects, entry.subject_id)}</div><div class="tchr">${teacher?.name || ""}</div>${teacher?.phone ? `<div class="tchr-ph">${teacher.phone}</div>` : ""}`;
+                        return `<div class="subj">${getName(allSubjects, entry.subject_id)}</div><div class="tchr">${teacher?.name || ""}</div>${teacher?.phone ? `<div class="tchr-ph">${teacher.phone}</div>` : ""}`;
                     });
                     return `<td>${parts.join('<div class="multi-sep"></div>')}</td>`;
                 } else {
                     const parts = entries.map((entry) => {
-                        return `<div class="subj">${getName(classes, entry.class_id)} — ${getName(sections, entry.section_id)}</div><div class="tchr">${getName(subjects, entry.subject_id)}</div>`;
+                        return `<div class="subj">${getName(classes, entry.class_id)} — ${getName(allSections, entry.section_id)}</div><div class="tchr">${getName(allSubjects, entry.subject_id)}</div>`;
                     });
                     return `<td>${parts.join('<div class="multi-sep"></div>')}</td>`;
                 }
@@ -447,13 +494,28 @@ ${schoolInfo?.logo_url ? `<img src="${schoolInfo.logo_url}" alt="Logo">` : ""}
 
             {/* Conflict Alerts */}
             {globalConflicts.length > 0 && (
-                <div className="rounded-lg border border-amber-200 dark:border-amber-500/30 bg-amber-50/50 dark:bg-amber-500/5 p-3 no-print">
+                <div className="rounded-lg border border-red-200 dark:border-red-500/30 bg-destructive/10 dark:bg-destructive/100/10 p-3 no-print mb-3">
+                    <div className="flex items-start gap-2">
+                        <Warning size={16} strokeWidth={1.5} className=" text-red-500 shrink-0 mt-0.5" />
+                        <div>
+                            <p className="text-sm font-medium text-red-800 dark:text-red-300">{globalConflicts.length} Conflict{globalConflicts.length > 1 ? "s" : ""} Detected</p>
+                            {globalConflicts.slice(0, 3).map((c, i) => (
+                                <p key={i} className="text-xs text-red-700 dark:text-red-400/80 mt-0.5"><span className="font-medium">{c.teacherName}</span> — {c.day}: {c.details}</p>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Warning Alerts */}
+            {globalWarnings.length > 0 && (
+                <div className="rounded-lg border border-amber-200 dark:border-amber-500/30 bg-amber-50/50 dark:bg-amber-500/5 p-3 no-print mb-3">
                     <div className="flex items-start gap-2">
                         <Warning size={16} strokeWidth={1.5} className=" text-amber-600 shrink-0 mt-0.5" />
                         <div>
-                            <p className="text-sm font-medium text-amber-800 dark:text-amber-300">{globalConflicts.length} Conflict{globalConflicts.length > 1 ? "s" : ""} Detected</p>
-                            {globalConflicts.slice(0, 3).map((c, i) => (
-                                <p key={i} className="text-xs text-amber-700 dark:text-amber-400/80 mt-0.5"><span className="font-medium">{c.teacherName}</span> — {c.day}: {c.details}</p>
+                            <p className="text-sm font-medium text-amber-800 dark:text-amber-300">{globalWarnings.length} Warning{globalWarnings.length > 1 ? "s" : ""} Detected</p>
+                            {globalWarnings.slice(0, 3).map((w, i) => (
+                                <p key={i} className="text-xs text-amber-700 dark:text-amber-400/80 mt-0.5"><span className="font-medium">{w.teacherName}</span> — {w.day}: {w.details}</p>
                             ))}
                         </div>
                     </div>
@@ -528,32 +590,35 @@ ${schoolInfo?.logo_url ? `<img src="${schoolInfo.logo_url}" alt="Logo">` : ""}
                                     {periodSlots.map((slot) => {
                                         const entries = findRoutinesForSlot(dayIndex, slot);
                                         const anyConflict = entries.some((e) => hasConflict(e));
+                                        const anyWarning = !anyConflict && entries.some((e) => hasWarning(e));
 
                                         return (
                                             <td
                                                 key={slot.period}
-                                                className={`period-cell ${entries.length > 0 ? "filled" : "empty"} ${anyConflict ? "conflict" : ""}`}
+                                                className={`period-cell ${entries.length > 0 ? "filled" : "empty"} ${anyConflict ? "conflict" : ""} ${anyWarning ? "warning" : ""}`}
                                                 onClick={() => { if (entries.length === 0) openCellDialog(dayIndex, slot); }}
                                             >
                                                 {entries.length > 0 ? (
                                                     <div className="cell-content multi-cell">
                                                         {entries.map((entry, idx) => {
                                                             const conflict = hasConflict(entry);
+                                                            const warning = !conflict && hasWarning(entry);
                                                             const teacher = getTeacher(entry.teacher_id);
                                                             return (
                                                                 <div key={entry.id} className={`multi-entry ${idx > 0 ? "multi-entry-border" : ""}`}>
                                                                     {conflict && <Warning size={10} strokeWidth={1.5} className="text-red-500 absolute top-0 right-0 no-print" />}
+                                                                    {warning && <Warning size={10} strokeWidth={1.5} className="text-amber-500 absolute top-0 right-0 no-print" />}
                                                                     <div className="multi-entry-content" onClick={(e: MouseEvent) => { e.stopPropagation(); openCellDialog(dayIndex, slot, entry.id); }}>
                                                                         {viewMode === "class" ? (
                                                                             <>
-                                                                                <div className="subject-name">{getName(subjects, entry.subject_id)}</div>
+                                                                                <div className="subject-name">{getName(allSubjects, entry.subject_id)}</div>
                                                                                 <div className="teacher-name">{teacher?.name || ""}</div>
                                                                                 {teacher?.phone && <div className="teacher-phone">{teacher.phone}</div>}
                                                                             </>
                                                                         ) : (
                                                                             <>
-                                                                                <div className="subject-name">{getName(classes, entry.class_id)} — {getName(sections, entry.section_id)}</div>
-                                                                                <div className="teacher-name">{getName(subjects, entry.subject_id)}</div>
+                                                                                <div className="subject-name">{getName(classes, entry.class_id)} — {getName(allSections, entry.section_id)}</div>
+                                                                                <div className="teacher-name">{getName(allSubjects, entry.subject_id)}</div>
                                                                             </>
                                                                         )}
                                                                     </div>
@@ -620,7 +685,7 @@ ${schoolInfo?.logo_url ? `<img src="${schoolInfo.logo_url}" alt="Logo">` : ""}
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                 <DialogContent className="sm:max-w-md">
                     <DialogHeader>
-                        <DialogTitle>{formData.id ? "Edit" : "Add"} — {DAY_NAMES[formData.day_of_week]}, {formData.start_time} - {formData.end_time}</DialogTitle>
+                        <DialogTitle>{formData.id ? "Edit" : "Add"} — {DAY_NAMES[formData.day_of_week]}, {formatTime12(formData.start_time)} - {formatTime12(formData.end_time)}</DialogTitle>
                     </DialogHeader>
                     <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="grid gap-4 py-2">
                         {conflictWarnings.length > 0 && (
@@ -764,6 +829,11 @@ ${schoolInfo?.logo_url ? `<img src="${schoolInfo.logo_url}" alt="Logo">` : ""}
                     box-shadow: inset 0 0 0 1px hsl(0 70% 85%);
                 }
                 .dark .period-cell.conflict { background: hsl(0 60% 15% / 0.5) !important; }
+                .period-cell.warning {
+                    background: hsl(45 93% 94%) !important;
+                    box-shadow: inset 0 0 0 1px hsl(45 80% 80%);
+                }
+                .dark .period-cell.warning { background: hsl(45 60% 15% / 0.5) !important; }
 
                 /* Cell content */
                 .cell-content { position: relative; }

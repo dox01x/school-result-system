@@ -127,14 +127,10 @@ export function SeatPlanTab({ exams }: { exams: { id: string; name: string }[] }
             if (idx === -1) return prev;
 
             const next = [...prev];
-            if (count === 0) {
-                next.splice(idx, 1);
-            } else {
-                next[idx] = {
-                    ...next[idx],
-                    allocated_students: count
-                };
-            }
+            next[idx] = {
+                ...next[idx],
+                allocated_students: count
+            };
             return next;
         });
     };
@@ -165,7 +161,9 @@ export function SeatPlanTab({ exams }: { exams: { id: string; name: string }[] }
                 tables_count: r.tables_count ?? 0,
                 seats_per_table: r.seats_per_table ?? 2,
                 order_index: r.order_index ?? 0,
-                capacity: (r.tables_count ?? 0) * (r.seats_per_table ?? 2)
+                capacity: (r.tables_count ?? 0) * (r.seats_per_table ?? 2) > 0 
+                    ? (r.tables_count ?? 0) * (r.seats_per_table ?? 2) 
+                    : (r.capacity ?? 0)
             }));
 
             let fetchedSections = sectionsRes.data || [];
@@ -263,8 +261,8 @@ export function SeatPlanTab({ exams }: { exams: { id: string; name: string }[] }
         fetchAllocations();
     }, [fetchAllocations]);
 
-    const unconfiguredRooms = useMemo(() => rooms.filter(r => r.tables_count === 0), [rooms]);
-    const configuredRooms = useMemo(() => rooms.filter(r => r.tables_count > 0), [rooms]);
+    const unconfiguredRooms = useMemo(() => rooms.filter(r => r.tables_count === 0 && r.capacity === 0), [rooms]);
+    const configuredRooms = useMemo(() => rooms.filter(r => r.capacity > 0), [rooms]);
 
     const activeClassIds = useMemo(() => {
         return new Set(activeSchedules.map(s => s.class_id));
@@ -391,15 +389,17 @@ export function SeatPlanTab({ exams }: { exams: { id: string; name: string }[] }
                 .eq("start_time", start_time)
                 .eq("end_time", end_time);
             
-            const inserts = allocations.map(a => ({
-                exam_id: selectedExam,
-                start_time,
-                end_time,
-                room_id: a.room_id,
-                class_id: a.class_id,
-                section_id: a.section_id,
-                allocated_students: a.allocated_students
-            }));
+            const inserts = allocations
+                .filter(a => a.allocated_students > 0)
+                .map(a => ({
+                    exam_id: selectedExam,
+                    start_time,
+                    end_time,
+                    room_id: a.room_id,
+                    class_id: a.class_id,
+                    section_id: a.section_id,
+                    allocated_students: a.allocated_students
+                }));
 
             if (inserts.length > 0) {
                 const { error } = await supabase.from("exam_seat_plans").insert(inserts);

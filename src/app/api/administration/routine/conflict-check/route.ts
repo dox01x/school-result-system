@@ -6,7 +6,7 @@ import { NextRequest, NextResponse } from "next/server";
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
-        const { teacher_id, room_id, day_of_week, start_time, end_time, exclude_id } = body;
+        const { teacher_id, room_id, day_of_week, start_time, end_time, exclude_id, class_id } = body;
 
         if (!teacher_id || day_of_week === undefined || !start_time || !end_time) {
             return NextResponse.json({ success: false, error: "Missing required fields" }, { status: 400 });
@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
         const { data: teacherSlots } = await supabase
             .from("class_routines")
             .select(`
-                id, start_time, end_time, day_of_week,
+                id, start_time, end_time, day_of_week, class_id,
                 classes!class_routines_class_id_fkey(name),
                 sections!class_routines_section_id_fkey(name),
                 subjects!class_routines_subject_id_fkey(name)
@@ -33,11 +33,19 @@ export async function POST(request: NextRequest) {
                 if (timesOverlap(start_time, end_time, slot.start_time, slot.end_time)) {
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     const s = slot as any;
-                    conflicts.push({
-                        type: "teacher",
-                        message: `This teacher is already assigned to ${s.classes?.name || ""} (${s.sections?.name || ""}) at ${slot.start_time}-${slot.end_time}`,
-                        entry: slot,
-                    });
+                    if (class_id && s.class_id === class_id) {
+                        conflicts.push({
+                            type: "teacher_warning",
+                            message: `Warning: This teacher is already assigned to another subject (${s.subjects?.name || ""}) in this class at this time.`,
+                            entry: slot,
+                        });
+                    } else {
+                        conflicts.push({
+                            type: "teacher",
+                            message: `This teacher is already assigned to ${s.classes?.name || ""} (${s.sections?.name || ""}) at ${slot.start_time}-${slot.end_time}`,
+                            entry: slot,
+                        });
+                    }
                 }
             }
         }
@@ -47,7 +55,7 @@ export async function POST(request: NextRequest) {
             const { data: roomSlots } = await supabase
                 .from("class_routines")
                 .select(`
-                    id, start_time, end_time, day_of_week,
+                    id, start_time, end_time, day_of_week, class_id,
                     classes!class_routines_class_id_fkey(name),
                     sections!class_routines_section_id_fkey(name),
                     subjects!class_routines_subject_id_fkey(name)
@@ -61,11 +69,19 @@ export async function POST(request: NextRequest) {
                     if (timesOverlap(start_time, end_time, slot.start_time, slot.end_time)) {
                         // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         const s = slot as any;
-                        conflicts.push({
-                            type: "room",
-                            message: `This room is already booked for ${s.classes?.name || ""} (${s.sections?.name || ""}) at ${slot.start_time}-${slot.end_time}`,
-                            entry: slot,
-                        });
+                        if (class_id && s.class_id === class_id) {
+                            conflicts.push({
+                                type: "room_warning",
+                                message: `Warning: This room is already booked for another subject (${s.subjects?.name || ""}) in this class at this time.`,
+                                entry: slot,
+                            });
+                        } else {
+                            conflicts.push({
+                                type: "room",
+                                message: `This room is already booked for ${s.classes?.name || ""} (${s.sections?.name || ""}) at ${slot.start_time}-${slot.end_time}`,
+                                entry: slot,
+                            });
+                        }
                     }
                 }
             }
@@ -74,7 +90,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({
             success: true,
             data: {
-                has_conflict: conflicts.length > 0,
+                has_conflict: conflicts.some(c => c.type === "teacher" || c.type === "room"),
                 conflicts,
             },
         });

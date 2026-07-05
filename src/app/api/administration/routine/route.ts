@@ -52,6 +52,7 @@ export async function POST(request: NextRequest) {
             for (const slot of teacherSlots) {
                 if (body.id && slot.id === body.id) continue;
                 if (timesOverlap(start_time, end_time, slot.start_time, slot.end_time)) {
+                    if (slot.class_id === class_id) continue;
                     return NextResponse.json({
                         success: false,
                         error: `Teacher conflict: This teacher is already assigned to another class at this time on this day.`,
@@ -72,6 +73,7 @@ export async function POST(request: NextRequest) {
                 for (const slot of roomSlots) {
                     if (body.id && slot.id === body.id) continue;
                     if (timesOverlap(start_time, end_time, slot.start_time, slot.end_time)) {
+                        if (slot.class_id === class_id) continue;
                         return NextResponse.json({
                             success: false,
                             error: `Room conflict: This room is already booked for another class at this time on this day.`,

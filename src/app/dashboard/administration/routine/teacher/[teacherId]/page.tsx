@@ -30,6 +30,15 @@ function timeToMinutes(t: string): number {
     return h * 60 + m;
 }
 
+function formatTime12(t: string): string {
+    try {
+        const [h, m] = t.split(":").map(Number);
+        const ampm = h >= 12 ? "PM" : "AM";
+        const h12 = h % 12 || 12;
+        return `${h12}:${m.toString().padStart(2, "0")} ${ampm}`;
+    } catch { return t; }
+}
+
 export default function TeacherRoutinePage({ params }: { params: Promise<{ teacherId: string }> }) {
     const { teacherId } = use(params);
     const supabase = useMemo(() => createClient(), []);
@@ -50,21 +59,27 @@ export default function TeacherRoutinePage({ params }: { params: Promise<{ teach
         })();
     }, [teacherId, supabase]);
 
-    // Detect conflicts within this teacher's schedule
-    const conflicts = useMemo(() => {
-        const found: Set<string> = new Set();
+    // Detect conflicts and warnings within this teacher's schedule
+    const { conflicts, warnings } = useMemo(() => {
+        const conflictsSet: Set<string> = new Set();
+        const warningsSet: Set<string> = new Set();
         for (let i = 0; i < entries.length; i++) {
             for (let j = i + 1; j < entries.length; j++) {
                 if (entries[i].day_of_week !== entries[j].day_of_week) continue;
                 const aS = timeToMinutes(entries[i].start_time), aE = timeToMinutes(entries[i].end_time);
                 const bS = timeToMinutes(entries[j].start_time), bE = timeToMinutes(entries[j].end_time);
                 if (aS < bE && bS < aE) {
-                    found.add(entries[i].id);
-                    found.add(entries[j].id);
+                    if (entries[i].classes?.id === entries[j].classes?.id) {
+                        warningsSet.add(entries[i].id);
+                        warningsSet.add(entries[j].id);
+                    } else {
+                        conflictsSet.add(entries[i].id);
+                        conflictsSet.add(entries[j].id);
+                    }
                 }
             }
         }
-        return found;
+        return { conflicts: conflictsSet, warnings: warningsSet };
     }, [entries]);
 
     if (loading) {
@@ -115,6 +130,12 @@ export default function TeacherRoutinePage({ params }: { params: Promise<{ teach
                             {conflicts.size} conflicts
                         </Badge>
                     )}
+                    {warnings.size > 0 && (
+                        <Badge variant="secondary" className="gap-1 bg-amber-500 text-white hover:bg-amber-600 border-none">
+                            <Warning size={12} strokeWidth={1.5} className=" " />
+                            {warnings.size} warnings
+                        </Badge>
+                    )}
                     <Button variant="outline" size="sm" onClick={() => {
                         document.body.classList.add("printing-routine");
                         setTimeout(() => { window.print(); document.body.classList.remove("printing-routine"); }, 100);
@@ -151,12 +172,15 @@ export default function TeacherRoutinePage({ params }: { params: Promise<{ teach
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
                                     {dayEntries.map((e) => {
                                         const hasConflict = conflicts.has(e.id);
+                                        const hasWarning = !hasConflict && warnings.has(e.id);
                                         return (
                                             <div
                                                 key={e.id}
                                                 className={`rounded-lg p-2.5 transition-colors ${
                                                     hasConflict
                                                         ? "bg-destructive/10 dark:bg-destructive/100/10 border border-red-200 dark:border-red-500/30"
+                                                        : hasWarning
+                                                        ? "bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-500/30"
                                                         : "bg-accent/50"
                                                 }`}
                                             >
@@ -166,8 +190,14 @@ export default function TeacherRoutinePage({ params }: { params: Promise<{ teach
                                                         <span className="text-[10px] text-destructive dark:text-red-400 font-medium">Time Conflict</span>
                                                     </div>
                                                 )}
+                                                {hasWarning && (
+                                                    <div className="flex items-center gap-1 mb-1">
+                                                        <Warning size={12} strokeWidth={1.5} className=" text-amber-500" />
+                                                        <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">Schedule Warning</span>
+                                                    </div>
+                                                )}
                                                 <div className="text-[11px] text-muted-foreground font-medium">
-                                                    {e.start_time} — {e.end_time}
+                                                    {formatTime12(e.start_time)} — {formatTime12(e.end_time)}
                                                 </div>
                                                 <div className="text-[13px] font-medium mt-0.5 truncate">
                                                     {e.classes?.name || "—"} — {e.sections?.name || "—"}
