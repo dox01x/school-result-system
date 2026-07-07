@@ -87,9 +87,9 @@ const emptyForm: FormData = {
     subject_id: "",
     teacher_id: "",
     total_copies: "",
-    date_given: new Date().toISOString().split("T")[0],
+    date_given: "",
     date_returned: "",
-    date_received_from_hall: "",
+    date_received_from_hall: new Date().toISOString().split("T")[0],
     notes: "",
 };
 
@@ -364,7 +364,7 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
             subject_id: dist.subject_id,
             teacher_id: dist.teacher_id,
             total_copies: String(dist.total_copies),
-            date_given: dist.date_given,
+            date_given: dist.date_given === "1970-01-01" ? "" : dist.date_given,
             date_returned: dist.date_returned || "",
             date_received_from_hall: dist.date_received_from_hall || "",
             notes: dist.notes || "",
@@ -383,9 +383,9 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
             subject_id: d.subject_id,
             teacher_id: routineTeacherId,
             total_copies: "",
-            date_given: new Date().toISOString().split("T")[0],
+            date_given: "",
             date_returned: "",
-            date_received_from_hall: "",
+            date_received_from_hall: new Date().toISOString().split("T")[0],
             notes: "",
         });
         setIsFieldDisabled(true);
@@ -394,7 +394,7 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
 
     // Save (add or update)
     const handleSave = async () => {
-        if (!form.class_id || !form.section_id || !form.subject_id || !form.teacher_id || !form.total_copies || !form.date_given) {
+        if (!form.class_id || !form.section_id || !form.subject_id || !form.teacher_id || !form.total_copies) {
             toast.error("Please fill all required fields");
             return;
         }
@@ -406,7 +406,7 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
             subject_id: form.subject_id,
             teacher_id: form.teacher_id,
             total_copies: parseInt(form.total_copies),
-            date_given: form.date_given,
+            date_given: form.date_given || "1970-01-01",
             date_returned: form.date_returned || null,
             date_received_from_hall: form.date_received_from_hall || null,
             status: form.date_returned ? "returned" : "pending",
@@ -470,6 +470,21 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
             toast.error("Failed to update receipt date");
         } else {
             toast.success("Papers marked as received from hall");
+            loadDistributions(selectedExam, true);
+        }
+    };
+
+    // Mark as given to teacher
+    const handleMarkGiven = async (id: string) => {
+        const todayStr = new Date().toISOString().split("T")[0];
+        const { error } = await supabase
+            .from("exam_paper_distributions")
+            .update({ date_given: todayStr })
+            .eq("id", id);
+        if (error) {
+            toast.error("Failed to update date");
+        } else {
+            toast.success("Papers marked as given");
             loadDistributions(selectedExam, true);
         }
     };
@@ -561,7 +576,7 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
                     return teacherId ? getTeacherName(teacherId) : "";
                 })()}</td>
                 <td style="border:1px solid #000;padding:4px 6px;text-align:center">${isVirtual ? "" : d.total_copies}</td>
-                <td style="border:1px solid #000;padding:4px 6px;text-align:center">${isVirtual ? "" : formatDate(d.date_given)}</td>
+                <td style="border:1px solid #000;padding:4px 6px;text-align:center">${isVirtual || d.date_given === "1970-01-01" ? "" : formatDate(d.date_given)}</td>
                 <td style="border:1px solid #000;padding:4px 6px;text-align:center">${!isVirtual && d.date_returned ? formatDate(d.date_returned) : ""}</td>
                 <td style="border:1px solid #000;padding:4px 6px;text-align:center"><span style="background:${statusBg};padding:2px 8px;border-radius:4px;font-size:10px">${statusText}</span></td>
                 <td style="border:1px solid #000;padding:4px 6px;font-size:10px">${d.notes || ""}</td>
@@ -624,9 +639,9 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
     return (
         <div className="space-y-6">
             {/* Filters */}
-            <div className="flex items-center gap-3 flex-wrap bg-card p-4 rounded-2xl border border-border/50">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 bg-card p-4 rounded-2xl border border-border/50">
                 <Select value={selectedExam} onValueChange={setSelectedExam}>
-                    <SelectTrigger className="w-[220px] h-11 rounded-xl border-0 bg-muted hover:bg-muted/80 transition-colors text-foreground font-semibold shadow-none focus:ring-1 focus:ring-ring/30">
+                    <SelectTrigger className="w-full sm:w-[220px] h-11 rounded-xl border-0 bg-muted hover:bg-muted/80 transition-colors text-foreground font-semibold shadow-none focus:ring-1 focus:ring-ring/30">
                         <SelectValue placeholder="Select Exam" />
                     </SelectTrigger>
                     <SelectContent className="rounded-xl border-border/50 shadow-md">
@@ -638,7 +653,7 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
 
                 {selectedExam && availableDates.length > 0 && (
                     <Select value={selectedDate} onValueChange={setSelectedDate}>
-                        <SelectTrigger className="w-[200px] h-11 rounded-xl border-0 bg-muted hover:bg-muted/80 transition-colors text-foreground font-semibold shadow-none focus:ring-1 focus:ring-ring/30">
+                        <SelectTrigger className="w-full sm:w-[200px] h-11 rounded-xl border-0 bg-muted hover:bg-muted/80 transition-colors text-foreground font-semibold shadow-none focus:ring-1 focus:ring-ring/30">
                             <SelectValue placeholder="All Dates" />
                         </SelectTrigger>
                         <SelectContent className="rounded-xl border-border/50 shadow-md">
@@ -652,12 +667,12 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
                     </Select>
                 )}
 
-                <div className="ml-auto flex gap-2">
+                <div className="w-full sm:w-auto sm:ml-auto flex flex-col sm:flex-row gap-2">
                     {selectedExam && sortedDisplayRows.length > 0 && (
                         <Button
                             variant="outline"
                             onClick={handlePrint}
-                            className="h-11 rounded-xl font-semibold shadow-none border-border/50 transition-all duration-200 gap-2"
+                            className="w-full sm:w-auto h-11 rounded-xl font-semibold shadow-none border-border/50 transition-all duration-200 gap-2"
                         >
                             <Printer className="h-4 w-4" /> Print List
                         </Button>
@@ -665,7 +680,7 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
                     {selectedExam && (
                         <Button
                             onClick={handleAdd}
-                            className="h-11 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 font-semibold shadow-none transition-all duration-200 gap-2"
+                            className="w-full sm:w-auto h-11 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 font-semibold shadow-none transition-all duration-200 gap-2"
                         >
                             <Plus className="h-4 w-4" /> Add Distribution
                         </Button>
@@ -727,145 +742,324 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
                                     <p className="text-muted-foreground/60 text-xs mt-1">Please schedule exams first under Seat Plan or Schedules</p>
                                 </div>
                             ) : (
-                                <div className="overflow-x-auto">
-                                    <Table>
-                                        <TableHeader>
-                                            <TableRow>
-                                                <TableHead className="text-xs w-10">#</TableHead>
-                                                <TableHead className="text-xs">Class & Section</TableHead>
-                                                <TableHead className="text-xs">Subject</TableHead>
-                                                <TableHead className="text-xs">Received (Hall)</TableHead>
-                                                <TableHead className="text-xs">Teacher</TableHead>
-                                                <TableHead className="text-xs text-center">Copies</TableHead>
-                                                <TableHead className="text-xs">Date Given</TableHead>
-                                                <TableHead className="text-xs">Date Returned</TableHead>
-                                                <TableHead className="text-xs text-center">Status</TableHead>
-                                                <TableHead className="text-xs">Remarks</TableHead>
-                                                <TableHead className="text-xs text-right">Actions</TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {sortedDisplayRows.map((d, idx) => {
-                                                const isVirtual = d.status === "pending_distribution";
-                                                return (
-                                                    <TableRow key={d.id}>
-                                                        <TableCell className="text-xs text-muted-foreground">{idx + 1}</TableCell>
-                                                        <TableCell className="text-xs font-semibold text-foreground">
-                                                            {getClassNameWithSection(d)}
-                                                        </TableCell>
-                                                        <TableCell className="text-xs">{getSubjectName(d.subject_id)}</TableCell>
-                                                         <TableCell className="text-xs">
-                                                             {d.date_received_from_hall ? (
-                                                                 <div className="flex items-center gap-1.5 text-emerald-600 font-semibold">
-                                                                     <CheckCircle className="h-3.5 w-3.5 text-emerald-500" />
-                                                                     <span>{formatDate(d.date_received_from_hall)}</span>
-                                                                 </div>
-                                                             ) : isVirtual ? (
-                                                                 <span className="text-muted-foreground/45">—</span>
-                                                             ) : (
-                                                                 <Button
-                                                                     variant="outline"
-                                                                     size="sm"
-                                                                     className="h-7 rounded-lg text-[10px] px-2 font-bold border-dashed border-emerald-500/50 hover:bg-emerald-50 hover:text-emerald-600 gap-1 text-emerald-600"
-                                                                     onClick={() => handleMarkReceivedFromHall(d.id)}
-                                                                     title="Mark as Received from Hall"
-                                                                 >
-                                                                     <CheckCircle className="h-3 w-3" /> Mark Received
-                                                                 </Button>
-                                                             )}
-                                                         </TableCell>
-                                                        <TableCell className="text-xs">
-                                                            {(() => {
-                                                                const teacherId = isVirtual 
-                                                                    ? getRoutineTeacherId(d.class_id, d.section_id, d.subject_id)
-                                                                    : d.teacher_id;
-                                                                if (teacherId) {
-                                                                    return (
+                                <>
+                                    {/* Desktop View */}
+                                    <div className="hidden md:block overflow-x-auto">
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow>
+                                                    <TableHead className="text-xs w-10">#</TableHead>
+                                                    <TableHead className="text-xs">Class & Section</TableHead>
+                                                    <TableHead className="text-xs">Subject</TableHead>
+                                                    <TableHead className="text-xs">Received (Hall)</TableHead>
+                                                    <TableHead className="text-xs">Teacher</TableHead>
+                                                    <TableHead className="text-xs text-center">Copies</TableHead>
+                                                    <TableHead className="text-xs">Date Given</TableHead>
+                                                    <TableHead className="text-xs">Date Returned</TableHead>
+                                                    <TableHead className="text-xs text-center">Status</TableHead>
+                                                    <TableHead className="text-xs">Remarks</TableHead>
+                                                    <TableHead className="text-xs text-right">Actions</TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {sortedDisplayRows.map((d, idx) => {
+                                                    const isVirtual = d.status === "pending_distribution";
+                                                    return (
+                                                        <TableRow key={d.id}>
+                                                            <TableCell className="text-xs text-muted-foreground">{idx + 1}</TableCell>
+                                                            <TableCell className="text-xs font-semibold text-foreground">
+                                                                {getClassNameWithSection(d)}
+                                                            </TableCell>
+                                                            <TableCell className="text-xs">{getSubjectName(d.subject_id)}</TableCell>
+                                                             <TableCell className="text-xs">
+                                                                 {d.date_received_from_hall ? (
+                                                                     <div className="flex items-center gap-1.5 text-emerald-600 font-semibold">
+                                                                         <CheckCircle className="h-3.5 w-3.5 text-emerald-500" />
+                                                                         <span>{formatDate(d.date_received_from_hall)}</span>
+                                                                     </div>
+                                                                 ) : isVirtual ? (
+                                                                     <span className="text-muted-foreground/45">—</span>
+                                                                 ) : (
+                                                                     <Button
+                                                                         variant="outline"
+                                                                         size="sm"
+                                                                         className="h-7 rounded-lg text-[10px] px-2 font-bold border-dashed border-emerald-500/50 hover:bg-emerald-50 hover:text-emerald-600 gap-1 text-emerald-600"
+                                                                         onClick={() => handleMarkReceivedFromHall(d.id)}
+                                                                         title="Mark as Received from Hall"
+                                                                     >
+                                                                         <CheckCircle className="h-3 w-3" /> Mark Received
+                                                                     </Button>
+                                                                 )}
+                                                             </TableCell>
+                                                            <TableCell className="text-xs">
+                                                                {(() => {
+                                                                    const teacherId = isVirtual 
+                                                                        ? getRoutineTeacherId(d.class_id, d.section_id, d.subject_id)
+                                                                        : d.teacher_id;
+                                                                    if (teacherId) {
+                                                                        return (
+                                                                            <>
+                                                                                <div className="font-medium">{getTeacherName(teacherId)}</div>
+                                                                                <div className="text-[10px] text-muted-foreground">{getTeacherDesignation(teacherId)}</div>
+                                                                            </>
+                                                                        );
+                                                                    }
+                                                                    return <span className="text-muted-foreground/45">—</span>;
+                                                                })()}
+                                                            </TableCell>
+                                                            <TableCell className="text-xs text-center font-mono font-bold">
+                                                                {isVirtual ? <span className="text-muted-foreground/45">—</span> : d.total_copies}
+                                                            </TableCell>
+                                                            <TableCell className="text-xs">
+                                                                {isVirtual ? (
+                                                                    <span className="text-muted-foreground/45">—</span>
+                                                                ) : d.date_given === "1970-01-01" ? (
+                                                                    <Button
+                                                                        variant="outline"
+                                                                        size="sm"
+                                                                        className="h-7 rounded-lg text-[10px] px-2 font-bold border-dashed border-amber-500/50 hover:bg-amber-50 hover:text-amber-600 gap-1 text-amber-600"
+                                                                        onClick={() => handleMarkGiven(d.id)}
+                                                                        title="Mark as Given to Teacher"
+                                                                    >
+                                                                        <CheckCircle className="h-3 w-3" /> Mark Given
+                                                                    </Button>
+                                                                ) : (
+                                                                    formatDate(d.date_given)
+                                                                )}
+                                                            </TableCell>
+                                                            <TableCell className="text-xs">
+                                                                {!isVirtual && d.date_returned ? formatDate(d.date_returned) : "—"}
+                                                            </TableCell>
+                                                            <TableCell className="text-center">
+                                                                <Badge
+                                                                    variant="secondary"
+                                                                    className={`text-[10px] rounded-md border-0 ${
+                                                                        isVirtual
+                                                                            ? "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400"
+                                                                            : d.status === "returned"
+                                                                            ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300"
+                                                                            : "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300"
+                                                                    }`}
+                                                                >
+                                                                    {isVirtual ? "Not Assigned" : d.status === "returned" ? "Returned" : "Pending"}
+                                                                </Badge>
+                                                            </TableCell>
+                                                            <TableCell className="text-xs text-muted-foreground max-w-[120px] truncate">{d.notes || "—"}</TableCell>
+                                                            <TableCell className="text-right">
+                                                                <div className="flex items-center justify-end gap-1">
+                                                                    {!isVirtual ? (
                                                                         <>
-                                                                            <div className="font-medium">{getTeacherName(teacherId)}</div>
-                                                                            <div className="text-[10px] text-muted-foreground">{getTeacherDesignation(teacherId)}</div>
-                                                                        </>
-                                                                    );
-                                                                }
-                                                                return <span className="text-muted-foreground/45">—</span>;
-                                                            })()}
-                                                        </TableCell>
-                                                        <TableCell className="text-xs text-center font-mono font-bold">
-                                                            {isVirtual ? <span className="text-muted-foreground/45">—</span> : d.total_copies}
-                                                        </TableCell>
-                                                        <TableCell className="text-xs">
-                                                            {isVirtual ? <span className="text-muted-foreground/45">—</span> : formatDate(d.date_given)}
-                                                        </TableCell>
-                                                        <TableCell className="text-xs">
-                                                            {!isVirtual && d.date_returned ? formatDate(d.date_returned) : "—"}
-                                                        </TableCell>
-                                                        <TableCell className="text-center">
-                                                            <Badge
-                                                                variant="secondary"
-                                                                className={`text-[10px] rounded-md border-0 ${
-                                                                    isVirtual
-                                                                        ? "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400"
-                                                                        : d.status === "returned"
-                                                                        ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300"
-                                                                        : "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300"
-                                                                }`}
-                                                            >
-                                                                {isVirtual ? "Not Assigned" : d.status === "returned" ? "Returned" : "Pending"}
-                                                            </Badge>
-                                                        </TableCell>
-                                                        <TableCell className="text-xs text-muted-foreground max-w-[120px] truncate">{d.notes || "—"}</TableCell>
-                                                        <TableCell className="text-right">
-                                                            <div className="flex items-center justify-end gap-1">
-                                                                {!isVirtual ? (
-                                                                    <>
-                                                                        {d.status === "pending" && (
+                                                                            {d.status === "pending" && (
+                                                                                <Button
+                                                                                    variant="ghost"
+                                                                                    size="icon"
+                                                                                    className="h-7 w-7 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
+                                                                                    onClick={() => handleMarkReturned(d.id)}
+                                                                                    title="Mark as Returned"
+                                                                                >
+                                                                                    <CheckCircle className="h-3.5 w-3.5" />
+                                                                                </Button>
+                                                                            )}
                                                                             <Button
                                                                                 variant="ghost"
                                                                                 size="icon"
-                                                                                className="h-7 w-7 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
-                                                                                onClick={() => handleMarkReturned(d.id)}
-                                                                                title="Mark as Returned"
+                                                                                className="h-7 w-7"
+                                                                                onClick={() => handleEdit(d)}
+                                                                                title="Edit"
                                                                             >
-                                                                                <CheckCircle className="h-3.5 w-3.5" />
+                                                                                <Pencil className="h-3.5 w-3.5" />
                                                                             </Button>
-                                                                        )}
+                                                                            <Button
+                                                                                variant="ghost"
+                                                                                size="icon"
+                                                                                className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                                                                onClick={() => handleDelete(d.id)}
+                                                                                title="Delete"
+                                                                            >
+                                                                                <Trash2 className="h-3.5 w-3.5" />
+                                                                            </Button>
+                                                                        </>
+                                                                    ) : (
                                                                         <Button
-                                                                            variant="ghost"
-                                                                            size="icon"
-                                                                            className="h-7 w-7"
-                                                                            onClick={() => handleEdit(d)}
-                                                                            title="Edit"
+                                                                            variant="outline"
+                                                                            size="sm"
+                                                                            className="h-7 rounded-lg text-[10px] px-2 font-bold hover:bg-primary hover:text-primary-foreground transition-all duration-200"
+                                                                            onClick={() => handleAssign(d)}
                                                                         >
-                                                                            <Pencil className="h-3.5 w-3.5" />
+                                                                            Entry
                                                                         </Button>
-                                                                        <Button
-                                                                            variant="ghost"
-                                                                            size="icon"
-                                                                            className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
-                                                                            onClick={() => handleDelete(d.id)}
-                                                                            title="Delete"
-                                                                        >
-                                                                            <Trash2 className="h-3.5 w-3.5" />
-                                                                        </Button>
-                                                                    </>
+                                                                    )}
+                                                                </div>
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    );
+                                                })}
+                                            </TableBody>
+                                        </Table>
+                                    </div>
+
+                                    {/* Mobile View */}
+                                    <div className="md:hidden divide-y divide-border/50">
+                                        {sortedDisplayRows.map((d, idx) => {
+                                            const isVirtual = d.status === "pending_distribution";
+                                            return (
+                                                <div key={d.id} className="p-4 space-y-3">
+                                                    {/* Header: Sl. & Class/Section & Status */}
+                                                    <div className="flex items-center justify-between">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-xs font-bold text-muted-foreground">#{idx + 1}</span>
+                                                            <span className="text-sm font-bold text-foreground">
+                                                                {getClassNameWithSection(d)}
+                                                            </span>
+                                                        </div>
+                                                        <Badge
+                                                            variant="secondary"
+                                                            className={`text-[10px] rounded-md border-0 ${
+                                                                isVirtual
+                                                                    ? "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400"
+                                                                    : d.status === "returned"
+                                                                    ? "bg-emerald-100 dark:bg-emerald-955/30 text-emerald-700 dark:text-emerald-300"
+                                                                    : "bg-amber-100 dark:bg-amber-955/30 text-amber-700 dark:text-amber-300"
+                                                            }`}
+                                                        >
+                                                            {isVirtual ? "Not Assigned" : d.status === "returned" ? "Returned" : "Pending"}
+                                                        </Badge>
+                                                    </div>
+
+                                                    {/* Info Grid */}
+                                                    <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-xs">
+                                                        <div>
+                                                            <span className="text-muted-foreground block text-[10px] uppercase font-bold tracking-wider mb-0.5">Subject</span>
+                                                            <span className="font-semibold text-foreground">{getSubjectName(d.subject_id)}</span>
+                                                        </div>
+                                                        <div>
+                                                            <span className="text-muted-foreground block text-[10px] uppercase font-bold tracking-wider mb-0.5">Teacher</span>
+                                                            <div className="font-medium text-foreground leading-tight">
+                                                                {(() => {
+                                                                    const teacherId = isVirtual 
+                                                                        ? getRoutineTeacherId(d.class_id, d.section_id, d.subject_id)
+                                                                        : d.teacher_id;
+                                                                    if (teacherId) {
+                                                                        return (
+                                                                            <>
+                                                                                <div className="font-semibold">{getTeacherName(teacherId)}</div>
+                                                                                <div className="text-[10px] text-muted-foreground leading-tight">{getTeacherDesignation(teacherId)}</div>
+                                                                            </>
+                                                                        );
+                                                                    }
+                                                                    return <span className="text-muted-foreground/45">—</span>;
+                                                                })()}
+                                                            </div>
+                                                        </div>
+                                                        <div>
+                                                            <span className="text-muted-foreground block text-[10px] uppercase font-bold tracking-wider mb-0.5">Copies</span>
+                                                            <span className="font-mono font-bold text-foreground">
+                                                                {isVirtual ? "—" : d.total_copies}
+                                                            </span>
+                                                        </div>
+                                                        <div>
+                                                            <span className="text-muted-foreground block text-[10px] uppercase font-bold tracking-wider mb-0.5">Received (Hall)</span>
+                                                            <div className="mt-0.5">
+                                                                {d.date_received_from_hall ? (
+                                                                    <div className="flex items-center gap-1 text-emerald-600 font-semibold">
+                                                                        <CheckCircle className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                                                                        <span>{formatDate(d.date_received_from_hall)}</span>
+                                                                    </div>
+                                                                ) : isVirtual ? (
+                                                                    <span className="text-muted-foreground/45">—</span>
                                                                 ) : (
                                                                     <Button
                                                                         variant="outline"
                                                                         size="sm"
-                                                                        className="h-7 rounded-lg text-[10px] px-2 font-bold hover:bg-primary hover:text-primary-foreground transition-all duration-200"
-                                                                        onClick={() => handleAssign(d)}
+                                                                        className="h-6 rounded-md text-[9px] px-2 font-bold border-dashed border-emerald-500/50 hover:bg-emerald-50 hover:text-emerald-600 gap-1 text-emerald-600"
+                                                                        onClick={() => handleMarkReceivedFromHall(d.id)}
                                                                     >
-                                                                        Entry
+                                                                        <CheckCircle className="h-2.5 w-2.5" /> Mark Received
                                                                     </Button>
                                                                 )}
                                                             </div>
-                                                        </TableCell>
-                                                    </TableRow>
-                                                );
-                                            })}
-                                        </TableBody>
-                                    </Table>
-                                </div>
+                                                        </div>
+                                                    </div>
+
+                                                    {!isVirtual && (
+                                                        <div className="grid grid-cols-2 gap-4 pt-2 border-t border-dashed border-border/50 text-xs">
+                                                            <div>
+                                                                <span className="text-muted-foreground block text-[10px] uppercase font-bold tracking-wider mb-0.5">Date Given</span>
+                                                                {d.date_given === "1970-01-01" ? (
+                                                                    <Button
+                                                                        variant="outline"
+                                                                        size="sm"
+                                                                        className="h-6 rounded-md text-[9px] px-2 font-bold border-dashed border-amber-500/50 hover:bg-amber-50 hover:text-amber-600 gap-1 text-amber-600 mt-0.5"
+                                                                        onClick={() => handleMarkGiven(d.id)}
+                                                                    >
+                                                                        <CheckCircle className="h-2.5 w-2.5" /> Mark Given
+                                                                    </Button>
+                                                                ) : (
+                                                                    <span className="font-medium text-foreground">{formatDate(d.date_given)}</span>
+                                                                )}
+                                                            </div>
+                                                            <div>
+                                                                <span className="text-muted-foreground block text-[10px] uppercase font-bold tracking-wider mb-0.5">Date Returned</span>
+                                                                <span className="font-medium text-foreground">{d.date_returned ? formatDate(d.date_returned) : "—"}</span>
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Remarks / Notes */}
+                                                    {!isVirtual && d.notes && (
+                                                        <div className="bg-muted/40 p-2 rounded-xl text-[11px] text-muted-foreground border border-border/30">
+                                                            <span className="font-bold text-[10px] text-muted-foreground block uppercase tracking-wider mb-0.5">Remarks</span>
+                                                            {d.notes}
+                                                        </div>
+                                                    )}
+
+                                                    {/* Actions */}
+                                                    <div className="flex items-center justify-end gap-2 pt-2 border-t border-border/40">
+                                                        {!isVirtual ? (
+                                                            <>
+                                                                {d.status === "pending" && (
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="sm"
+                                                                        className="h-8 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg px-2 text-xs"
+                                                                        onClick={() => handleMarkReturned(d.id)}
+                                                                    >
+                                                                        <CheckCircle className="h-3.5 w-3.5 mr-1" /> Return
+                                                                    </Button>
+                                                                )}
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    className="h-8 rounded-lg px-2 text-xs"
+                                                                    onClick={() => handleEdit(d)}
+                                                                >
+                                                                    <Pencil className="h-3.5 w-3.5 mr-1" /> Edit
+                                                                </Button>
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    className="h-8 text-destructive hover:text-destructive hover:bg-destructive/10 rounded-lg px-2 text-xs"
+                                                                    onClick={() => handleDelete(d.id)}
+                                                                >
+                                                                    <Trash2 className="h-3.5 w-3.5 mr-1" /> Delete
+                                                                </Button>
+                                                            </>
+                                                        ) : (
+                                                            <Button
+                                                                variant="outline"
+                                                                size="sm"
+                                                                className="h-8 w-full rounded-lg text-[11px] font-bold hover:bg-primary hover:text-primary-foreground transition-all duration-200"
+                                                                onClick={() => handleAssign(d)}
+                                                            >
+                                                                Entry Distribution
+                                                            </Button>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </>
                             )}
                         </CardContent>
                     </Card>
@@ -879,7 +1073,7 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
                         <DialogTitle>{editingId ? "Edit Distribution" : "Add Paper Distribution"}</DialogTitle>
                     </DialogHeader>
                     <div className="grid gap-4 py-2">
-                        <div className="grid grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                             <div className="space-y-2">
                                 <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Class *</Label>
                                 <Select value={form.class_id} onValueChange={v => setForm(f => ({ ...f, class_id: v, section_id: "", subject_id: "" }))} disabled={isFieldDisabled}>
@@ -935,7 +1129,7 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
                             </Select>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Copies *</Label>
                                 <Input
@@ -948,17 +1142,17 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
                                 />
                             </div>
                             <div className="space-y-2">
-                                                                <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Received from Hall</Label>
-                                                                <Input
-                                                                    type="date"
-                                                                    value={form.date_received_from_hall}
-                                                                    onChange={e => setForm(f => ({ ...f, date_received_from_hall: e.target.value }))}
-                                                                    className="h-10 rounded-xl"
-                                                                />
-                                                            </div>
-                                                        </div>
+                                <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Received from Hall</Label>
+                                <Input
+                                    type="date"
+                                    value={form.date_received_from_hall}
+                                    onChange={e => setForm(f => ({ ...f, date_received_from_hall: e.target.value }))}
+                                    className="h-10 rounded-xl"
+                                />
+                            </div>
+                        </div>
 
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Date Given *</Label>
                                 <Input

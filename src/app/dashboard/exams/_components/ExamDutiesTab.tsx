@@ -585,9 +585,9 @@ export function ExamDutiesTab({ exams }: { exams: { id: string; name: string }[]
 
     return (
         <div className="space-y-6">
-                <div className="flex items-center gap-3 flex-wrap bg-card p-4 rounded-2xl border border-border/50">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3 bg-card p-4 rounded-2xl border border-border/50">
                     <Select value={selectedExam} onValueChange={setSelectedExam}>
-                        <SelectTrigger className="w-[200px] h-11 rounded-xl border-0 bg-muted hover:bg-muted/80 transition-colors text-foreground font-semibold shadow-none focus:ring-1 focus:ring-ring/30">
+                        <SelectTrigger className="w-full sm:w-[200px] h-11 rounded-xl border-0 bg-muted hover:bg-muted/80 transition-colors text-foreground font-semibold shadow-none focus:ring-1 focus:ring-ring/30">
                             <SelectValue placeholder="Select Exam" />
                         </SelectTrigger>
                         <SelectContent className="rounded-xl border-border/50 shadow-md">
@@ -596,7 +596,7 @@ export function ExamDutiesTab({ exams }: { exams: { id: string; name: string }[]
                     </Select>
 
                     <Select value={selectedDate} onValueChange={setSelectedDate} disabled={!selectedExam || availableDates.length === 0}>
-                        <SelectTrigger className="w-[180px] h-11 rounded-xl border-0 bg-muted hover:bg-muted/80 transition-colors text-foreground font-semibold shadow-none focus:ring-1 focus:ring-ring/30">
+                        <SelectTrigger className="w-full sm:w-[180px] h-11 rounded-xl border-0 bg-muted hover:bg-muted/80 transition-colors text-foreground font-semibold shadow-none focus:ring-1 focus:ring-ring/30">
                             <SelectValue placeholder="Select Date" />
                         </SelectTrigger>
                         <SelectContent className="rounded-xl border-border/50 shadow-md">
@@ -607,7 +607,7 @@ export function ExamDutiesTab({ exams }: { exams: { id: string; name: string }[]
                     </Select>
 
                     <Select value={selectedShift} onValueChange={setSelectedShift} disabled={!selectedDate || availableShifts.length === 0}>
-                        <SelectTrigger className="w-[220px] h-11 rounded-xl border-0 bg-muted hover:bg-muted/80 transition-colors text-foreground font-semibold shadow-none focus:ring-1 focus:ring-ring/30">
+                        <SelectTrigger className="w-full sm:w-[220px] h-11 rounded-xl border-0 bg-muted hover:bg-muted/80 transition-colors text-foreground font-semibold shadow-none focus:ring-1 focus:ring-ring/30">
                             <SelectValue placeholder="Select Shift" />
                         </SelectTrigger>
                         <SelectContent className="rounded-xl border-border/50 shadow-md">
@@ -618,12 +618,12 @@ export function ExamDutiesTab({ exams }: { exams: { id: string; name: string }[]
                         </SelectContent>
                     </Select>
 
-                    <div className="ml-auto flex gap-2">
+                    <div className="w-full sm:w-auto sm:ml-auto flex flex-col sm:flex-row gap-2">
                         {selectedShift && duties.length > 0 && (
                             <Button
                                 variant="outline"
                                 onClick={handlePrint}
-                                className="h-11 rounded-xl font-semibold shadow-none border-border/50 transition-all duration-200 gap-2"
+                                className="w-full sm:w-auto h-11 rounded-xl font-semibold shadow-none border-border/50 transition-all duration-200 gap-2"
                             >
                                 <Printer className="h-4 w-4" /> Print Duty List
                             </Button>
@@ -631,7 +631,7 @@ export function ExamDutiesTab({ exams }: { exams: { id: string; name: string }[]
                         <Button 
                             onClick={handleSave} 
                             disabled={!selectedShift || saving}
-                            className="h-11 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 font-semibold shadow-none transition-all duration-200"
+                            className="w-full sm:w-auto h-11 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 font-semibold shadow-none transition-all duration-200"
                         >
                             <Save className="mr-2 h-4 w-4" /> Save Duties
                         </Button>

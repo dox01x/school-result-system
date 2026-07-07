@@ -449,36 +449,38 @@ export default function ExamsPage() {
             />
 
             <Tabs defaultValue="exams" className="space-y-4">
-                <TabsList className="bg-muted rounded-2xl p-1 h-auto flex-wrap border-0 shadow-none">
-                    <TabsTrigger value="exams" className="rounded-xl text-xs font-bold px-4 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground transition-all gap-2">
-                        <ClipboardText className="h-3.5 w-3.5" />
-                        Exam Terms
-                    </TabsTrigger>
-                    <TabsTrigger value="subjectConfig" className="rounded-xl text-xs font-bold px-4 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground transition-all gap-2">
-                        <Sliders className="h-3.5 w-3.5" />
-                        Subject Config
-                    </TabsTrigger>
-                    <TabsTrigger value="grading" className="rounded-xl text-xs font-bold px-4 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground transition-all gap-2">
-                        <Medal className="h-3.5 w-3.5" />
-                        Grading System
-                    </TabsTrigger>
-                    <TabsTrigger value="rooms" className="rounded-xl text-xs font-bold px-4 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground transition-all gap-2">
-                        <Building2 className="h-3.5 w-3.5" />
-                        Rooms
-                    </TabsTrigger>
-                    <TabsTrigger value="seatPlan" className="rounded-xl text-xs font-bold px-4 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground transition-all gap-2">
-                        <Users className="h-3.5 w-3.5" />
-                        Seat Plan
-                    </TabsTrigger>
-                    <TabsTrigger value="examDuties" className="rounded-xl text-xs font-bold px-4 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground transition-all gap-2">
-                        <Briefcase className="h-3.5 w-3.5" />
-                        Duties
-                    </TabsTrigger>
-                    <TabsTrigger value="paperChecking" className="rounded-xl text-xs font-bold px-4 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground transition-all gap-2">
-                        <FileCheck className="h-3.5 w-3.5" />
-                        Paper Checking
-                    </TabsTrigger>
-                </TabsList>
+                <div className="w-full overflow-x-auto pb-1">
+                    <TabsList className="bg-muted rounded-2xl p-1 h-auto flex w-max md:w-full md:flex-wrap border-0 shadow-none">
+                        <TabsTrigger value="exams" className="rounded-xl text-xs font-bold px-4 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground transition-all gap-2">
+                            <ClipboardText className="h-3.5 w-3.5" />
+                            Exam Terms
+                        </TabsTrigger>
+                        <TabsTrigger value="subjectConfig" className="rounded-xl text-xs font-bold px-4 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground transition-all gap-2">
+                            <Sliders className="h-3.5 w-3.5" />
+                            Subject Config
+                        </TabsTrigger>
+                        <TabsTrigger value="grading" className="rounded-xl text-xs font-bold px-4 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground transition-all gap-2">
+                            <Medal className="h-3.5 w-3.5" />
+                            Grading System
+                        </TabsTrigger>
+                        <TabsTrigger value="rooms" className="rounded-xl text-xs font-bold px-4 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground transition-all gap-2">
+                            <Building2 className="h-3.5 w-3.5" />
+                            Rooms
+                        </TabsTrigger>
+                        <TabsTrigger value="seatPlan" className="rounded-xl text-xs font-bold px-4 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground transition-all gap-2">
+                            <Users className="h-3.5 w-3.5" />
+                            Seat Plan
+                        </TabsTrigger>
+                        <TabsTrigger value="examDuties" className="rounded-xl text-xs font-bold px-4 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground transition-all gap-2">
+                            <Briefcase className="h-3.5 w-3.5" />
+                            Duties
+                        </TabsTrigger>
+                        <TabsTrigger value="paperChecking" className="rounded-xl text-xs font-bold px-4 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground transition-all gap-2">
+                            <FileCheck className="h-3.5 w-3.5" />
+                            Paper Checking
+                        </TabsTrigger>
+                    </TabsList>
+                </div>
 
                 {/* ──── EXAM TERMS TAB ──── */}
                 <TabsContent value="exams" className="space-y-4">
