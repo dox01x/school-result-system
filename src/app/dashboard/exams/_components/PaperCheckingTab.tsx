@@ -54,6 +54,16 @@ interface RoutineInfo {
     teacher_id: string;
 }
 
+interface ScheduleInfo {
+    id: string;
+    class_id: string;
+    subject_id: string;
+    exam_date: string;
+    start_time: string;
+    end_time: string;
+}
+
+
 interface Distribution {
     id: string;
     exam_id: string;
@@ -101,7 +111,7 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
     const [subjects, setSubjects] = useState<SubjectInfo[]>([]);
     const [teachers, setTeachers] = useState<TeacherInfo[]>([]);
     const [routines, setRoutines] = useState<RoutineInfo[]>([]);
-    const [schedules, setSchedules] = useState<any[]>([]);
+    const [schedules, setSchedules] = useState<ScheduleInfo[]>([]);
     const [selectedDate, setSelectedDate] = useState<string>("all");
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
@@ -109,8 +119,36 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
     const [editingId, setEditingId] = useState<string | null>(null);
     const [form, setForm] = useState<FormData>(emptyForm);
     const [isFieldDisabled, setIsFieldDisabled] = useState(false);
+    const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+    const [idToDelete, setIdToDelete] = useState<string | null>(null);
 
-    const supabase = useMemo(() => createClient() as any, []);
+    const triggerDelete = (id: string) => {
+        setIdToDelete(id);
+        setDeleteConfirmOpen(true);
+    };
+
+    const handleFormChange = (field: keyof FormData, value: string) => {
+        setForm(prev => {
+            const next = { ...prev, [field]: value };
+            if (field === "class_id") {
+                next.section_id = "";
+                next.subject_id = "";
+            }
+            if (next.class_id && next.section_id && next.subject_id && !next.teacher_id) {
+                const match = routines.find(r => 
+                    r.class_id === next.class_id && 
+                    r.section_id === next.section_id && 
+                    r.subject_id === next.subject_id
+                );
+                if (match && match.teacher_id) {
+                    next.teacher_id = match.teacher_id;
+                }
+            }
+            return next;
+        });
+    };
+
+    const supabase = useMemo(() => createClient(), []);
 
     // Load classes, subjects, teachers, sections, routines on mount
     useEffect(() => {
@@ -120,7 +158,7 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
                 supabase.from("subjects").select("id, name, class_id"),
                 supabase.from("teachers").select("id, name, designation, phone").order("name"),
                 supabase.from("sections").select("id, name, class_id"),
-                supabase.from("class_routines").select("class_id, section_id, subject_id, teacher_id"),
+                supabase.from("class_routines").select("class_id, section_id, subject_id, teacher_id").order("day_of_week").order("start_time"),
             ]);
             if (classRes.data) setClasses(classRes.data);
             if (subjectRes.data) setSubjects(subjectRes.data);
@@ -159,11 +197,15 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
 
     useEffect(() => {
         if (selectedExam) {
-            loadDistributions(selectedExam);
-            loadSchedules(selectedExam);
+            Promise.resolve().then(() => {
+                loadDistributions(selectedExam);
+                loadSchedules(selectedExam);
+            });
         } else {
-            setDistributions([]);
-            setSchedules([]);
+            Promise.resolve().then(() => {
+                setDistributions([]);
+                setSchedules([]);
+            });
         }
     }, [selectedExam, loadDistributions, loadSchedules]);
 
@@ -177,39 +219,93 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
     useEffect(() => {
         const d = new Date();
         const todayStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-        if (availableDates.includes(todayStr)) {
-            setSelectedDate(todayStr);
-        } else {
-            setSelectedDate("all");
-        }
+        const targetDate = availableDates.includes(todayStr) ? todayStr : "all";
+        Promise.resolve().then(() => {
+            setSelectedDate(prev => prev !== targetDate ? targetDate : prev);
+        });
     }, [availableDates]);
-
-    // Map a distribution to its scheduled exam info
-    const getDistributionSchedule = useCallback((dist: Distribution) => {
-        return schedules.find(
-            s => s.class_id === dist.class_id && s.subject_id === dist.subject_id
-        );
-    }, [schedules]);
 
     // Build the pre-populated (virtual + saved) list of distributions
     const displayRows = useMemo(() => {
-        const rows: any[] = [];
-        const filteredSchedules = selectedDate === "all" 
-            ? schedules 
+        // 1. Filter saved distributions matching the date filter
+        const matchedDists = distributions.filter(d => 
+            selectedDate === "all" || schedules.some(s => 
+                s.class_id === d.class_id && 
+                s.subject_id === d.subject_id && 
+                s.exam_date === selectedDate
+            )
+        );
+
+        // Group distributions by class and subject
+        const processedDists: Distribution[] = [];
+        const distsByClassSubj: { [key: string]: Distribution[] } = {};
+        
+        matchedDists.forEach(d => {
+            const key = `${d.class_id}||${d.subject_id}`;
+            if (!distsByClassSubj[key]) distsByClassSubj[key] = [];
+            distsByClassSubj[key].push(d);
+        });
+
+        Object.keys(distsByClassSubj).forEach(key => {
+            const [classId] = key.split("||");
+            const classSections = sections.filter(s => s.class_id === classId);
+            const list = distsByClassSubj[key];
+            
+            if (classSections.length === 0) {
+                // No sections, add first non-section distribution
+                const d = list.find(x => !x.section_id);
+                if (d) processedDists.push(d);
+            } else {
+                const unmatched = [...list];
+                const matchedSecs = new Set<string>();
+
+                // First pass: exact matches
+                classSections.forEach(sec => {
+                    const idx = unmatched.findIndex(x => x.section_id === sec.id);
+                    if (idx !== -1) {
+                        processedDists.push(unmatched[idx]);
+                        matchedSecs.add(sec.id);
+                        unmatched.splice(idx, 1);
+                    }
+                });
+
+                // Second pass: assign null section_id distributions to remaining sections
+                classSections.forEach(sec => {
+                    if (!matchedSecs.has(sec.id)) {
+                        const idx = unmatched.findIndex(x => !x.section_id);
+                        if (idx !== -1) {
+                            processedDists.push({
+                                ...unmatched[idx],
+                                section_id: sec.id
+                            });
+                            matchedSecs.add(sec.id);
+                            unmatched.splice(idx, 1);
+                        }
+                    }
+                });
+            }
+        });
+
+        // 2. Add virtual rows for active schedules lacking a distribution
+        const activeSchedules = selectedDate === "all"
+            ? schedules
             : schedules.filter(s => s.exam_date === selectedDate);
 
-        filteredSchedules.forEach(schedule => {
-            const classSections = sections.filter(s => s.class_id === schedule.class_id);
-            const classDists = distributions.filter(d => 
-                d.class_id === schedule.class_id && 
-                d.subject_id === schedule.subject_id
-            );
+        const uniqueActive: { [key: string]: ScheduleInfo } = {};
+        activeSchedules.forEach(s => {
+            const key = `${s.class_id}||${s.subject_id}`;
+            if (!uniqueActive[key]) {
+                uniqueActive[key] = s;
+            }
+        });
 
+        const rows = [...processedDists];
+
+        Object.values(uniqueActive).forEach(schedule => {
+            const classSections = sections.filter(sec => sec.class_id === schedule.class_id);
             if (classSections.length === 0) {
-                const existing = classDists.find(d => !d.section_id);
-                if (existing) {
-                    rows.push(existing);
-                } else {
+                const hasDist = rows.some(r => r.class_id === schedule.class_id && !r.section_id && r.subject_id === schedule.subject_id);
+                if (!hasDist) {
                     rows.push({
                         id: `virtual||${schedule.id}||${schedule.class_id}||none||${schedule.subject_id}`,
                         exam_id: selectedExam,
@@ -226,53 +322,18 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
                     });
                 }
             } else {
-                const unmatchedDists = [...classDists];
-                const matchedRows: any[] = [];
-
-                // 1. Match exact section_id
                 classSections.forEach(sec => {
-                    const exactMatchIdx = unmatchedDists.findIndex(d => d.section_id === sec.id);
-                    if (exactMatchIdx !== -1) {
-                        matchedRows.push({
-                            sec,
-                            dist: unmatchedDists[exactMatchIdx],
-                            matched: true
-                        });
-                        unmatchedDists.splice(exactMatchIdx, 1);
-                    } else {
-                        matchedRows.push({
-                            sec,
-                            dist: null,
-                            matched: false
-                        });
-                    }
-                });
-
-                // 2. Assign old entries with section_id = null to remaining sections sequentially
-                matchedRows.forEach(item => {
-                    if (!item.matched) {
-                        const nullSecIdx = unmatchedDists.findIndex(d => !d.section_id);
-                        if (nullSecIdx !== -1) {
-                            item.dist = unmatchedDists[nullSecIdx];
-                            item.matched = true;
-                            unmatchedDists.splice(nullSecIdx, 1);
-                        }
-                    }
-                });
-
-                // 3. Push to main rows list
-                matchedRows.forEach(item => {
-                    if (item.matched && item.dist) {
+                    const hasDist = rows.some(r => 
+                        r.class_id === schedule.class_id && 
+                        r.section_id === sec.id && 
+                        r.subject_id === schedule.subject_id
+                    );
+                    if (!hasDist) {
                         rows.push({
-                            ...item.dist,
-                            section_id: item.sec.id // Map to this section for correct display
-                        });
-                    } else {
-                        rows.push({
-                            id: `virtual||${schedule.id}||${schedule.class_id}||${item.sec.id}||${schedule.subject_id}`,
+                            id: `virtual||${schedule.id}||${schedule.class_id}||${sec.id}||${schedule.subject_id}`,
                             exam_id: selectedExam,
                             class_id: schedule.class_id,
-                            section_id: item.sec.id,
+                            section_id: sec.id,
                             subject_id: schedule.subject_id,
                             teacher_id: "",
                             total_copies: 0,
@@ -283,11 +344,6 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
                             notes: "",
                         });
                     }
-                });
-
-                // 4. Push any remaining unmatched distributions
-                unmatchedDists.forEach(d => {
-                    rows.push(d);
                 });
             }
         });
@@ -328,24 +384,7 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
         return subjects.filter(s => s.class_id === form.class_id);
     }, [subjects, form.class_id]);
 
-    // Auto-fill teacher from class routine when Class, Section, Subject are selected
-    useEffect(() => {
-        if (form.class_id && form.section_id && form.subject_id) {
-            const match = routines.find(r => 
-                r.class_id === form.class_id && 
-                r.section_id === form.section_id && 
-                r.subject_id === form.subject_id
-            );
-            if (match && match.teacher_id) {
-                setForm(f => {
-                    if (!f.teacher_id) {
-                        return { ...f, teacher_id: match.teacher_id };
-                    }
-                    return f;
-                });
-            }
-        }
-    }, [form.class_id, form.section_id, form.subject_id, routines]);
+
 
     // Open dialog for add
     const handleAdd = () => {
@@ -374,7 +413,7 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
     };
 
     // Open dialog for assigning a virtual row
-    const handleAssign = (d: any) => {
+    const handleAssign = (d: Distribution) => {
         const routineTeacherId = getRoutineTeacherId(d.class_id, d.section_id, d.subject_id);
         setEditingId(null);
         setForm({
@@ -394,7 +433,8 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
 
     // Save (add or update)
     const handleSave = async () => {
-        if (!form.class_id || !form.section_id || !form.subject_id || !form.teacher_id || !form.total_copies) {
+        const classHasSections = filteredSections.length > 0;
+        if (!form.class_id || (classHasSections && !form.section_id) || !form.subject_id || !form.teacher_id || !form.total_copies) {
             toast.error("Please fill all required fields");
             return;
         }
@@ -421,11 +461,28 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
             if (error) toast.error("Failed to update");
             else toast.success("Distribution updated");
         } else {
-            const { error } = await supabase
-                .from("exam_paper_distributions")
-                .insert(record);
-            if (error) toast.error("Failed to add distribution");
-            else toast.success("Distribution added");
+            // Check if there is already a record for this class_id, section_id, subject_id, and exam_id
+            const targetSectionId = form.section_id || null;
+            const duplicate = distributions.find(d => 
+                d.class_id === form.class_id && 
+                d.section_id === targetSectionId && 
+                d.subject_id === form.subject_id
+            );
+            if (duplicate) {
+                // If it already exists, update the existing one!
+                const { error } = await supabase
+                    .from("exam_paper_distributions")
+                    .update(record)
+                    .eq("id", duplicate.id);
+                if (error) toast.error("Failed to update existing distribution");
+                else toast.success("Existing distribution updated");
+            } else {
+                const { error } = await supabase
+                    .from("exam_paper_distributions")
+                    .insert(record);
+                if (error) toast.error("Failed to add distribution");
+                else toast.success("Distribution added");
+            }
         }
         setSaving(false);
         setDialogOpen(false);
@@ -433,16 +490,21 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
     };
 
     // Delete
-    const handleDelete = async (id: string) => {
+    const handleDelete = async () => {
+        if (!idToDelete) return;
+        setSaving(true);
         const { error } = await supabase
             .from("exam_paper_distributions")
             .delete()
-            .eq("id", id);
+            .eq("id", idToDelete);
         if (error) toast.error("Failed to delete");
         else {
             toast.success("Distribution deleted");
             loadDistributions(selectedExam, true);
         }
+        setSaving(false);
+        setDeleteConfirmOpen(false);
+        setIdToDelete(null);
     };
 
     // Mark as returned
@@ -521,39 +583,21 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
         return date.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
     };
 
-    const formatTime12h = (t: string) => {
-        if (!t) return "";
-        const parts = t.split(":");
-        if (parts.length < 2) return t;
-        let hrs = parseInt(parts[0]);
-        const mins = parts[1];
-        const ampm = hrs >= 12 ? "PM" : "AM";
-        hrs = hrs % 12;
-        hrs = hrs ? hrs : 12;
-        return `${hrs}:${mins} ${ampm}`;
-    };
 
-    const getScheduleShiftStr = (sched: any) => {
-        if (!sched?.start_time || !sched?.end_time) return "—";
-        return `${formatTime12h(sched.start_time)} - ${formatTime12h(sched.end_time)}`;
-    };
+
+
 
     // Summary stats (calculates totals of only actual saved distributions)
     const stats = useMemo(() => {
-        const activeSchedules = selectedDate === "all"
-            ? schedules
-            : schedules.filter(s => s.exam_date === selectedDate);
-        
-        const activeDistributions = distributions.filter(d => 
-            activeSchedules.some(s => s.class_id === d.class_id && s.subject_id === d.subject_id)
-        );
+        // Filter out virtual rows from the displayed rows
+        const actualDists = displayRows.filter(d => d.status !== "pending_distribution");
 
-        const total = activeDistributions.length;
-        const pending = activeDistributions.filter(d => d.status === "pending").length;
-        const returned = activeDistributions.filter(d => d.status === "returned").length;
-        const totalCopies = activeDistributions.reduce((sum, d) => sum + d.total_copies, 0);
+        const total = actualDists.length;
+        const pending = actualDists.filter(d => d.status === "pending").length;
+        const returned = actualDists.filter(d => d.status === "returned").length;
+        const totalCopies = actualDists.reduce((sum, d) => sum + d.total_copies, 0);
         return { total, pending, returned, totalCopies };
-    }, [distributions, schedules, selectedDate]);
+    }, [displayRows]);
 
     // Print
     const handlePrint = () => {
@@ -873,7 +917,7 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
                                                                                 variant="ghost"
                                                                                 size="icon"
                                                                                 className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
-                                                                                onClick={() => handleDelete(d.id)}
+                                                                                onClick={() => triggerDelete(d.id)}
                                                                                 title="Delete"
                                                                             >
                                                                                 <Trash2 className="h-3.5 w-3.5" />
@@ -918,8 +962,8 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
                                                                 isVirtual
                                                                     ? "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400"
                                                                     : d.status === "returned"
-                                                                    ? "bg-emerald-100 dark:bg-emerald-955/30 text-emerald-700 dark:text-emerald-300"
-                                                                    : "bg-amber-100 dark:bg-amber-955/30 text-amber-700 dark:text-amber-300"
+                                                                    ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300"
+                                                                    : "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300"
                                                             }`}
                                                         >
                                                             {isVirtual ? "Not Assigned" : d.status === "returned" ? "Returned" : "Pending"}
@@ -1039,7 +1083,7 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
                                                                     variant="ghost"
                                                                     size="sm"
                                                                     className="h-8 text-destructive hover:text-destructive hover:bg-destructive/10 rounded-lg px-2 text-xs"
-                                                                    onClick={() => handleDelete(d.id)}
+                                                                    onClick={() => triggerDelete(d.id)}
                                                                 >
                                                                     <Trash2 className="h-3.5 w-3.5 mr-1" /> Delete
                                                                 </Button>
@@ -1076,7 +1120,7 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                             <div className="space-y-2">
                                 <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Class *</Label>
-                                <Select value={form.class_id} onValueChange={v => setForm(f => ({ ...f, class_id: v, section_id: "", subject_id: "" }))} disabled={isFieldDisabled}>
+                                <Select value={form.class_id} onValueChange={v => handleFormChange("class_id", v)} disabled={isFieldDisabled}>
                                     <SelectTrigger className="h-10 rounded-xl">
                                         <SelectValue placeholder="Select Class" />
                                     </SelectTrigger>
@@ -1088,10 +1132,12 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
                                 </Select>
                             </div>
                             <div className="space-y-2">
-                                <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Section *</Label>
-                                <Select value={form.section_id} onValueChange={v => setForm(f => ({ ...f, section_id: v }))} disabled={isFieldDisabled || !form.class_id}>
+                                <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                                    Section {filteredSections.length > 0 && "*"}
+                                </Label>
+                                <Select value={form.section_id} onValueChange={v => handleFormChange("section_id", v)} disabled={isFieldDisabled || !form.class_id || filteredSections.length === 0}>
                                     <SelectTrigger className="h-10 rounded-xl">
-                                        <SelectValue placeholder="Select Section" />
+                                        <SelectValue placeholder={filteredSections.length === 0 ? "No Sections" : "Select Section"} />
                                     </SelectTrigger>
                                     <SelectContent className="rounded-xl">
                                         {filteredSections.map(s => (
@@ -1102,7 +1148,7 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
                             </div>
                             <div className="space-y-2">
                                 <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Subject *</Label>
-                                <Select value={form.subject_id} onValueChange={v => setForm(f => ({ ...f, subject_id: v }))} disabled={isFieldDisabled || !form.class_id}>
+                                <Select value={form.subject_id} onValueChange={v => handleFormChange("subject_id", v)} disabled={isFieldDisabled || !form.class_id}>
                                     <SelectTrigger className="h-10 rounded-xl">
                                         <SelectValue placeholder="Select Subject" />
                                     </SelectTrigger>
@@ -1117,7 +1163,7 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
 
                         <div className="space-y-2">
                             <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Teacher *</Label>
-                            <Select value={form.teacher_id} onValueChange={v => setForm(f => ({ ...f, teacher_id: v }))}>
+                            <Select value={form.teacher_id} onValueChange={v => handleFormChange("teacher_id", v)}>
                                 <SelectTrigger className="h-10 rounded-xl">
                                     <SelectValue placeholder="Select Teacher" />
                                 </SelectTrigger>
@@ -1136,7 +1182,7 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
                                     type="number"
                                     min="1"
                                     value={form.total_copies}
-                                    onChange={e => setForm(f => ({ ...f, total_copies: e.target.value }))}
+                                    onChange={e => handleFormChange("total_copies", e.target.value)}
                                     className="h-10 rounded-xl"
                                     placeholder="e.g. 40"
                                 />
@@ -1146,7 +1192,7 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
                                 <Input
                                     type="date"
                                     value={form.date_received_from_hall}
-                                    onChange={e => setForm(f => ({ ...f, date_received_from_hall: e.target.value }))}
+                                    onChange={e => handleFormChange("date_received_from_hall", e.target.value)}
                                     className="h-10 rounded-xl"
                                 />
                             </div>
@@ -1158,7 +1204,7 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
                                 <Input
                                     type="date"
                                     value={form.date_given}
-                                    onChange={e => setForm(f => ({ ...f, date_given: e.target.value }))}
+                                    onChange={e => handleFormChange("date_given", e.target.value)}
                                     className="h-10 rounded-xl"
                                 />
                             </div>
@@ -1167,7 +1213,7 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
                                 <Input
                                     type="date"
                                     value={form.date_returned}
-                                    onChange={e => setForm(f => ({ ...f, date_returned: e.target.value }))}
+                                    onChange={e => handleFormChange("date_returned", e.target.value)}
                                     className="h-10 rounded-xl"
                                 />
                             </div>
@@ -1177,7 +1223,7 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
                             <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Remarks</Label>
                             <Input
                                 value={form.notes}
-                                onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
+                                onChange={e => handleFormChange("notes", e.target.value)}
                                 className="h-10 rounded-xl"
                                 placeholder="Any notes..."
                             />
@@ -1189,6 +1235,40 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
                         </DialogClose>
                         <Button onClick={handleSave} disabled={saving} className="rounded-xl">
                             {saving ? "Saving..." : editingId ? "Update" : "Add"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Delete Confirmation Dialog */}
+            <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+                <DialogContent className="sm:max-w-[400px] rounded-2xl p-6 border-border/50">
+                    <DialogHeader>
+                        <DialogTitle className="text-lg font-bold text-foreground">Confirm Delete</DialogTitle>
+                    </DialogHeader>
+                    <div className="py-4">
+                        <p className="text-sm text-muted-foreground leading-relaxed">
+                            Are you sure you want to delete this paper distribution? This action cannot be undone.
+                        </p>
+                    </div>
+                    <DialogFooter className="pt-2">
+                        <Button
+                            variant="outline"
+                            onClick={() => {
+                                setDeleteConfirmOpen(false);
+                                setIdToDelete(null);
+                            }}
+                            className="rounded-xl px-4 h-10 border-border/50 font-semibold"
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            onClick={handleDelete}
+                            disabled={saving}
+                            className="rounded-xl px-4 h-10 bg-destructive hover:bg-destructive/90 text-destructive-foreground font-semibold"
+                        >
+                            {saving ? "Deleting..." : "Delete"}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

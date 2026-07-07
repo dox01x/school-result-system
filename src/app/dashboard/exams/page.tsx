@@ -126,7 +126,7 @@ export default function ExamsPage() {
     const [savingConfig, setSavingConfig] = useState(false);
     const inputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
-    const supabase = useMemo(() => createClient() as any, []);
+    const supabase = useMemo(() => createClient(), []);
 
     const fetchAll = useCallback(async () => {
         try {
@@ -145,7 +145,7 @@ export default function ExamsPage() {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [supabase]);
 
     useEffect(() => { fetchAll(); }, [fetchAll]);
 
@@ -157,7 +157,7 @@ export default function ExamsPage() {
             await supabase.from("grading_rules").insert(allDefaults);
             fetchAll();
         })();
-    }, [loading, gradingRules.length]);
+    }, [loading, gradingRules.length, fetchAll, supabase]);
 
     // Auto-seed exams if empty
     useEffect(() => {
@@ -166,7 +166,7 @@ export default function ExamsPage() {
             await supabase.from("exams").insert(DEFAULT_EXAMS);
             fetchAll();
         })();
-    }, [loading, exams.length]);
+    }, [loading, exams.length, fetchAll, supabase]);
 
     // Load subjects when class changes for config tab
     useEffect(() => {
@@ -175,7 +175,7 @@ export default function ExamsPage() {
             const { data } = await supabase.from("subjects").select(SUBJECT_COLUMNS).eq("class_id", configClass).order("name");
             setSubjects(data || []);
         })();
-    }, [configClass]);
+    }, [configClass, supabase]);
 
     // When exam/class/subjects/configs change, initiate config edits
     // If exam already has saved configs â†’ only show those subjects (respect deletions)
@@ -436,7 +436,7 @@ export default function ExamsPage() {
     const standaloneExams = exams.filter((e) => e.exam_type === "standalone");
 
     const getTypeLabel = (type: string) => type === "mct" ? "MCT" : type === "standalone" ? "Standalone" : "Semester";
-    const getTypeColor = (type: string) => "bg-muted text-muted-foreground border-0 rounded-md font-medium uppercase tracking-wider text-[10px]";
+    const getTypeColor = () => "bg-muted text-muted-foreground border-0 rounded-md font-medium uppercase tracking-wider text-[10px]";
 
     return (
         <div className="space-y-6">
@@ -560,7 +560,7 @@ export default function ExamsPage() {
                                         {[mct, semester].filter(Boolean).map((exam) => exam && (
                                                 <div key={exam.id} className="flex items-center justify-between rounded-xl border border-border/50 bg-card p-3 group hover:bg-muted/50 transition-colors duration-200">
                                                 <div className="flex items-center gap-3">
-                                                    <Badge className={getTypeColor(exam.exam_type)}>
+                                                    <Badge className={getTypeColor()}>
                                                         {getTypeLabel(exam.exam_type)}
                                                     </Badge>
                                                     <span className="font-medium text-foreground">{exam.name}</span>
@@ -594,7 +594,7 @@ export default function ExamsPage() {
                                         <Card key={exam.id} className="group bg-card border-border/50 rounded-2xl shadow-none transition-colors hover:bg-muted/50">
                                             <CardContent className="flex items-center justify-between py-4">
                                                 <div className="flex items-center gap-3">
-                                                    <Badge className={getTypeColor(exam.exam_type)}>{getTypeLabel(exam.exam_type)}</Badge>
+                                                    <Badge className={getTypeColor()}>{getTypeLabel(exam.exam_type)}</Badge>
                                                     <span className="font-medium text-foreground">{exam.name}</span>
                                                     <Badge variant="outline" className="border-border/50 text-muted-foreground rounded-md bg-muted/50 text-[10px] uppercase tracking-wider font-medium">Term {exam.term}</Badge>
                                                 </div>
@@ -622,7 +622,7 @@ export default function ExamsPage() {
                                         {standaloneExams.map((exam) => (
                                             <div key={exam.id} className="flex items-center justify-between rounded-xl border border-border/50 bg-card p-3 group hover:bg-muted/50 transition-colors">
                                                 <div className="flex items-center gap-3">
-                                                    <Badge className={getTypeColor(exam.exam_type)}>{getTypeLabel(exam.exam_type)}</Badge>
+                                                    <Badge className={getTypeColor()}>{getTypeLabel(exam.exam_type)}</Badge>
                                                     <span className="font-medium text-foreground">{exam.name}</span>
                                                 </div>
                                                 <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">

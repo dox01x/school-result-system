@@ -22,7 +22,7 @@ type Room = {
 };
 
 export function RoomsTab() {
-    const supabase = useMemo(() => createClient() as any, []);
+    const supabase = useMemo(() => createClient(), []);
 
     const [rooms, setRooms] = useState<Room[]>([]);
     const [loading, setLoading] = useState(true);
@@ -38,7 +38,7 @@ export function RoomsTab() {
         if (error) {
             toast.error("Failed to load rooms");
         } else {
-            const r = ((data || []) as any[]).map((row: any) => ({
+            const r = (data || []).map((row) => ({
                 id: row.id,
                 name: row.name,
                 capacity: row.capacity,
@@ -127,7 +127,7 @@ export function RoomsTab() {
                     <CardContent className="flex flex-col items-center justify-center py-16 text-center">
                         <Building2 size={48} strokeWidth={1.2} className=" text-muted-foreground/40 mb-4" />
                         <h3 className="font-semibold text-lg mb-1">No Rooms Added</h3>
-                        <p className="text-sm text-muted-foreground max-w-sm">Click "Add Room" to configure classrooms and exam halls.</p>
+                        <p className="text-sm text-muted-foreground max-w-sm">Click &quot;Add Room&quot; to configure classrooms and exam halls.</p>
                     </CardContent>
                 </Card>
             ) : (

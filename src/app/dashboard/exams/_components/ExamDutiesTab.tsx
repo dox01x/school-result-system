@@ -109,12 +109,11 @@ export function ExamDutiesTab({ exams }: { exams: { id: string; name: string }[]
     const [routines, setRoutines] = useState<{ class_id: string; subject_id: string; teacher_id: string }[]>([]);
     const [schoolInfo, setSchoolInfo] = useState<SchoolInfo | null>(null);
     
-    const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
 
     const selectKeyRef = useRef(0);
 
-    const supabase = useMemo(() => createClient() as any, []);
+    const supabase = useMemo(() => createClient(), []);
 
     // Fetch base data
     useEffect(() => {
@@ -129,7 +128,7 @@ export function ExamDutiesTab({ exams }: { exams: { id: string; name: string }[]
                 supabase.from("class_routines").select("class_id, subject_id, teacher_id")
             ]);
             setRooms(roomsRes.data || []);
-            setTeachers(((teachersRes.data || []) as any[]).map((t: any) => ({
+            setTeachers((teachersRes.data || []).map(t => ({
                 id: t.id,
                 name: t.name,
                 designation: t.designation || "",
@@ -274,7 +273,6 @@ export function ExamDutiesTab({ exams }: { exams: { id: string; name: string }[]
             setDuties([]);
             return;
         }
-        setLoading(true);
         const [start_time, end_time] = selectedShift.split("||");
         try {
             const [currentDutiesRes, allDutiesRes] = await Promise.all([
@@ -286,20 +284,21 @@ export function ExamDutiesTab({ exams }: { exams: { id: string; name: string }[]
                 supabase.from("exam_duties").select("teacher_id")
             ]);
 
-            setDuties(((currentDutiesRes.data || []) as any[]).map((d: any) => ({
+            if (currentDutiesRes.error) throw currentDutiesRes.error;
+            if (allDutiesRes.error) throw allDutiesRes.error;
+
+            setDuties((currentDutiesRes.data || []).map(d => ({
                 room_id: d.room_id,
                 teacher_id: d.teacher_id
             })));
             
             const counts: Record<string, number> = {};
-            ((allDutiesRes.data || []) as any[]).forEach((d: any) => {
+            (allDutiesRes.data || []).forEach(d => {
                 counts[d.teacher_id] = (counts[d.teacher_id] || 0) + 1;
             });
             setDutyCounts(counts);
         } catch {
             toast.error("Failed to load duties");
-        } finally {
-            setLoading(false);
         }
     }, [selectedExam, selectedDate, selectedShift, supabase]);
 
@@ -334,11 +333,12 @@ export function ExamDutiesTab({ exams }: { exams: { id: string; name: string }[]
         const [start_time, end_time] = selectedShift.split("||");
         
         try {
-            await supabase.from("exam_duties").delete()
+            const { error: deleteError } = await supabase.from("exam_duties").delete()
                 .eq("exam_id", selectedExam)
                 .eq("exam_date", selectedDate)
                 .eq("start_time", start_time)
                 .eq("end_time", end_time);
+            if (deleteError) throw deleteError;
 
             const inserts = duties.map(d => ({
                 exam_id: selectedExam,
@@ -379,12 +379,7 @@ export function ExamDutiesTab({ exams }: { exams: { id: string; name: string }[]
         } catch { return d; }
     };
 
-    const formatDateFull = (d: string) => {
-        try {
-            const date = new Date(d + "T00:00:00");
-            return date.toLocaleDateString("en-GB", { weekday: "long", day: "2-digit", month: "long", year: "numeric" });
-        } catch { return d; }
-    };
+
 
     const getAvailableTeachers = (roomId: string) => {
         const assignedTeacherIds = new Set(duties.map(d => d.teacher_id));
@@ -419,10 +414,7 @@ export function ExamDutiesTab({ exams }: { exams: { id: string; name: string }[]
     }, [examSchedules, classes, subjects, routines, teachers]);
 
     const handlePrint = () => {
-        // Build subject summary text
-        const subjectSummaryText = shiftSubjectsSummary
-            .map(s => `${s.class_name}: ${s.subject_name}`)
-            .join(", ");
+
 
         const totalRowsCount = printRows.reduce((acc, row) => acc + row.teachers.length, 0);
         let cellHeight = 45;
@@ -514,21 +506,7 @@ export function ExamDutiesTab({ exams }: { exams: { id: string; name: string }[]
     const selectedExamName = exams.find(e => e.id === selectedExam)?.name || "";
     const shiftTimes = selectedShift ? selectedShift.split("||") : ["", ""];
 
-    // Print table styles (kept for potential future use)
-    const thPrintStyle: React.CSSProperties = {
-        border: "1px solid #000",
-        padding: "5px 6px",
-        textAlign: "center",
-        fontWeight: "bold",
-        backgroundColor: "#fff",
-        fontSize: "12px",
-    };
 
-    const tdPrintStyle: React.CSSProperties = {
-        border: "1px solid #000",
-        padding: "4px 6px",
-        verticalAlign: "top",
-    };
 
     // Build print rows data
     const printRows = useMemo(() => {

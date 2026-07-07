@@ -35,7 +35,6 @@ export function SeatPlanTab({ exams }: { exams: { id: string; name: string }[] }
     const [classes, setClasses] = useState<{ id: string; name: string; numeric_value?: number | null }[]>([]);
     const [sections, setSections] = useState<{ id: string; class_id: string; name: string }[]>([]);
     const [students, setStudents] = useState<{ id: string; class_id: string; section_id: string }[]>([]);
-    const [subjects, setSubjects] = useState<{ id: string; name: string }[]>([]);
     const [schedules, setSchedules] = useState<ExamScheduleEntry[]>([]);
     
     const [allocations, setAllocations] = useState<SeatAllocationLocal[]>([]);
@@ -142,20 +141,19 @@ export function SeatPlanTab({ exams }: { exams: { id: string; name: string }[] }
         toast.success("Allocation removed");
     };
 
-    const supabase = useMemo(() => createClient() as any, []);
+    const supabase = useMemo(() => createClient(), []);
 
     const fetchBaseData = useCallback(async () => {
         setLoading(true);
         try {
-            const [roomsRes, classesRes, sectionsRes, studentsRes, subjectsRes] = await Promise.all([
+            const [roomsRes, classesRes, sectionsRes, studentsRes] = await Promise.all([
                 supabase.from("rooms").select("id, name, capacity, tables_count, seats_per_table, order_index").order("order_index", { ascending: true }),
                 supabase.from("classes").select("id, name, numeric_value").order("numeric_value", { ascending: true }),
                 supabase.from("sections").select("id, class_id, name"),
                 supabase.from("students").select("id, class_id, section_id"),
-                supabase.from("subjects").select("id, name")
             ]);
 
-            const parsedRooms: RoomCapacity[] = ((roomsRes.data || []) as any[]).map((r: any) => ({
+            const parsedRooms: RoomCapacity[] = (roomsRes.data || []).map((r) => ({
                 id: r.id,
                 name: r.name,
                 tables_count: r.tables_count ?? 0,
@@ -168,11 +166,11 @@ export function SeatPlanTab({ exams }: { exams: { id: string; name: string }[] }
 
             let fetchedSections = sectionsRes.data || [];
             const classesWithNoSections = (classesRes.data || []).filter(
-                (cls: any) => !fetchedSections.some((sec: any) => sec.class_id === cls.id)
+                (cls) => !fetchedSections.some((sec) => sec.class_id === cls.id)
             );
 
             if (classesWithNoSections.length > 0) {
-                const inserts = classesWithNoSections.map((cls: any) => ({
+                const inserts = classesWithNoSections.map((cls) => ({
                     class_id: cls.id,
                     name: "A"
                 }));
@@ -190,7 +188,6 @@ export function SeatPlanTab({ exams }: { exams: { id: string; name: string }[] }
             setClasses(classesRes.data || []);
             setSections(fetchedSections);
             setStudents(studentsRes.data || []);
-            setSubjects(subjectsRes.data || []);
         } catch {
             toast.error("Failed to load base data for seat plan");
         } finally {
@@ -246,7 +243,7 @@ export function SeatPlanTab({ exams }: { exams: { id: string; name: string }[] }
                 .eq("start_time", start)
                 .eq("end_time", end);
             if (error) throw error;
-            setAllocations(((data || []) as any[]).map((d: any) => ({
+            setAllocations((data || []).map((d) => ({
                 room_id: d.room_id,
                 class_id: d.class_id,
                 section_id: d.section_id,
@@ -276,7 +273,7 @@ export function SeatPlanTab({ exams }: { exams: { id: string; name: string }[] }
             const saved = localStorage.getItem(`exam_config_${selectedExam}`);
             if (saved) {
                 const config = JSON.parse(saved);
-                const currentConfigShift = config.shifts?.find((s: any) => {
+                const currentConfigShift = (config.shifts || []).find((s: { start_time: string; end_time: string; class_ids?: string[] }) => {
                     const normTime = (t: string) => t.substring(0, 5); // Normalise to HH:MM format
                     return normTime(s.start_time) === normTime(start) && normTime(s.end_time) === normTime(end);
                 });
