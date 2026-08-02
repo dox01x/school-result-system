@@ -67,7 +67,7 @@ export function Testimonials() {
               Testimonials
             </span>
           </div>
-          <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+          <h2 className="text-3xl md:text-4xl font-semibold text-slate-900 dark:text-white tracking-tight">
             Loved by Schools{" "}
             <span className="bg-gradient-to-r from-amber-500 to-rose-500 bg-clip-text text-transparent">
               Everywhere

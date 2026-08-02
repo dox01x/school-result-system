@@ -19,7 +19,13 @@ import {
     DialogClose,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, CheckCircle, Printer, FileText } from "lucide-react";
+import { Plus, Pencil, Trash2, CheckCircle, Printer, FileText, ChevronDown, Clock, Filter, Search, X } from "lucide-react";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import type { Exam } from "@/lib/database.types";
 
 interface ClassInfo {
@@ -79,7 +85,7 @@ interface Distribution {
     notes: string | null;
 }
 
-interface FormData {
+interface PaperDistFormData {
     class_id: string;
     section_id: string;
     subject_id: string;
@@ -91,7 +97,7 @@ interface FormData {
     notes: string;
 }
 
-const emptyForm: FormData = {
+const emptyForm: PaperDistFormData = {
     class_id: "",
     section_id: "",
     subject_id: "",
@@ -113,11 +119,13 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
     const [routines, setRoutines] = useState<RoutineInfo[]>([]);
     const [schedules, setSchedules] = useState<ScheduleInfo[]>([]);
     const [selectedDate, setSelectedDate] = useState<string>("all");
+    const [selectedStatus, setSelectedStatus] = useState<string>("all");
+    const [searchQuery, setSearchQuery] = useState("");
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
-    const [form, setForm] = useState<FormData>(emptyForm);
+    const [form, setForm] = useState<PaperDistFormData>(emptyForm);
     const [isFieldDisabled, setIsFieldDisabled] = useState(false);
     const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
     const [idToDelete, setIdToDelete] = useState<string | null>(null);
@@ -127,21 +135,26 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
         setDeleteConfirmOpen(true);
     };
 
-    const handleFormChange = (field: keyof FormData, value: string) => {
+    const handleFormChange = (field: keyof PaperDistFormData, value: string) => {
         setForm(prev => {
             const next = { ...prev, [field]: value };
             if (field === "class_id") {
                 next.section_id = "";
                 next.subject_id = "";
             }
-            if (next.class_id && next.section_id && next.subject_id && !next.teacher_id) {
-                const match = routines.find(r => 
-                    r.class_id === next.class_id && 
-                    r.section_id === next.section_id && 
-                    r.subject_id === next.subject_id
-                );
-                if (match && match.teacher_id) {
-                    next.teacher_id = match.teacher_id;
+            if (field === "subject_id" || field === "section_id" || field === "class_id") {
+                const classId = next.class_id;
+                const sectionId = next.section_id;
+                const subjectId = next.subject_id;
+                if (classId && subjectId) {
+                    const match = routines.find(r => 
+                        r.class_id === classId && 
+                        (sectionId ? r.section_id === sectionId : true) && 
+                        r.subject_id === subjectId
+                    );
+                    if (match && match.teacher_id) {
+                        next.teacher_id = match.teacher_id;
+                    }
                 }
             }
             return next;
@@ -224,6 +237,37 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
             setSelectedDate(prev => prev !== targetDate ? targetDate : prev);
         });
     }, [availableDates]);
+
+    // Helper functions
+    const getRoutineTeacherId = useCallback((classId: string, sectionId: string | null, subjectId: string) => {
+        if (!sectionId) return "";
+        const match = routines.find(r => 
+            r.class_id === classId && 
+            r.section_id === sectionId && 
+            r.subject_id === subjectId
+        );
+        return match?.teacher_id || "";
+    }, [routines]);
+
+    const getClassName = useCallback((id: string) => classes.find(c => c.id === id)?.name || "—", [classes]);
+    const getSectionName = useCallback((id: string | null) => {
+        if (!id) return "";
+        return sections.find(s => s.id === id)?.name || "";
+    }, [sections]);
+    const getClassNameWithSection = useCallback((dist: Distribution) => {
+        const cls = getClassName(dist.class_id);
+        const sec = getSectionName(dist.section_id);
+        return sec ? `${cls} - ${sec}` : cls;
+    }, [getClassName, getSectionName]);
+    const getSubjectName = useCallback((id: string) => subjects.find(s => s.id === id)?.name || "—", [subjects]);
+    const getTeacherName = useCallback((id: string) => teachers.find(t => t.id === id)?.name || "—", [teachers]);
+    const getTeacherDesignation = useCallback((id: string) => teachers.find(t => t.id === id)?.designation || "—", [teachers]);
+
+    const formatDate = useCallback((d: string) => {
+        if (!d) return "—";
+        const date = new Date(d + "T00:00:00");
+        return date.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+    }, []);
 
     // Build the pre-populated (virtual + saved) list of distributions
     const displayRows = useMemo(() => {
@@ -371,6 +415,32 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
             return timeA.localeCompare(timeB);
         });
     }, [displayRows, classes, schedules]);
+
+    // Filtered display rows by status and search query
+    const filteredDisplayRows = useMemo(() => {
+        return sortedDisplayRows.filter(d => {
+            // Status filter
+            if (selectedStatus === "pending" && d.status !== "pending") return false;
+            if (selectedStatus === "returned" && d.status !== "returned") return false;
+            if (selectedStatus === "unassigned" && d.status !== "pending_distribution") return false;
+
+            // Search query filter
+            if (searchQuery.trim()) {
+                const query = searchQuery.toLowerCase().trim();
+                const clsName = getClassNameWithSection(d).toLowerCase();
+                const subjName = getSubjectName(d.subject_id).toLowerCase();
+                const teacherId = d.status === "pending_distribution"
+                    ? getRoutineTeacherId(d.class_id, d.section_id, d.subject_id)
+                    : d.teacher_id;
+                const tName = teacherId ? getTeacherName(teacherId).toLowerCase() : "";
+                
+                const matches = clsName.includes(query) || subjName.includes(query) || tName.includes(query);
+                if (!matches) return false;
+            }
+
+            return true;
+        });
+    }, [sortedDisplayRows, selectedStatus, searchQuery, getRoutineTeacherId, getTeacherName, getSubjectName, classes, sections, subjects, teachers]);
 
     // Filtered sections by selected class in form
     const filteredSections = useMemo(() => {
@@ -551,111 +621,106 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
         }
     };
 
-    // Helper to get routine teacher ID
-    const getRoutineTeacherId = useCallback((classId: string, sectionId: string | null, subjectId: string) => {
-        if (!sectionId) return "";
-        const match = routines.find(r => 
-            r.class_id === classId && 
-            r.section_id === sectionId && 
-            r.subject_id === subjectId
-        );
-        return match?.teacher_id || "";
-    }, [routines]);
-
-    // Helper to get name by ID
-    const getClassName = (id: string) => classes.find(c => c.id === id)?.name || "—";
-    const getSectionName = (id: string | null) => {
-        if (!id) return "";
-        return sections.find(s => s.id === id)?.name || "";
-    };
-    const getClassNameWithSection = (dist: Distribution) => {
-        const cls = getClassName(dist.class_id);
-        const sec = getSectionName(dist.section_id);
-        return sec ? `${cls} - ${sec}` : cls;
-    };
-    const getSubjectName = (id: string) => subjects.find(s => s.id === id)?.name || "—";
-    const getTeacherName = (id: string) => teachers.find(t => t.id === id)?.name || "—";
-    const getTeacherDesignation = (id: string) => teachers.find(t => t.id === id)?.designation || "—";
-
-    const formatDate = (d: string) => {
-        if (!d) return "—";
-        const date = new Date(d + "T00:00:00");
-        return date.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
-    };
 
 
 
 
-
-    // Summary stats (calculates totals of only actual saved distributions)
+    // Summary stats (calculates totals of saved distributions & unassigned items)
     const stats = useMemo(() => {
-        // Filter out virtual rows from the displayed rows
         const actualDists = displayRows.filter(d => d.status !== "pending_distribution");
+        const virtualDists = displayRows.filter(d => d.status === "pending_distribution");
 
         const total = actualDists.length;
         const pending = actualDists.filter(d => d.status === "pending").length;
         const returned = actualDists.filter(d => d.status === "returned").length;
+        const unassigned = virtualDists.length;
+
         const totalCopies = actualDists.reduce((sum, d) => sum + d.total_copies, 0);
-        return { total, pending, returned, totalCopies };
+        const pendingCopies = actualDists.filter(d => d.status === "pending").reduce((sum, d) => sum + d.total_copies, 0);
+        const returnedCopies = actualDists.filter(d => d.status === "returned").reduce((sum, d) => sum + d.total_copies, 0);
+
+        return { total, pending, returned, unassigned, totalCopies, pendingCopies, returnedCopies };
     }, [displayRows]);
 
     // Print
-    const handlePrint = () => {
+    const handlePrint = (overrideStatus?: string) => {
+        const statusToUse = overrideStatus || selectedStatus;
+        const rowsToPrint = sortedDisplayRows.filter(d => {
+            if (statusToUse === "all") return true;
+            if (statusToUse === "pending") return d.status === "pending";
+            if (statusToUse === "returned") return d.status === "returned";
+            if (statusToUse === "unassigned") return d.status === "pending_distribution";
+            return true;
+        });
+
+        if (rowsToPrint.length === 0) {
+            toast.warning("No distribution records match the selected status filter to print.");
+            return;
+        }
+
         const examName = exams.find(e => e.id === selectedExam)?.name || "";
+        const filterTitle = statusToUse === "pending" 
+            ? "Pending Paper Checking List" 
+            : statusToUse === "returned" 
+            ? "Returned Paper Checking List" 
+            : statusToUse === "unassigned" 
+            ? "Unassigned Exam Paper List" 
+            : "Paper Checking Distribution List";
 
         let rowsHtml = "";
-        sortedDisplayRows.forEach((d, idx) => {
+        rowsToPrint.forEach((d, idx) => {
             const isVirtual = d.status === "pending_distribution";
             const statusBg = isVirtual ? "#e2e8f0" : d.status === "returned" ? "#d4edda" : "#fff3cd";
-            const statusText = isVirtual ? "Not Assigned" : d.status === "returned" ? "Returned" : "Pending";
+            const statusText = isVirtual ? "Not Assigned" : d.status === "returned" ? "Returned" : "Pending Return";
+            
+            const teacherId = isVirtual 
+                ? getRoutineTeacherId(d.class_id, d.section_id, d.subject_id)
+                : d.teacher_id;
+            const teacherName = teacherId ? getTeacherName(teacherId) : "—";
+            const teacherPhone = teacherId ? (teachers.find(t => t.id === teacherId)?.phone || "") : "";
+
             rowsHtml += `<tr>
-                <td style="border:1px solid #000;padding:4px 6px;text-align:center">${idx + 1}</td>
-                <td style="border:1px solid #000;padding:4px 6px">${getClassNameWithSection(d)}</td>
-                <td style="border:1px solid #000;padding:4px 6px">${getSubjectName(d.subject_id)}</td>
-                <td style="border:1px solid #000;padding:4px 6px;text-align:center">${d.date_received_from_hall ? formatDate(d.date_received_from_hall) : ""}</td>
-                <td style="border:1px solid #000;padding:4px 6px">${(() => {
-                    const teacherId = isVirtual 
-                        ? getRoutineTeacherId(d.class_id, d.section_id, d.subject_id)
-                        : d.teacher_id;
-                    return teacherId ? getTeacherName(teacherId) : "";
-                })()}</td>
-                <td style="border:1px solid #000;padding:4px 6px;text-align:center">${isVirtual ? "" : d.total_copies}</td>
-                <td style="border:1px solid #000;padding:4px 6px;text-align:center">${isVirtual || d.date_given === "1970-01-01" ? "" : formatDate(d.date_given)}</td>
-                <td style="border:1px solid #000;padding:4px 6px;text-align:center">${!isVirtual && d.date_returned ? formatDate(d.date_returned) : ""}</td>
-                <td style="border:1px solid #000;padding:4px 6px;text-align:center"><span style="background:${statusBg};padding:2px 8px;border-radius:4px;font-size:10px">${statusText}</span></td>
-                <td style="border:1px solid #000;padding:4px 6px;font-size:10px">${d.notes || ""}</td>
+                <td style="border:1px solid #000;padding:5px 6px;text-align:center">${idx + 1}</td>
+                <td style="border:1px solid #000;padding:5px 6px;font-weight:bold">${getClassNameWithSection(d)}</td>
+                <td style="border:1px solid #000;padding:5px 6px">${getSubjectName(d.subject_id)}</td>
+                <td style="border:1px solid #000;padding:5px 6px">${teacherName} ${teacherPhone ? `<br/><span style="font-size:9px;color:#555">📱 ${teacherPhone}</span>` : ""}</td>
+                <td style="border:1px solid #000;padding:5px 6px;text-align:center;font-weight:bold">${isVirtual ? "0" : d.total_copies}</td>
+                <td style="border:1px solid #000;padding:5px 6px;text-align:center">${isVirtual || d.date_given === "1970-01-01" ? "—" : formatDate(d.date_given)}</td>
+                <td style="border:1px solid #000;padding:5px 6px;text-align:center">${!isVirtual && d.date_returned ? formatDate(d.date_returned) : "—"}</td>
+                <td style="border:1px solid #000;padding:5px 6px;text-align:center"><span style="background:${statusBg};padding:2px 8px;border-radius:4px;font-size:10px;font-weight:bold">${statusText}</span></td>
+                <td style="border:1px solid #000;padding:5px 6px;font-size:10px">${d.notes || ""}</td>
             </tr>`;
         });
 
-        const thStyle = `border:1px solid #000;padding:5px 6px;text-align:center;font-weight:bold;background:#f0f0f0;font-size:11px`;
+        const thStyle = `border:1px solid #000;padding:6px 6px;text-align:center;font-weight:bold;background:#f0f0f0;font-size:11px`;
+        const totalPendingCopies = rowsToPrint.filter(r => r.status === "pending").reduce((sum, r) => sum + r.total_copies, 0);
 
         const html = `<!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Paper Checking Distribution</title>
+    <title>${filterTitle}</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: Arial, sans-serif; color: #000; padding: 5mm; font-size: 12px; }
-        @page { size: A4; margin: 5mm; }
+        body { font-family: Arial, sans-serif; color: #000; padding: 6mm; font-size: 12px; }
+        @page { size: A4 portrait; margin: 6mm; }
     </style>
 </head>
 <body>
-    <div style="text-align:center;margin-bottom:12px;border-bottom:2px solid #000;padding-bottom:8px">
-        <h2 style="font-size:16px;font-weight:bold;margin:0 0 4px 0">Paper Checking Distribution List</h2>
-        <p style="font-size:12px;margin:2px 0"><strong>Exam:</strong> ${examName}</p>
+    <div style="text-align:center;margin-bottom:14px;border-bottom:2px solid #000;padding-bottom:10px">
+        <h2 style="font-size:18px;font-weight:bold;margin:0 0 4px 0">${filterTitle}</h2>
+        <p style="font-size:13px;margin:3px 0"><strong>Exam:</strong> ${examName}</p>
         ${selectedDate !== "all" ? `<p style="font-size:11px;margin:2px 0"><strong>Exam Date:</strong> ${formatDate(selectedDate)}</p>` : ""}
-        <p style="font-size:11px;margin:2px 0;color:#555">Total: ${stats.total} distributions | ${stats.totalCopies} copies | Pending: ${stats.pending} | Returned: ${stats.returned}</p>
+        <p style="font-size:11px;margin:3px 0;color:#333">Total Listed: ${rowsToPrint.length} entries | Total Pending Copies: ${totalPendingCopies} scripts</p>
     </div>
 
-    <table style="width:100%;border-collapse:collapse;font-size:10px">
+    <table style="width:100%;border-collapse:collapse;font-size:11px">
         <thead>
             <tr>
                 <th style="${thStyle}">Sl.</th>
-                <th style="${thStyle}">Class</th>
+                <th style="${thStyle}">Class & Section</th>
                 <th style="${thStyle}">Subject</th>
-                <th style="${thStyle}">Received (Hall)</th>
-                <th style="${thStyle}">Teacher</th>
+                <th style="${thStyle}">Examiner Teacher</th>
                 <th style="${thStyle}">Copies</th>
                 <th style="${thStyle}">Date Given</th>
                 <th style="${thStyle}">Date Returned</th>
@@ -666,9 +731,9 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
         <tbody>${rowsHtml}</tbody>
     </table>
 
-    <div style="margin-top:30px;display:flex;justify-content:space-between;font-size:11px">
+    <div style="margin-top:35px;display:flex;justify-content:space-between;font-size:11px">
         <div>
-            <div style="border-top:1px solid #000;width:150px;text-align:center;padding-top:4px">Date</div>
+            <div style="border-top:1px solid #000;width:160px;text-align:center;padding-top:4px">Report Generated Date</div>
         </div>
         <div>
             <div style="border-top:1px solid #000;width:250px;text-align:center;padding-top:4px">Head Teacher / Exam Controller's Signature</div>
@@ -683,53 +748,180 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
     return (
         <div className="space-y-6">
             {/* Filters */}
-            <div className="flex flex-col sm:flex-row sm:items-center gap-3 bg-card p-4 rounded-2xl border border-border/50">
-                <Select value={selectedExam} onValueChange={setSelectedExam}>
-                    <SelectTrigger className="w-full sm:w-[220px] h-11 rounded-xl border-0 bg-muted hover:bg-muted/80 transition-colors text-foreground font-semibold shadow-none focus:ring-1 focus:ring-ring/30">
-                        <SelectValue placeholder="Select Exam" />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-xl border-border/50 shadow-md">
-                        {exams.map(e => (
-                            <SelectItem key={e.id} value={e.id} className="rounded-lg">{e.name}</SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-
-                {selectedExam && availableDates.length > 0 && (
-                    <Select value={selectedDate} onValueChange={setSelectedDate}>
-                        <SelectTrigger className="w-full sm:w-[200px] h-11 rounded-xl border-0 bg-muted hover:bg-muted/80 transition-colors text-foreground font-semibold shadow-none focus:ring-1 focus:ring-ring/30">
-                            <SelectValue placeholder="All Dates" />
+            <div className="flex flex-col gap-4 bg-card p-4 rounded-2xl border border-border">
+                <div className="flex flex-col lg:flex-row lg:items-center gap-3">
+                    {/* Exam Selector */}
+                    <Select value={selectedExam} onValueChange={setSelectedExam}>
+                        <SelectTrigger className="w-full lg:w-[220px] h-11 rounded-xl border-0 bg-muted hover:bg-muted/80 transition-colors text-foreground font-semibold shadow-none focus:ring-1 focus:ring-ring/30">
+                            <SelectValue placeholder="Select Exam" />
                         </SelectTrigger>
-                        <SelectContent className="rounded-xl border-border/50 shadow-md">
-                            <SelectItem value="all" className="rounded-lg">All Dates</SelectItem>
-                            {availableDates.map(date => (
-                                <SelectItem key={date} value={date} className="rounded-lg">
-                                    {formatDate(date)}
-                                </SelectItem>
+                        <SelectContent className="rounded-xl border-border shadow-md">
+                            {exams.map(e => (
+                                <SelectItem key={e.id} value={e.id} className="rounded-lg">{e.name}</SelectItem>
                             ))}
                         </SelectContent>
                     </Select>
-                )}
 
-                <div className="w-full sm:w-auto sm:ml-auto flex flex-col sm:flex-row gap-2">
-                    {selectedExam && sortedDisplayRows.length > 0 && (
-                        <Button
-                            variant="outline"
-                            onClick={handlePrint}
-                            className="w-full sm:w-auto h-11 rounded-xl font-semibold shadow-none border-border/50 transition-all duration-200 gap-2"
-                        >
-                            <Printer className="h-4 w-4" /> Print List
-                        </Button>
+                    {selectedExam && availableDates.length > 0 && (
+                        <Select value={selectedDate} onValueChange={setSelectedDate}>
+                            <SelectTrigger className="w-full lg:w-[170px] h-11 rounded-xl border-0 bg-muted hover:bg-muted/80 transition-colors text-foreground font-semibold shadow-none focus:ring-1 focus:ring-ring/30">
+                                <SelectValue placeholder="All Exam Dates" />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-xl border-border shadow-md">
+                                <SelectItem value="all" className="rounded-lg">All Dates</SelectItem>
+                                {availableDates.map(date => (
+                                    <SelectItem key={date} value={date} className="rounded-lg">
+                                        {formatDate(date)}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     )}
+
                     {selectedExam && (
-                        <Button
-                            onClick={handleAdd}
-                            className="w-full sm:w-auto h-11 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 font-semibold shadow-none transition-all duration-200 gap-2"
-                        >
-                            <Plus className="h-4 w-4" /> Add Distribution
-                        </Button>
+                        <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                            <SelectTrigger className="w-full lg:w-[190px] h-11 rounded-xl border-0 bg-muted hover:bg-muted/80 transition-colors text-foreground font-semibold shadow-none focus:ring-1 focus:ring-ring/30">
+                                <SelectValue placeholder="All Statuses" />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-xl border-border shadow-md">
+                                <SelectItem value="all" className="rounded-lg font-medium">All Statuses</SelectItem>
+                                <SelectItem value="pending" className="rounded-lg text-amber-600 font-semibold">Pending Returns Only</SelectItem>
+                                <SelectItem value="returned" className="rounded-lg text-emerald-600 font-semibold">Returned Papers Only</SelectItem>
+                                <SelectItem value="unassigned" className="rounded-lg text-muted-foreground font-medium">Not Distributed Yet</SelectItem>
+                            </SelectContent>
+                        </Select>
                     )}
+
+                    {selectedExam && (
+                        <div className="relative w-full lg:w-[220px]">
+                            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                placeholder="Search teacher, subject..."
+                                className="w-full h-11 pl-9 pr-8 rounded-xl border-0 bg-muted hover:bg-muted/80 transition-colors text-xs font-medium shadow-none focus-visible:ring-1 focus-visible:ring-ring/30"
+                            />
+                            {searchQuery && (
+                                <button
+                                    onClick={() => setSearchQuery("")}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                >
+                                    <X className="h-3.5 w-3.5" />
+                                </button>
+                            )}
+                        </div>
+                    )}
+
+                    <div className="w-full lg:w-auto lg:ml-auto flex flex-col sm:flex-row gap-2">
+                        {selectedExam && sortedDisplayRows.length > 0 && (
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        className="w-full sm:w-auto h-11 rounded-xl font-semibold shadow-none border-border transition-all duration-200 gap-2"
+                                    >
+                                        <Printer className="h-4 w-4 text-primary" /> Print Reports <ChevronDown className="h-3.5 w-3.5 opacity-60" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-64 rounded-xl border-border shadow-md">
+                                    <DropdownMenuItem onClick={() => handlePrint()} className="rounded-lg cursor-pointer py-2.5">
+                                        <Printer className="mr-2.5 h-4 w-4 text-primary" />
+                                        <div>
+                                            <div className="font-semibold text-xs">Print Filtered List</div>
+                                            <div className="text-[10px] text-muted-foreground">Print currently displayed rows</div>
+                                        </div>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handlePrint("pending")} className="rounded-lg cursor-pointer py-2.5 bg-amber-500/10 focus:bg-amber-500/20">
+                                        <Clock className="mr-2.5 h-4 w-4 text-amber-600" />
+                                        <div>
+                                            <div className="font-semibold text-xs text-amber-700 dark:text-amber-400">Print Pending List Only</div>
+                                            <div className="text-[10px] text-amber-600/80">Teachers with unreturned scripts</div>
+                                        </div>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handlePrint("returned")} className="rounded-lg cursor-pointer py-2.5 bg-emerald-500/10 focus:bg-emerald-500/20">
+                                        <CheckCircle className="mr-2.5 h-4 w-4 text-emerald-600" />
+                                        <div>
+                                            <div className="font-semibold text-xs text-emerald-700 dark:text-emerald-400">Print Returned List</div>
+                                            <div className="text-[10px] text-emerald-600/80">Teachers who returned all scripts</div>
+                                        </div>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handlePrint("unassigned")} className="rounded-lg cursor-pointer py-2.5">
+                                        <FileText className="mr-2.5 h-4 w-4 text-muted-foreground" />
+                                        <div>
+                                            <div className="font-semibold text-xs">Print Unassigned List</div>
+                                            <div className="text-[10px] text-muted-foreground">Exam papers not assigned yet</div>
+                                        </div>
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        )}
+                        {selectedExam && (
+                            <Button
+                                onClick={handleAdd}
+                                className="w-full sm:w-auto h-11 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 font-semibold shadow-none transition-all duration-200 gap-2"
+                            >
+                                <Plus className="h-4 w-4" /> Add Distribution
+                            </Button>
+                        )}
+                    </div>
                 </div>
+
+                {/* Quick Status Filter Tabs */}
+                {selectedExam && sortedDisplayRows.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-border/40">
+                        <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider mr-1 flex items-center gap-1">
+                            <Filter className="h-3 w-3" /> Quick Filter:
+                        </span>
+                        <Button
+                            variant={selectedStatus === "all" ? "default" : "ghost"}
+                            size="sm"
+                            onClick={() => setSelectedStatus("all")}
+                            className={`h-8 rounded-lg text-xs font-semibold px-3 transition-all ${
+                                selectedStatus === "all" ? "shadow-xs" : "text-muted-foreground hover:text-foreground"
+                            }`}
+                        >
+                            All ({sortedDisplayRows.length})
+                        </Button>
+                        <Button
+                            variant={selectedStatus === "pending" ? "default" : "ghost"}
+                            size="sm"
+                            onClick={() => setSelectedStatus("pending")}
+                            className={`h-8 rounded-lg text-xs font-semibold px-3 transition-all gap-1.5 ${
+                                selectedStatus === "pending"
+                                    ? "bg-amber-600 text-white hover:bg-amber-700 shadow-xs"
+                                    : "text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30"
+                            }`}
+                        >
+                            <Clock className="h-3 w-3" />
+                            Pending Returns ({stats.pending})
+                        </Button>
+                        <Button
+                            variant={selectedStatus === "returned" ? "default" : "ghost"}
+                            size="sm"
+                            onClick={() => setSelectedStatus("returned")}
+                            className={`h-8 rounded-lg text-xs font-semibold px-3 transition-all gap-1.5 ${
+                                selectedStatus === "returned"
+                                    ? "bg-emerald-600 text-white hover:bg-emerald-700 shadow-xs"
+                                    : "text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
+                            }`}
+                        >
+                            <CheckCircle className="h-3 w-3" />
+                            Returned Papers ({stats.returned})
+                        </Button>
+                        <Button
+                            variant={selectedStatus === "unassigned" ? "default" : "ghost"}
+                            size="sm"
+                            onClick={() => setSelectedStatus("unassigned")}
+                            className={`h-8 rounded-lg text-xs font-semibold px-3 transition-all gap-1.5 ${
+                                selectedStatus === "unassigned"
+                                    ? "bg-slate-700 text-white hover:bg-slate-800 shadow-xs"
+                                    : "text-muted-foreground hover:bg-muted"
+                            }`}
+                        >
+                            Not Distributed ({stats.unassigned})
+                        </Button>
+                    </div>
+                )}
             </div>
 
             {!selectedExam && (
@@ -744,46 +936,96 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
                     {/* Stats Cards */}
                     {sortedDisplayRows.length > 0 && (
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                            <Card className="shadow-none border-border/50 rounded-2xl">
+                            <Card 
+                                onClick={() => setSelectedStatus("all")}
+                                className={`shadow-none border-border rounded-xl cursor-pointer transition-all ${selectedStatus === "all" ? 'ring-2 ring-primary border-transparent' : 'hover:border-primary/50'}`}
+                            >
                                 <CardContent className="p-4 text-center">
-                                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-1">Total Distributions</p>
+                                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-1">Total Assigned</p>
                                     <p className="text-2xl font-black text-foreground">{stats.total}</p>
+                                    <p className="text-[10px] text-muted-foreground mt-0.5">{stats.totalCopies} total copies</p>
                                 </CardContent>
                             </Card>
-                            <Card className="shadow-none border-border/50 rounded-2xl">
+                            <Card className="shadow-none border-border rounded-xl">
                                 <CardContent className="p-4 text-center">
                                     <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-1">Total Copies</p>
                                     <p className="text-2xl font-black text-foreground">{stats.totalCopies}</p>
+                                    <p className="text-[10px] text-muted-foreground mt-0.5">Distributed to teachers</p>
                                 </CardContent>
                             </Card>
-                            <Card className="shadow-none border-border/50 rounded-2xl bg-amber-50/50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800">
+                            <Card 
+                                onClick={() => setSelectedStatus("pending")}
+                                className={`shadow-none rounded-xl bg-amber-50/50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800 cursor-pointer transition-all ${selectedStatus === "pending" ? 'ring-2 ring-amber-500 border-transparent' : 'hover:border-amber-400'}`}
+                            >
                                 <CardContent className="p-4 text-center">
-                                    <p className="text-[10px] uppercase tracking-widest text-amber-600 font-bold mb-1">Pending</p>
+                                    <p className="text-[10px] uppercase tracking-widest text-amber-600 font-bold mb-1 flex items-center justify-center gap-1">
+                                        <Clock className="h-3 w-3" /> Pending Returns
+                                    </p>
                                     <p className="text-2xl font-black text-amber-600">{stats.pending}</p>
+                                    <p className="text-[10px] text-amber-600/80 font-medium mt-0.5">{stats.pendingCopies} unreturned copies</p>
                                 </CardContent>
                             </Card>
-                            <Card className="shadow-none border-border/50 rounded-2xl bg-emerald-50/50 dark:bg-emerald-900/10 border-emerald-200 dark:border-emerald-800">
+                            <Card 
+                                onClick={() => setSelectedStatus("returned")}
+                                className={`shadow-none rounded-xl bg-emerald-50/50 dark:bg-emerald-900/10 border-emerald-200 dark:border-emerald-800 cursor-pointer transition-all ${selectedStatus === "returned" ? 'ring-2 ring-emerald-500 border-transparent' : 'hover:border-emerald-400'}`}
+                            >
                                 <CardContent className="p-4 text-center">
-                                    <p className="text-[10px] uppercase tracking-widest text-emerald-600 font-bold mb-1">Returned</p>
+                                    <p className="text-[10px] uppercase tracking-widest text-emerald-600 font-bold mb-1 flex items-center justify-center gap-1">
+                                        <CheckCircle className="h-3 w-3" /> Returned Papers
+                                    </p>
                                     <p className="text-2xl font-black text-emerald-600">{stats.returned}</p>
+                                    <p className="text-[10px] text-emerald-600/80 font-medium mt-0.5">{stats.returnedCopies} checked copies</p>
                                 </CardContent>
                             </Card>
                         </div>
                     )}
 
                     {/* Table */}
-                    <Card className="shadow-none border-border/50 rounded-2xl">
-                        <CardHeader className="py-3 bg-muted/30 border-b border-border/50 rounded-t-2xl">
-                            <CardTitle className="text-sm">Paper Distributions</CardTitle>
+                    <Card className="shadow-none border-border rounded-xl">
+                        <CardHeader className="py-3 bg-muted/30 border-b border-border rounded-t-2xl flex flex-row items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <CardTitle className="text-sm">
+                                    Paper Distributions
+                                </CardTitle>
+                                {selectedStatus !== "all" && (
+                                    <Badge 
+                                        variant="secondary" 
+                                        className={`text-xs px-2.5 py-0.5 font-semibold capitalize border-0 ${
+                                            selectedStatus === "pending" 
+                                                ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
+                                                : selectedStatus === "returned"
+                                                ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
+                                                : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300"
+                                        }`}
+                                    >
+                                        Filter: {selectedStatus === "pending" ? "Pending Returns Only" : selectedStatus === "returned" ? "Returned Papers Only" : "Not Distributed"}
+                                    </Badge>
+                                )}
+                                {searchQuery && (
+                                    <Badge variant="outline" className="text-xs px-2 py-0.5">
+                                        Search: &quot;{searchQuery}&quot;
+                                    </Badge>
+                                )}
+                            </div>
+                            {(selectedStatus !== "all" || searchQuery) && (
+                                <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    onClick={() => { setSelectedStatus("all"); setSearchQuery(""); }} 
+                                    className="h-7 text-xs text-muted-foreground hover:text-foreground"
+                                >
+                                    Clear Filters
+                                </Button>
+                            )}
                         </CardHeader>
                         <CardContent className="p-0">
                             {loading ? (
                                 <div className="flex justify-center py-12 text-muted-foreground text-sm">Loading...</div>
-                            ) : sortedDisplayRows.length === 0 ? (
+                            ) : filteredDisplayRows.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center py-12 text-center">
                                     <FileText className="h-8 w-8 text-muted-foreground/30 mb-3" />
-                                    <p className="text-muted-foreground text-sm">No scheduled exams found for this date</p>
-                                    <p className="text-muted-foreground/60 text-xs mt-1">Please schedule exams first under Seat Plan or Schedules</p>
+                                    <p className="text-muted-foreground text-sm">No records match the selected filter</p>
+                                    <Button variant="link" size="sm" onClick={() => setSelectedStatus("all")} className="mt-1 text-xs">Reset Filters</Button>
                                 </div>
                             ) : (
                                 <>
@@ -806,7 +1048,7 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
                                                 </TableRow>
                                             </TableHeader>
                                             <TableBody>
-                                                {sortedDisplayRows.map((d, idx) => {
+                                                {filteredDisplayRows.map((d, idx) => {
                                                     const isVirtual = d.status === "pending_distribution";
                                                     return (
                                                         <TableRow key={d.id}>
@@ -944,7 +1186,7 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
 
                                     {/* Mobile View */}
                                     <div className="md:hidden divide-y divide-border/50">
-                                        {sortedDisplayRows.map((d, idx) => {
+                                        {filteredDisplayRows.map((d, idx) => {
                                             const isVirtual = d.status === "pending_distribution";
                                             return (
                                                 <div key={d.id} className="p-4 space-y-3">
@@ -1026,7 +1268,7 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
                                                     </div>
 
                                                     {!isVirtual && (
-                                                        <div className="grid grid-cols-2 gap-4 pt-2 border-t border-dashed border-border/50 text-xs">
+                                                        <div className="grid grid-cols-2 gap-4 pt-2 border-t border-dashed border-border text-xs">
                                                             <div>
                                                                 <span className="text-muted-foreground block text-[10px] uppercase font-bold tracking-wider mb-0.5">Date Given</span>
                                                                 {d.date_given === "1970-01-01" ? (
@@ -1112,7 +1354,7 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
 
             {/* Add/Edit Dialog */}
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                <DialogContent className="sm:max-w-lg rounded-2xl">
+                <DialogContent className="sm:max-w-lg rounded-xl">
                     <DialogHeader>
                         <DialogTitle>{editingId ? "Edit Distribution" : "Add Paper Distribution"}</DialogTitle>
                     </DialogHeader>
@@ -1242,7 +1484,7 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
 
             {/* Delete Confirmation Dialog */}
             <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
-                <DialogContent className="sm:max-w-[400px] rounded-2xl p-6 border-border/50">
+                <DialogContent className="sm:max-w-[400px] rounded-xl p-6 border-border">
                     <DialogHeader>
                         <DialogTitle className="text-lg font-bold text-foreground">Confirm Delete</DialogTitle>
                     </DialogHeader>
@@ -1258,7 +1500,7 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
                                 setDeleteConfirmOpen(false);
                                 setIdToDelete(null);
                             }}
-                            className="rounded-xl px-4 h-10 border-border/50 font-semibold"
+                            className="rounded-xl px-4 h-10 border-border font-semibold"
                         >
                             Cancel
                         </Button>

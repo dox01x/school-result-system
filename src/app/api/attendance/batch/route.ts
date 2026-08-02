@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { sendAbsenceAlertSms } from "@/lib/sms-gateway";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +13,7 @@ type BatchRecord = {
 };
 
 export async function POST(req: NextRequest) {
-    const supabase = (await createServerSupabaseClient()) as any;
+    const supabase = await createServerSupabaseClient();
 
     const authHeader = req.headers.get("authorization");
     const bearerToken = authHeader?.toLowerCase().startsWith("bearer ")
@@ -55,6 +56,12 @@ export async function POST(req: NextRequest) {
                 { status: 400 }
             );
         }
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(r.att_date)) {
+            return NextResponse.json(
+                { success: false, error: `Record ${i}: att_date must be in YYYY-MM-DD format` },
+                { status: 400 }
+            );
+        }
     }
 
     // Upsert in chunks
@@ -76,6 +83,42 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ success: false, error: error.message }, { status: 500 });
         }
         total += chunk.length;
+    }
+
+    // Asynchronously fetch and send absence SMS alerts in background using correct individual record dates
+    const absentRecords = records.filter((r) => r.status === "A");
+    if (absentRecords.length > 0) {
+        void (async () => {
+            try {
+                const { data: schoolInfo } = await supabase.from("school_info").select("name").limit(1).maybeSingle();
+                const schoolName = schoolInfo?.name || "School";
+
+                const absentStudentIds = Array.from(new Set(absentRecords.map((r) => r.student_id)));
+                const { data: students } = await supabase
+                    .from("students")
+                    .select("id, name, phone")
+                    .in("id", absentStudentIds);
+
+                if (students) {
+                    const studentMap = new Map<string, { name: string; phone: string | null }>(
+                        students.map((s: { id: string; name: string; phone: string | null }) => [s.id, { name: s.name, phone: s.phone }])
+                    );
+                    for (const r of absentRecords) {
+                        const s = studentMap.get(r.student_id);
+                        if (s?.phone && s.phone.trim().length >= 8) {
+                            await sendAbsenceAlertSms({
+                                phone: s.phone,
+                                studentName: s.name,
+                                date: r.att_date,
+                                schoolName,
+                            });
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error("[Absence SMS Send Error]", err);
+            }
+        })();
     }
 
     return NextResponse.json({ success: true, data: { upserted: total } });

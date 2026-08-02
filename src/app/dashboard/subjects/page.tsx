@@ -61,7 +61,7 @@ export default function SubjectsPage() {
     const [editingSubject, setEditingSubject] = useState<Subject | null>(null);
     const [form, setForm] = useState(defaultSubject);
     const [confirmState, setConfirmState] = useState<{ open: boolean; title: string; description: string; onConfirm: () => void }>({ open: false, title: "", description: "", onConfirm: () => {} });
-    const supabase = useMemo(() => createClient() as any, []);
+    const supabase = useMemo(() => createClient(), []);
 
     const fetchClasses = useCallback(async () => {
         try {
@@ -212,7 +212,7 @@ export default function SubjectsPage() {
                     <Button
                         onClick={() => { resetForm(); setDialogOpen(true); }}
                         disabled={!selectedClass}
-                        className="bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 font-semibold shadow-none transition-all duration-200 btn-press"
+                        className="bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 font-semibold shadow-none transition-all duration-200 "
                     >
                         <Plus size={16} strokeWidth={1.5} className="mr-2" />
                         Add Subject
@@ -222,7 +222,7 @@ export default function SubjectsPage() {
 
             {/* Funnels Card */}
             {classes.length > 0 && (
-                <div className="bg-card rounded-2xl border border-border/50 p-5">
+                <div className="bg-card rounded-2xl border border-border p-5">
                     <div className="flex items-center gap-4 flex-wrap">
                         <div className="flex-1 min-w-[140px]">
                             <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-2">Class</p>
@@ -230,7 +230,7 @@ export default function SubjectsPage() {
                                 <SelectTrigger className="w-full h-11 rounded-xl border-0 bg-muted hover:bg-muted/80 transition-colors text-foreground font-semibold shadow-none focus:ring-1 focus:ring-ring/30">
                                     <SelectValue placeholder="Select class" />
                                 </SelectTrigger>
-                                <SelectContent className="rounded-xl border-border/50 shadow-md">
+                                <SelectContent className="rounded-xl border-border shadow-md">
                                     {classes.map((cls) => (
                                         <SelectItem key={cls.id} value={cls.id} className="rounded-lg">
                                             {cls.name}
@@ -278,7 +278,7 @@ export default function SubjectsPage() {
                             <Label>Group</Label>
                             <div className="flex w-full gap-2 pt-1">
                                 {[{ value: "Common", label: "Common (All)" }, { value: "Science", label: "Science" }, { value: "Arts", label: "Arts" }, { value: "Commerce", label: "Commerce" }].map((opt) => (
-                                    <label key={opt.value} className={`flex-1 flex items-center justify-center px-3 py-2.5 rounded-xl border cursor-pointer transition-colors text-center ${form.group_name === opt.value ? "border-primary bg-primary text-primary-foreground font-medium shadow-none" : "border-border/50 bg-muted/50 hover:bg-muted text-muted-foreground font-medium"}`}>
+                                    <label key={opt.value} className={`flex-1 flex items-center justify-center px-3 py-2.5 rounded-xl border cursor-pointer transition-colors text-center ${form.group_name === opt.value ? "border-primary bg-primary text-primary-foreground font-medium shadow-none" : "border-border bg-muted/50 hover:bg-muted text-muted-foreground font-medium"}`}>
                                         <input type="radio" name="subject-group" value={opt.value} checked={form.group_name === opt.value} onChange={() => setForm({ ...form, group_name: opt.value })} className="sr-only" />
                                         <span className="text-xs sm:text-sm whitespace-nowrap">{opt.label}</span>
                                     </label>
@@ -314,8 +314,8 @@ export default function SubjectsPage() {
 
                         <div className="space-y-4 pt-2">
                             <p className="text-sm font-medium text-foreground">Mark Distribution</p>
-                            <div className="space-y-3 rounded-xl border border-border/50/60 bg-muted/50/50 p-4">
-                                <div className="flex items-center justify-between rounded-lg border border-border/50 bg-card p-4">
+                            <div className="space-y-3 rounded-xl border border-border/60 bg-muted/50/50 p-4">
+                                <div className="flex items-center justify-between rounded-lg border border-border bg-card p-4">
                                     <div className="flex items-center gap-3">
                                         <Switch
                                             checked={form.has_theory}
@@ -339,7 +339,7 @@ export default function SubjectsPage() {
                                         />
                                     )}
                                 </div>
-                                <div className="flex items-center justify-between rounded-lg border border-border/50 bg-card p-4">
+                                <div className="flex items-center justify-between rounded-lg border border-border bg-card p-4">
                                     <div className="flex items-center gap-3">
                                         <Switch
                                             checked={form.has_mcq}
@@ -363,7 +363,7 @@ export default function SubjectsPage() {
                                         />
                                     )}
                                 </div>
-                                <div className="flex items-center justify-between rounded-lg border border-border/50 bg-card p-4">
+                                <div className="flex items-center justify-between rounded-lg border border-border bg-card p-4">
                                     <div className="flex items-center gap-3">
                                         <Switch
                                             checked={form.has_practical}
@@ -392,7 +392,7 @@ export default function SubjectsPage() {
                     </div>
                     <DialogFooter>
                         <DialogClose asChild>
-                            <Button type="button" variant="outline" className="border-border/50 text-foreground font-semibold rounded-xl hover:bg-muted transition-all duration-200">Cancel</Button>
+                            <Button type="button" variant="outline" className="border-border text-foreground font-semibold rounded-xl hover:bg-muted transition-all duration-200">Cancel</Button>
                         </DialogClose>
                         <Button type="submit" className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl font-semibold shadow-none transition-all duration-200">
                             {editingSubject ? "Update" : "Create"}
@@ -404,7 +404,7 @@ export default function SubjectsPage() {
 
             {/* No class selected */}
             {classes.length === 0 && !loading && (
-                <div className="bg-transparent rounded-2xl border-2 border-dashed border-border/50 p-12 text-center shadow-none">
+                <div className="bg-transparent rounded-2xl border-2 border-dashed border-border p-12 text-center shadow-none">
                     <div className="h-12 w-12 rounded-xl flex items-center justify-center mb-4 mx-auto text-muted-foreground/40">
                         <BookOpenText size={32} strokeWidth={1.2} />
                     </div>
@@ -417,7 +417,7 @@ export default function SubjectsPage() {
 
             {/* Subject Table */}
             {selectedClass && subjects.length > 0 && (
-                <Card className="bg-card rounded-2xl border-border/50 shadow-none">
+                <Card className="bg-card rounded-2xl border-border shadow-none">
                     <CardContent className="p-0">
                         <Table>
                             <TableHeader>
@@ -442,7 +442,7 @@ export default function SubjectsPage() {
                                                 </Badge>
                                             )}
                                             {subject.is_optional && (
-                                                <Badge variant="outline" className="ml-2 text-[10px] bg-muted/50 text-muted-foreground border border-border/50 rounded-md font-medium uppercase tracking-wider">
+                                                <Badge variant="outline" className="ml-2 text-[10px] bg-muted/50 text-muted-foreground border border-border rounded-md font-medium uppercase tracking-wider">
                                                     Optional
                                                 </Badge>
                                             )}
@@ -500,7 +500,7 @@ export default function SubjectsPage() {
 
             {/* Empty subjects */}
             {selectedClass && subjects.length === 0 && !loading && classes.length > 0 && (
-                <div className="bg-transparent rounded-2xl border-2 border-dashed border-border/50 p-12 text-center shadow-none">
+                <div className="bg-transparent rounded-2xl border-2 border-dashed border-border p-12 text-center shadow-none">
                     <div className="h-12 w-12 rounded-xl flex items-center justify-center mb-4 mx-auto text-muted-foreground/40">
                         <BookOpenText size={32} strokeWidth={1.2} />
                     </div>

@@ -166,7 +166,7 @@ export default function RoutineSettingsPage() {
                     </Button>
                 </Link>
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight text-foreground font-heading mb-1">Routine Settings</h1>
+                    <h1 className="text-2xl font-bold tracking-tight text-foreground  mb-1">Routine Settings</h1>
                     <p className="text-muted-foreground mt-0.5 text-sm">Configure working days, periods, and timing for the class routine.</p>
                 </div>
             </div>

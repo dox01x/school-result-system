@@ -11,7 +11,6 @@ export async function GET(request: Request) {
 
     const supabase = await createServerSupabaseClient();
     
-    // @ts-ignore - teacher salary payments only
     let query = supabase.from('salary_payments').select(`
       *,
       teachers!salary_payments_staff_id_fkey(name, designation)
@@ -25,7 +24,8 @@ export async function GET(request: Request) {
     if (error) throw error;
     
     return NextResponse.json({ success: true, data } as ApiResponse<SalaryPayment[]>);
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Internal server error";
+    return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }

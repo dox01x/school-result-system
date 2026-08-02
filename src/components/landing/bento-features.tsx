@@ -53,7 +53,7 @@ export function BentoFeatures() {
           <span className="inline-flex items-center gap-1.5 bg-brand/5 text-brand text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-widest">
             🎯 Our Programs
           </span>
-          <h2 className="text-3xl md:text-4xl font-heading font-bold tracking-tight text-[#0F172A]" style={{ textWrap: "balance" }}>
+          <h2 className="text-3xl md:text-4xl  font-bold tracking-tight text-[#0F172A]" style={{ textWrap: "balance" }}>
             Everything Your School Needs
           </h2>
           <p className="text-base text-slate-600 leading-relaxed">
@@ -71,7 +71,7 @@ export function BentoFeatures() {
               <div className="bg-brand/5 text-brand p-3 rounded-xl w-fit mb-4 group-hover:bg-brand group-hover:text-white transition-colors duration-300">
                 <p.icon className="w-6 h-6" />
               </div>
-              <h3 className="text-xl font-heading font-semibold text-[#0F172A] mb-2">
+              <h3 className="text-xl  font-semibold text-[#0F172A] mb-2">
                 {p.title}
               </h3>
               <p className="text-sm text-slate-600 leading-relaxed">

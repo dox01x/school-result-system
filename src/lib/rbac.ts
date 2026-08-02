@@ -70,20 +70,20 @@ const ROUTE_ACCESS: { path: string; roles: UserRole[] }[] = [
 /**
  * Check if a role can access a given pathname.
  */
+// Pre-sorted by path length descending for longest-prefix matching
+const SORTED_ROUTE_ACCESS = [...ROUTE_ACCESS].sort((a, b) => b.path.length - a.path.length);
+
 export function canAccessRoute(role: UserRole | null | undefined, pathname: string): boolean {
   if (!role) return false;
   if (role === "super_admin" || role === "admin") return true;
 
-  // Sort by path length descending for longest prefix match
-  const sorted = [...ROUTE_ACCESS].sort((a, b) => b.path.length - a.path.length);
-
-  for (const entry of sorted) {
+  for (const entry of SORTED_ROUTE_ACCESS) {
     if (pathname === entry.path || pathname.startsWith(entry.path + "/")) {
       return entry.roles.includes(role);
     }
   }
 
-  // If route is not listed, only admin roles can access
+  // Unlisted dashboard routes are restricted to admin roles
   if (pathname.startsWith("/dashboard")) return false;
 
   return true;

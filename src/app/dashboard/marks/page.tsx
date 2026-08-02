@@ -83,7 +83,7 @@ export default function MarksPage() {
     const [syncStatus, setSyncStatus] = useState<"idle" | "syncing" | "error">("idle");
     const autoSyncRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-    const supabase = useMemo(() => createClient() as any, []);
+    const supabase = useMemo(() => createClient(), []);
 
     // ── Derived values ──
     const currentSubject = subjects.find((s) => s.id === selectedSubject);
@@ -603,7 +603,7 @@ export default function MarksPage() {
                                 Synced: {lastSyncTime.toLocaleTimeString()}
                             </span>
                         )}
-                        <Button variant="outline" className="border-border/50 text-foreground font-semibold rounded-xl hover:bg-muted transition-all duration-200" onClick={() => setImportDialogOpen(true)} disabled={!loaded}>
+                        <Button variant="outline" className="border-border text-foreground font-semibold rounded-xl hover:bg-muted transition-all duration-200" onClick={() => setImportDialogOpen(true)} disabled={!loaded}>
                             <Upload size={16} strokeWidth={1.5} className="mr-2" />
                             Import
                         </Button>
@@ -639,7 +639,7 @@ export default function MarksPage() {
             />
 
             {/* ── Selectors ── */}
-            <div className="bg-card rounded-2xl border border-border/50 shadow-none p-5">
+            <div className="bg-card rounded-2xl border border-border shadow-none p-5">
                 <MarksSelectors
                 classes={classes}
                 sections={sections}
@@ -661,19 +661,19 @@ export default function MarksPage() {
 
             {/* ── Empty states / Loading ── */}
             {isFetchingMarks ? (
-                <div className="bg-transparent rounded-2xl border-2 border-dashed border-border/50 shadow-none p-12 text-center flex flex-col items-center justify-center">
+                <div className="bg-transparent rounded-2xl border-2 border-dashed border-border shadow-none p-12 text-center flex flex-col items-center justify-center">
                     <ArrowsClockwise size={32} strokeWidth={1.5} className="text-muted-foreground/60 animate-spin mb-4" />
                     <h3 className="font-semibold text-lg text-foreground mb-4">Loading Marks...</h3>
                 </div>
             ) : !loaded ? (
-                <div className="bg-transparent rounded-2xl border-2 border-dashed border-border/50 p-12 text-center shadow-none">
+                <div className="bg-transparent rounded-2xl border-2 border-dashed border-border p-12 text-center shadow-none">
                     <div className="h-12 w-12 rounded-xl flex items-center justify-center mb-4 mx-auto text-muted-foreground/40">
                         <PencilSimpleLine size={32} strokeWidth={1.2} />
                     </div>
                     <h3 className="font-semibold text-lg text-foreground mb-4">Select filters above</h3>
                 </div>
             ) : loaded && students.length === 0 ? (
-                <div className="bg-transparent rounded-2xl border-2 border-dashed border-border/50 p-12 text-center shadow-none">
+                <div className="bg-transparent rounded-2xl border-2 border-dashed border-border p-12 text-center shadow-none">
                     <div className="h-12 w-12 rounded-xl flex items-center justify-center mb-4 mx-auto text-muted-foreground/40">
                         <WarningCircle size={32} strokeWidth={1.2} />
                     </div>
@@ -681,7 +681,7 @@ export default function MarksPage() {
                 </div>
             ) : (
                 loaded && students.length > 0 && currentSubject && (
-                    <Card className="bg-card rounded-2xl border-border/50 shadow-none overflow-hidden">
+                    <Card className="bg-card rounded-2xl border-border shadow-none overflow-hidden">
                         <MarksToolbar
                             subjectName={currentSubject.name}
                             examName={currentExam?.name || ""}
@@ -709,7 +709,7 @@ export default function MarksPage() {
 
                         {/* Bottom bar */}
                         <div className="flex items-center justify-end px-5 py-3 border-t bg-muted/20">
-                            <Button onClick={() => handleSave(false)} disabled={saving} size="sm" className={hasUnsaved ? "bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 font-semibold shadow-none h-8 px-4 text-xs transition-all duration-200 btn-press" : "border-border/50 text-foreground font-semibold rounded-xl hover:bg-muted transition-all duration-200 h-8 px-4 text-xs bg-transparent border"}>
+                            <Button onClick={() => handleSave(false)} disabled={saving} size="sm" className={hasUnsaved ? "bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 font-semibold shadow-none h-8 px-4 text-xs transition-all duration-200 " : "border-border text-foreground font-semibold rounded-xl hover:bg-muted transition-all duration-200 h-8 px-4 text-xs bg-transparent border"}>
                                 <FloppyDisk size={14} strokeWidth={1.5} className="mr-1.5" />
                                 {saving ? "Saving…" : "Save All"}
                             </Button>

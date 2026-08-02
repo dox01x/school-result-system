@@ -2,23 +2,30 @@ import { NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { ApiResponse, YearlyReport } from '@/types/finance';
 
+interface EntryRow {
+  month: number;
+  category: string;
+  amount: number;
+}
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const yearStr = searchParams.get('year');
 
-    if (!yearStr) {
-      return NextResponse.json({ success: false, error: "year is required" }, { status: 400 });
+    if (!yearStr || isNaN(parseInt(yearStr))) {
+      return NextResponse.json({ success: false, error: "Valid year is required" }, { status: 400 });
     }
 
     const year = parseInt(yearStr);
     const supabase = await createServerSupabaseClient();
 
     // 1. Fetch Income and Expenses for the year
-    // @ts-ignore
-    const { data: incomeEntries } = await supabase.from('income_entries').select('month, category, amount').eq('year', year);
-    // @ts-ignore
-    const { data: expenseEntries } = await supabase.from('expense_entries').select('month, category, amount').eq('year', year);
+    const { data: rawIncome } = await supabase.from('income_entries').select('month, category, amount').eq('year', year);
+    const { data: rawExpense } = await supabase.from('expense_entries').select('month, category, amount').eq('year', year);
+
+    const incomeEntries = (rawIncome || []) as unknown as EntryRow[];
+    const expenseEntries = (rawExpense || []) as unknown as EntryRow[];
 
     // 2. Initialize Monthly Aggregation Array
     const monthly_summary = Array.from({ length: 12 }, (_, i) => ({
@@ -35,8 +42,8 @@ export async function GET(request: Request) {
     let total_expense = 0;
 
     // 3. Process Income
-    (incomeEntries || []).forEach((item: any) => {
-      const monthIdx = item.month - 1;
+    incomeEntries.forEach((item) => {
+      const monthIdx = Number(item.month) - 1;
       const amt = Number(item.amount);
       if (monthIdx >= 0 && monthIdx < 12) {
          monthly_summary[monthIdx].income += amt;
@@ -46,8 +53,8 @@ export async function GET(request: Request) {
     });
 
     // 4. Process Expenses
-    (expenseEntries || []).forEach((item: any) => {
-      const monthIdx = item.month - 1;
+    expenseEntries.forEach((item) => {
+      const monthIdx = Number(item.month) - 1;
       const amt = Number(item.amount);
       if (monthIdx >= 0 && monthIdx < 12) {
          monthly_summary[monthIdx].expense += amt;
@@ -86,7 +93,8 @@ export async function GET(request: Request) {
     };
 
     return NextResponse.json({ success: true, data: report } as ApiResponse<YearlyReport>);
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Internal server error";
+    return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }

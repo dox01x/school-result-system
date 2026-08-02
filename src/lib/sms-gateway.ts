@@ -26,6 +26,14 @@ export async function sendSms(phone: string, text: string): Promise<SmsResult> {
   const senderId = process.env.SMS_SENDER_ID || 'SchoolERP';
 
   if (gateway === 'none' || !apiKey) {
+    // Fallback to console mock in development mode to allow testing without live credentials
+    if (process.env.NODE_ENV === 'development' || !process.env.NODE_ENV) {
+      console.log(`\n=================== [SMS MOCK GATEWAY] ===================`);
+      console.log(`To: ${phone}`);
+      console.log(`Message: "${text}"`);
+      console.log(`==========================================================\n`);
+      return { success: true, message: `Simulated SMS to ${phone} (Mock Mode)`, gateway: 'mock' };
+    }
     return { success: false, message: 'SMS gateway not configured', gateway };
   }
 
@@ -126,6 +134,27 @@ export async function sendOverdueReminderSms(params: {
   const amountStr = outstanding.toLocaleString('en-IN');
   const school = schoolName || 'School';
   const text = `${school}: Dear guardian, ${studentName}'s ${monthName} tuition fee of ${amountStr} TK is overdue. Please pay at your earliest convenience.`;
+
+  return sendSms(phone, text);
+}
+
+/**
+ * Send absence notification SMS.
+ */
+export async function sendAbsenceAlertSms(params: {
+  phone: string;
+  studentName: string;
+  date: string;
+  schoolName?: string;
+}): Promise<SmsResult> {
+  const { phone, studentName, date, schoolName } = params;
+  
+  if (!phone || phone.trim().length < 8) {
+    return { success: false, message: 'No phone number provided' };
+  }
+
+  const school = schoolName || 'School';
+  const text = `${school}: Dear Guardian, ${studentName} was marked ABSENT today, ${date}. Please contact the school office if you have any questions.`;
 
   return sendSms(phone, text);
 }

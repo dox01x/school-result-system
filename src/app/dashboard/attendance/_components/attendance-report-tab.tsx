@@ -137,7 +137,7 @@ export function AttendanceReportTab({ filters }: Props) {
 
     if (!selectedClass || !selectedSection) {
         return (
-            <div className="rounded-2xl border-2 border-dashed border-border/50 p-12 text-center">
+            <div className="rounded-2xl border-2 border-dashed border-border p-12 text-center">
                 <CalendarCheck className="h-10 w-10 text-slate-300 mx-auto mb-3" />
                 <p className="text-sm text-slate-400 font-medium">Select a class and section to view attendance</p>
             </div>
@@ -167,7 +167,7 @@ export function AttendanceReportTab({ filters }: Props) {
                     { label: "100% Attendance", value: stats.perfect, icon: Users, iconBg: "bg-muted/50", iconColor: "text-muted-foreground" },
                     { label: "Below 75%", value: stats.below75, icon: Warning, iconBg: "bg-muted/50", iconColor: "text-muted-foreground/60" },
                 ].map((c) => (
-                    <div key={c.label} className="bg-card rounded-2xl p-4 border border-border/50 shadow-none">
+                    <div key={c.label} className="bg-card rounded-xl p-4 border border-border shadow-none">
                         <div className="flex items-center gap-3">
                             <div className={`${c.iconBg} rounded-xl p-2.5 shrink-0`}>
                                 <c.icon size={20} strokeWidth={2} className={`${c.iconColor}`} />
@@ -194,7 +194,7 @@ export function AttendanceReportTab({ filters }: Props) {
 
             {/* Calendar Grid */}
             {filtered.length === 0 ? (
-                <div className="rounded-xl border-2 border-dashed border-border/50 p-8 text-center">
+                <div className="rounded-xl border-2 border-dashed border-border p-8 text-center">
                     <p className="text-sm text-slate-400">
                         {studentSummaries.length === 0
                             ? "No attendance data for this month"
@@ -202,15 +202,15 @@ export function AttendanceReportTab({ filters }: Props) {
                     </p>
                 </div>
             ) : (
-                <div className="bg-card rounded-2xl border border-border/50 shadow-none overflow-hidden">
+                <div className="bg-card rounded-2xl border border-border shadow-none overflow-hidden">
                     <div className="overflow-x-auto">
                         <table className="w-full text-xs">
                             <thead>
-                                <tr className="bg-muted/50">
-                                    <th className="sticky left-0 z-20 bg-muted/50 text-left py-3 px-4 font-bold text-muted-foreground uppercase tracking-widest text-[10px] min-w-[50px] border-r border-border/50">
+                                <tr className="bg-muted">
+                                    <th className="sticky left-0 z-20 bg-muted text-left py-3 px-4 font-bold text-muted-foreground uppercase tracking-widest text-[10px] min-w-[50px] border-r border-border">
                                         Roll
                                     </th>
-                                    <th className="sticky left-[66px] z-20 bg-muted/50 text-left py-3 px-4 font-bold text-muted-foreground uppercase tracking-widest text-[10px] min-w-[140px] border-r border-border/50">
+                                    <th className="sticky left-[66px] z-20 bg-muted text-left py-3 px-4 font-bold text-muted-foreground uppercase tracking-widest text-[10px] min-w-[140px] border-r border-border">
                                         Student
                                     </th>
                                     {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((d) => (
@@ -221,7 +221,7 @@ export function AttendanceReportTab({ filters }: Props) {
                                             {d}
                                         </th>
                                     ))}
-                                    <th className="sticky right-0 z-20 bg-muted/50 text-center py-3 px-4 font-bold text-muted-foreground uppercase tracking-widest text-[10px] min-w-[52px] border-l border-border/50">
+                                    <th className="sticky right-0 z-20 bg-muted text-center py-3 px-4 font-bold text-muted-foreground uppercase tracking-widest text-[10px] min-w-[52px] border-l border-border">
                                         Rate
                                     </th>
                                 </tr>
@@ -230,12 +230,12 @@ export function AttendanceReportTab({ filters }: Props) {
                                 {filtered.map((student, idx) => (
                                     <tr
                                         key={student.id}
-                                        className={`border-t border-border/50 hover:bg-muted/50 transition-colors ${idx % 2 === 0 ? "bg-white" : "bg-muted/50/30"}`}
+                                        className={`border-t border-border hover:bg-muted transition-colors ${idx % 2 === 0 ? "bg-card" : "bg-background"}`}
                                     >
-                                        <td className="sticky left-0 z-10 bg-inherit py-2.5 px-4 font-mono font-bold text-muted-foreground border-r border-border/50 text-[11px]">
+                                        <td className="sticky left-0 z-10 bg-inherit py-2.5 px-4 font-mono font-bold text-muted-foreground border-r border-border text-[11px]">
                                             {student.roll}
                                         </td>
-                                        <td className="sticky left-[66px] z-10 bg-inherit py-2.5 px-4 font-bold text-foreground truncate max-w-[140px] border-r border-border/50 text-[11px]">
+                                        <td className="sticky left-[66px] z-10 bg-inherit py-2.5 px-4 font-bold text-foreground truncate max-w-[140px] border-r border-border text-[11px]">
                                             {student.name}
                                         </td>
                                         {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((d) => {
@@ -258,7 +258,7 @@ export function AttendanceReportTab({ filters }: Props) {
                                                 </td>
                                             );
                                         })}
-                                        <td className={`sticky right-0 z-10 bg-inherit text-center py-2.5 px-4 font-black tabular-nums border-l border-border/50 ${rateColor(student.rate)}`}>
+                                        <td className={`sticky right-0 z-10 bg-inherit text-center py-2.5 px-4 font-black tabular-nums border-l border-border ${rateColor(student.rate)}`}>
                                             {student.rate > 0 ? `${student.rate}%` : "—"}
                                         </td>
                                     </tr>
@@ -268,7 +268,7 @@ export function AttendanceReportTab({ filters }: Props) {
                     </div>
 
                     {/* Footer summary */}
-                    <div className="border-t border-border/50 bg-muted/50 px-4 py-3 flex items-center justify-between text-[11px] font-bold">
+                    <div className="border-t border-border bg-muted/50 px-4 py-3 flex items-center justify-between text-[11px] font-bold">
                         <span className="text-muted-foreground tracking-tight">
                             {filtered.length} student{filtered.length !== 1 ? "s" : ""} • {stats.totalDays} school day{stats.totalDays !== 1 ? "s" : ""}
                         </span>

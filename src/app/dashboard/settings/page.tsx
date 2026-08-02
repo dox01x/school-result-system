@@ -62,7 +62,8 @@ export default function SettingsPage() {
     const [genderSplitClassId, setGenderSplitClassId] = useState<string>("_none");
     const [savingPrefs, setSavingPrefs] = useState(false);
     const [dbConnected, setDbConnected] = useState<boolean | null>(null);
-    const supabase = useMemo(() => createClient() as any, []);
+    const [promotionCheckEnabled, setPromotionCheckEnabled] = useState(true);
+    const supabase = useMemo(() => createClient(), []);
 
     // Check DB connection + fetch school info
     useEffect(() => {
@@ -105,6 +106,14 @@ export default function SettingsPage() {
                 // Load detailed_marks preference
                 if (schoolData?.detailed_marks !== undefined) setDetailedMarks(schoolData.detailed_marks);
                 if (schoolData?.gender_split_class_id) setGenderSplitClassId(schoolData.gender_split_class_id);
+
+                // Load promotion check preference from localStorage
+                if (typeof window !== "undefined") {
+                    const pCheck = localStorage.getItem("promotion_check_enabled");
+                    if (pCheck !== null) {
+                        setPromotionCheckEnabled(JSON.parse(pCheck));
+                    }
+                }
 
                 // Fetch other data
                 const [cRes, gRes] = await Promise.all([
@@ -206,7 +215,7 @@ export default function SettingsPage() {
 
             {/* Connection Status Banner */}
             {dbConnected === false && (
-                <Card className="border border-red-200 bg-red-50/50 shadow-none rounded-2xl">
+                <Card className="border border-red-200 bg-red-50/50 shadow-none rounded-xl">
                     <CardContent className="flex items-start gap-3 py-4">
                         <WarningCircle size={20} strokeWidth={1.5} className="text-red-500 mt-0.5 shrink-0" />
                         <div>
@@ -220,14 +229,14 @@ export default function SettingsPage() {
             )}
 
             {dbConnected === true && (
-                <div className="flex items-center gap-2 mb-2 bg-muted/50 px-3 py-2 rounded-xl border border-border/50 inline-flex">
+                <div className="flex items-center gap-2 mb-2 bg-muted/50 px-3 py-2 rounded-xl border border-border inline-flex">
                     <CheckCircle size={16} strokeWidth={2} className="text-muted-foreground" />
                     <p className="text-xs font-bold text-muted-foreground tracking-tight">Database connected successfully</p>
                 </div>
             )}
 
             {shouldShowPromotionReminder && (
-                <Card className="border border-red-200 bg-red-50/50 shadow-none rounded-2xl animate-in fade-in slide-in-from-top-2">
+                <Card className="border border-red-200 bg-red-50/50 shadow-none rounded-xl animate-in fade-in slide-in-from-top-2">
                     <CardContent className="py-3 flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
                         <div className="flex items-center gap-2">
                             <Bell size={20} strokeWidth={1.5} className="text-red-500" />
@@ -246,7 +255,7 @@ export default function SettingsPage() {
             )}
 
             <Tabs defaultValue="school" className="space-y-6">
-                <TabsList className="bg-muted rounded-2xl p-1 h-auto flex-wrap border-0 shadow-none">
+                <TabsList className="bg-muted rounded-xl p-1 h-auto flex-wrap border-0 shadow-none">
                     <TabsTrigger value="school" className="rounded-xl text-xs font-bold px-4 py-2.5 data-[state=active]:bg-card data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground transition-all gap-2">
                         <Buildings size={14} strokeWidth={2} />
                         School Info
@@ -260,7 +269,7 @@ export default function SettingsPage() {
 
                 {/* ──── SCHOOL INFO TAB ──── */}
                 <TabsContent value="school" className="space-y-4">
-                    <Card className="border border-border/50 shadow-none bg-card rounded-2xl">
+                    <Card className="border border-border shadow-none bg-card rounded-xl">
                         <CardHeader>
                             <CardTitle className="text-base flex items-center gap-2 font-bold tracking-tight text-foreground">
                                 <Buildings size={18} strokeWidth={2} className="text-muted-foreground" />
@@ -341,7 +350,7 @@ export default function SettingsPage() {
                                         value={currentYearStr}
                                         readOnly
                                         disabled
-                                        className="bg-muted/50 border border-border/50 text-blue-700 font-bold h-11 rounded-xl shadow-none opacity-100"
+                                        className="bg-muted/50 border border-border text-blue-700 font-bold h-11 rounded-xl shadow-none opacity-100"
                                     />
                                     <p className="text-[10px] font-bold text-muted-foreground/60 mt-1 px-1">Automatically detected clock year.</p>
                                 </div>
@@ -352,7 +361,7 @@ export default function SettingsPage() {
                                         value={schoolInfo.current_academic_year || "Not set"}
                                         readOnly
                                         disabled
-                                        className={`font-bold h-11 rounded-xl border border-border/50 shadow-none opacity-100 ${Number(schoolInfo.current_academic_year || 0) < currentYear ? 'bg-red-50 text-red-700 border-red-200' : 'bg-muted text-foreground border-0'}`}
+                                        className={`font-bold h-11 rounded-xl border border-border shadow-none opacity-100 ${Number(schoolInfo.current_academic_year || 0) < currentYear ? 'bg-red-50 text-red-700 border-red-200' : 'bg-muted text-foreground border-0'}`}
                                     />
                                     <p className="text-[10px] font-bold text-muted-foreground/60 mt-1 px-1">Updates only after yearly promotion.</p>
                                 </div>
@@ -373,7 +382,7 @@ export default function SettingsPage() {
                             <Button
                                 onClick={handleSaveSchoolInfo}
                                 disabled={savingSchoolInfo || dbConnected === false}
-                                className="bg-primary text-primary-foreground font-semibold h-11 rounded-xl shadow-none hover:bg-primary/90 transition-colors mt-2 btn-press"
+                                className="bg-primary text-primary-foreground font-semibold h-11 rounded-xl shadow-none hover:bg-primary/90 transition-colors mt-2 "
                             >
                                 <FloppyDisk size={18} strokeWidth={1.5} className="mr-2" />
                                 {savingSchoolInfo ? "Saving..." : "Save School Info"}
@@ -384,7 +393,7 @@ export default function SettingsPage() {
 
                 {/* ──── PREFERENCES TAB ──── */}
                 <TabsContent value="preferences" className="space-y-4">
-                    <Card className="border border-border/50 shadow-none bg-card rounded-2xl">
+                    <Card className="border border-border shadow-none bg-card rounded-xl">
                         <CardHeader>
                             <CardTitle className="text-base flex items-center gap-2 font-bold tracking-tight text-foreground">
                                 <Gear size={18} strokeWidth={2} className="text-muted-foreground" />
@@ -415,11 +424,11 @@ export default function SettingsPage() {
                         </CardContent>
                     </Card>
 
-                    <Card className="border border-border/50 shadow-none bg-card rounded-2xl">
+                    <Card className="border border-border shadow-none bg-card rounded-xl">
                         <CardHeader>
                             <CardTitle className="text-base flex items-center gap-2 font-bold tracking-tight text-foreground">
                                 <SlidersHorizontal size={18} strokeWidth={2} className="text-muted-foreground" />
-                                Marks Entry Preferences
+                                System & Marks Preferences
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-6">
@@ -447,11 +456,22 @@ export default function SettingsPage() {
                                 }} />
                             </div>
 
+                            <div className="flex items-center justify-between rounded-xl border-0 bg-muted p-5">
+                                <div className="space-y-1 pr-4">
+                                    <Label className="text-sm font-bold text-foreground">Promotion Eligibility Pre-check</Label>
+                                    <p className="text-xs text-muted-foreground mt-0.5">Validate student grades and marks before performing yearly promotions.</p>
+                                </div>
+                                <Switch checked={promotionCheckEnabled} onCheckedChange={(checked) => {
+                                    setPromotionCheckEnabled(checked);
+                                    localStorage.setItem("promotion_check_enabled", JSON.stringify(checked));
+                                    toast.success(checked ? "Promotion eligibility pre-check enabled" : "Pre-check disabled");
+                                }} />
+                            </div>
                         </CardContent>
                     </Card>
 
                     {/* Gender-Based Promotion Setting */}
-                    <Card className="border border-border/50 shadow-none bg-card rounded-2xl">
+                    <Card className="border border-border shadow-none bg-card rounded-xl">
                         <CardHeader>
                             <CardTitle className="text-base flex items-center gap-2 font-bold tracking-tight text-foreground">
                                 <SlidersHorizontal size={18} strokeWidth={2} className="text-muted-foreground" />

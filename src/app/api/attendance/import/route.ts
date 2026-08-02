@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { sendAbsenceAlertSms } from "@/lib/sms-gateway";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +19,10 @@ function normalizeHeader(h: string): string {
     return (h || "").toString().trim().toLowerCase().replace(/\s+/g, " ");
 }
 
+function normRoll(r: string): string {
+    return (r || "").toString().trim().replace(/^0+/, "") || "0";
+}
+
 function normPA(v: string): "P" | "A" | null {
     const raw = (v || "").toString().trim().toLowerCase();
     if (!raw) return null;
@@ -30,7 +35,10 @@ function normPA(v: string): "P" | "A" | null {
         t === "present" ||
         t === "uposthit" ||
         t === "উপস্থিত" ||
-        t === "presente"
+        t === "presente" ||
+        t === "1" ||
+        t === "yes" ||
+        t === "y"
     ) return "P";
 
     // Absent variants
@@ -38,7 +46,10 @@ function normPA(v: string): "P" | "A" | null {
         t === "a" ||
         t === "absent" ||
         t === "অনুপস্থিত" ||
-        t === "onuposthit"
+        t === "onuposthit" ||
+        t === "0" ||
+        t === "no" ||
+        t === "n"
     ) return "A";
 
     return null;
@@ -55,6 +66,9 @@ function parseDateHeader(
     const s = (raw || "").toString().trim();
     if (!s) return null;
 
+    const currentYear = new Date().getFullYear();
+    const currentMonth = new Date().getMonth() + 1;
+
     // ISO yyyy-mm-dd
     if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
 
@@ -67,20 +81,20 @@ function parseDateHeader(
         if (y >= 1900 && mo >= 1 && mo <= 12 && d >= 1 && d <= 31) return `${y}-${pad2(mo)}-${pad2(d)}`;
     }
 
-    // dd/mm or dd-mm (use provided year/month or assume given month)
+    // dd/mm or dd-mm (use provided year/month or assume current year)
     const m2 = s.match(/^(\d{1,2})[\/\-](\d{1,2})$/);
     if (m2) {
         const d = Number(m2[1]);
         const mo = Number(m2[2]);
-        const y = defaults.year;
+        const y = defaults.year || currentYear;
         if (y && mo >= 1 && mo <= 12 && d >= 1 && d <= 31) return `${y}-${pad2(mo)}-${pad2(d)}`;
     }
 
-    // plain day number header e.g. "1".."31" (use defaults.year+defaults.month)
+    // plain day number header e.g. "1".."31" (use defaults.year+defaults.month or current)
     if (/^\d{1,2}$/.test(s)) {
         const d = Number(s);
-        const y = defaults.year;
-        const mo = defaults.month;
+        const y = defaults.year || currentYear;
+        const mo = defaults.month || currentMonth;
         if (y && mo && d >= 1 && d <= 31) return `${y}-${pad2(mo)}-${pad2(d)}`;
     }
 
@@ -88,8 +102,9 @@ function parseDateHeader(
 }
 
 export async function POST(req: NextRequest) {
-    const supabase = (await createServerSupabaseClient()) as any;
+    const supabase = await createServerSupabaseClient();
     const authHeader = req.headers.get("authorization");
+    const cookieHeader = req.headers.get("cookie");
     const bearerToken = authHeader?.toLowerCase().startsWith("bearer ")
         ? authHeader.slice(7).trim()
         : null;
@@ -120,11 +135,15 @@ export async function POST(req: NextRequest) {
         );
     }
 
-    // Fetch sheet values via Google Sheets endpoint (same project)
+    // Fetch sheet values via Google Sheets endpoint (same project) forwarding auth headers
     const base = new URL(req.url);
     const sheetsRes = await fetch(new URL("/api/sheets", base), {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+            "Content-Type": "application/json",
+            ...(authHeader ? { Authorization: authHeader } : {}),
+            ...(cookieHeader ? { Cookie: cookieHeader } : {}),
+        },
         body: JSON.stringify({ sheetId: sheet_id, range }),
     });
     const sheetsJson = await sheetsRes.json();
@@ -169,8 +188,8 @@ export async function POST(req: NextRequest) {
         );
     }
 
-    // Load students for this class/section for roll matching (fast map)
-    const { data: students, error: stuErr } = await supabase
+    // Load students for this class/section for roll matching (fast map with roll normalization)
+    const { data: rawStudents, error: stuErr } = await supabase
         .from("students")
         .select("id, roll, student_id, name")
         .eq("class_id", class_id)
@@ -179,10 +198,13 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ success: false, error: stuErr.message }, { status: 500 });
     }
 
-    const byRoll = new Map<string, { id: string; name: string; student_id: string | null }>();
+    type StudentRow = { id: string; roll: string; student_id: string | null; name: string };
+    const students = (rawStudents || []) as StudentRow[];
+
+    const byRoll = new Map<string, { id: string; name: string; roll: string; student_id: string | null }>();
     const byStudentId = new Map<string, { id: string; name: string; roll: string }>();
-    (students || []).forEach((s: any) => {
-        byRoll.set(String(s.roll).trim(), { id: s.id, name: s.name, student_id: s.student_id });
+    students.forEach((s) => {
+        byRoll.set(normRoll(String(s.roll)), { id: s.id, name: s.name, roll: s.roll, student_id: s.student_id });
         if (s.student_id) byStudentId.set(String(s.student_id).trim(), { id: s.id, name: s.name, roll: s.roll });
     });
 
@@ -201,11 +223,12 @@ export async function POST(req: NextRequest) {
 
     for (let r = 1; r < rows.length; r++) {
         const row = rows[r] || [];
-        const roll = (row[rollIdx] || "").toString().trim();
+        const rawRoll = (row[rollIdx] || "").toString().trim();
+        const rollNormalized = normRoll(rawRoll);
         const sheetName = nameIdx >= 0 ? (row[nameIdx] || "").toString().trim() : "";
         const sheetStudentId = studentIdIdx >= 0 ? (row[studentIdIdx] || "").toString().trim() : "";
 
-        if (!roll && !sheetStudentId) {
+        if (!rawRoll && !sheetStudentId) {
             skipped++;
             continue;
         }
@@ -214,20 +237,20 @@ export async function POST(req: NextRequest) {
         if (sheetStudentId && byStudentId.has(sheetStudentId)) {
             const s = byStudentId.get(sheetStudentId)!;
             student = { id: s.id, name: s.name, roll: s.roll };
-        } else if (roll && byRoll.has(roll)) {
-            const s = byRoll.get(roll)!;
-            student = { id: s.id, name: s.name, roll };
+        } else if (rawRoll && byRoll.has(rollNormalized)) {
+            const s = byRoll.get(rollNormalized)!;
+            student = { id: s.id, name: s.name, roll: s.roll || rawRoll };
         }
 
         if (!student) {
             skipped++;
-            warnings.push({ row: r + 1, message: `Student not found for roll '${roll}'${sheetStudentId ? ` / student_id '${sheetStudentId}'` : ""}` });
+            warnings.push({ row: r + 1, message: `Student not found for roll '${rawRoll}'${sheetStudentId ? ` / student_id '${sheetStudentId}'` : ""}` });
             continue;
         }
 
         matchedStudents++;
         if (sheetName && student.name && normalizeHeader(sheetName) !== normalizeHeader(student.name)) {
-            warnings.push({ row: r + 1, message: `Name mismatch for roll '${roll}': sheet '${sheetName}' vs DB '${student.name}'` });
+            warnings.push({ row: r + 1, message: `Name mismatch for roll '${rawRoll}': sheet '${sheetName}' vs DB '${student.name}'` });
         }
 
         for (const dc of dateCols) {
@@ -271,6 +294,47 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ success: false, error: error.message, warnings }, { status: 500 });
         }
         insertedOrUpdated += chunk.length;
+    }
+
+    // Asynchronously send absence SMS alerts in background (with deduplication)
+    const absentRecords = records.filter(r => r.status === "A");
+    if (absentRecords.length > 0) {
+        void (async () => {
+            try {
+                const { data: schoolInfo } = await supabase.from("school_info").select("name").limit(1).maybeSingle();
+                const schoolName = schoolInfo?.name || "School";
+                
+                const uniqueAbsentStudentIds = Array.from(new Set(absentRecords.map(r => r.student_id)));
+                const { data: rawStudentsList } = await supabase
+                    .from("students")
+                    .select("id, name, phone")
+                    .in("id", uniqueAbsentStudentIds);
+                
+                if (rawStudentsList) {
+                    const studentMap = new Map<string, { name: string; phone: string | null }>(
+                        (rawStudentsList as { id: string; name: string; phone: string | null }[]).map((s) => [s.id, { name: s.name, phone: s.phone }])
+                    );
+                    const sentKeys = new Set<string>();
+                    for (const r of absentRecords) {
+                        const key = `${r.student_id}__${r.att_date}`;
+                        if (sentKeys.has(key)) continue;
+                        sentKeys.add(key);
+
+                        const s = studentMap.get(r.student_id);
+                        if (s?.phone && s.phone.trim().length >= 8) {
+                            await sendAbsenceAlertSms({
+                                phone: s.phone,
+                                studentName: s.name,
+                                date: r.att_date,
+                                schoolName
+                            });
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error("[Import Absence SMS Send Error]", err);
+            }
+        })();
     }
 
     return NextResponse.json({

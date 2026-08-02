@@ -28,6 +28,8 @@ export interface RoutinePeriodWithDetails {
   subject_name?: string;
   teacher_name?: string;
   room_name?: string;
+  room_number?: string;
+  building_name?: string;
   class_name?: string;
   section_name?: string;
 }

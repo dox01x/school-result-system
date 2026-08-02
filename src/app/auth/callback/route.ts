@@ -1,38 +1,26 @@
 import { NextResponse } from "next/server";
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
-import type { Database } from "@/lib/database.types";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export async function GET(request: Request) {
     const { searchParams, origin } = new URL(request.url);
     const code = searchParams.get("code");
-    const next = searchParams.get("next") ?? "/dashboard";
+    const rawNext = searchParams.get("next") ?? "/dashboard";
+
+    // Prevent open redirect: only allow safe relative paths
+    const next = rawNext.startsWith("/") && !rawNext.startsWith("//") && !rawNext.startsWith("/\\")
+        ? rawNext
+        : "/dashboard";
 
     if (code) {
-        const cookieStore = await cookies();
-        const supabase = createServerClient<Database>(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-            {
-                cookies: {
-                    getAll() {
-                        return cookieStore.getAll();
-                    },
-                    setAll(cookiesToSet) {
-                        try {
-                            cookiesToSet.forEach(({ name, value, options }) =>
-                                cookieStore.set(name, value, options)
-                            );
-                        } catch {
-                            /* Server Component context */
-                        }
-                    },
-                },
+        try {
+            const supabase = await createServerSupabaseClient();
+            const { error } = await supabase.auth.exchangeCodeForSession(code);
+            if (!error) {
+                return NextResponse.redirect(`${origin}${next}`);
             }
-        );
-        const { error } = await supabase.auth.exchangeCodeForSession(code);
-        if (!error) {
-            return NextResponse.redirect(`${origin}${next.startsWith("/") ? next : `/${next}`}`);
+            console.error("[Auth Callback] exchangeCodeForSession error:", error.message);
+        } catch (err: unknown) {
+            console.error("[Auth Callback] Unexpected error:", err);
         }
     }
 

@@ -9,7 +9,7 @@ interface PrintSlipProps {
 
 export default function PrintSlip({ data }: PrintSlipProps) {
   return (
-    <div className="hidden print:block print:w-[80mm] print:m-0 print:p-4 text-black bg-card font-sans text-sm">
+    <div className="hidden print:block print:w-[80mm] print:m-0 print:p-4 text-black bg-white font-sans text-sm">
       <div className="text-center mb-4 border-b pb-4">
         {data.school.logo_url && (
             // eslint-disable-next-line @next/next/no-img-element
@@ -89,6 +89,7 @@ export default function PrintSlip({ data }: PrintSlipProps) {
       </div>
 
       <style dangerouslySetInnerHTML={{__html: `
+        @page { size: auto; margin: 0mm; }
         @media print {
           body * { visibility: hidden; }
           .print\\:block, .print\\:block * { visibility: visible; }

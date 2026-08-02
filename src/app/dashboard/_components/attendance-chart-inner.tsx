@@ -11,9 +11,9 @@ type Props = {
 
 export default function AttendanceChartInner({ data, label }: Props) {
     return (
-        <div className="bg-card rounded-2xl p-5 border border-border">
+        <div className="bg-card rounded-xl p-5 border border-border">
             <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-semibold text-foreground font-heading">Attendance Overview</h3>
+                <h3 className="text-sm font-semibold text-foreground ">Attendance Overview</h3>
                 <span className="text-[10px] text-slate-400 font-medium">{label}</span>
             </div>
             <div className="flex items-center gap-6">

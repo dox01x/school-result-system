@@ -43,7 +43,7 @@ export default function ClassesPage() {
     const [dialogOpen, setDialogOpen] = useState(false);
     const [sectionDialogOpen, setSectionDialogOpen] = useState(false);
     const [confirmState, setConfirmState] = useState<{ open: boolean; title: string; description: string; onConfirm: () => void }>({ open: false, title: "", description: "", onConfirm: () => {} });
-    const supabase = useMemo(() => createClient() as any, []);
+    const supabase = useMemo(() => createClient(), []);
 
     const fetchClasses = useCallback(async () => {
         try {
@@ -185,7 +185,7 @@ export default function ClassesPage() {
                         if (open) setTimeout(() => document.getElementById("className")?.focus(), 100);
                     }}>
                         <DialogTrigger asChild>
-                            <Button className="bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 font-semibold shadow-none transition-all duration-200 btn-press">
+                            <Button className="bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 font-semibold shadow-none transition-all duration-200 ">
                                 <Plus size={16} strokeWidth={1.5} className="mr-2" />
                                 Add Class
                             </Button>
@@ -222,7 +222,7 @@ export default function ClassesPage() {
                         </div>
                         <DialogFooter>
                             <DialogClose asChild>
-                                <Button type="button" variant="outline" className="border-border/50 text-foreground font-semibold rounded-xl hover:bg-muted transition-all duration-200">Cancel</Button>
+                                <Button type="button" variant="outline" className="border-border text-foreground font-semibold rounded-xl hover:bg-muted transition-all duration-200">Cancel</Button>
                             </DialogClose>
                             <Button type="submit" className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl font-semibold shadow-none transition-all duration-200">
                                 {editingClass ? "Update" : "Create"}
@@ -258,7 +258,7 @@ export default function ClassesPage() {
                     </div>
                     <DialogFooter>
                         <DialogClose asChild>
-                            <Button type="button" variant="outline" className="border-border/50 text-foreground font-semibold rounded-xl hover:bg-muted transition-all duration-200">Cancel</Button>
+                            <Button type="button" variant="outline" className="border-border text-foreground font-semibold rounded-xl hover:bg-muted transition-all duration-200">Cancel</Button>
                         </DialogClose>
                         <Button type="submit" className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl font-semibold shadow-none transition-all duration-200">Add Section</Button>
                     </DialogFooter>
@@ -271,7 +271,7 @@ export default function ClassesPage() {
 
             {/* Empty State */}
             {!loading && classes.length === 0 && (
-                <div className="bg-transparent rounded-2xl border-2 border-dashed border-border/50 p-12 text-center shadow-none">
+                <div className="bg-transparent rounded-2xl border-2 border-dashed border-border p-12 text-center shadow-none">
                     <div className="h-12 w-12 rounded-xl flex items-center justify-center mb-4 mx-auto text-muted-foreground/40">
                         <Buildings size={32} strokeWidth={1.2} />
                     </div>
@@ -281,11 +281,11 @@ export default function ClassesPage() {
 
             {/* Classes Grid */}
             {classes.length > 0 && (
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 stagger-children">
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 ">
                     {classes.map((cls) => (
                         <Card
                             key={cls.id}
-                            className="group hover-lift bg-card border-border/50 rounded-2xl shadow-none"
+                            className="group  bg-card border-border rounded-xl shadow-none"
                         >
                             <CardHeader className="flex flex-row items-start justify-between pb-3">
                                 <div className="flex items-center gap-3">
@@ -355,7 +355,7 @@ export default function ClassesPage() {
                                     <Button
                                         variant="outline"
                                         size="sm"
-                                        className="w-full mt-2 border-border/50 text-foreground font-semibold rounded-xl hover:bg-muted transition-all duration-200"
+                                        className="w-full mt-2 border-border text-foreground font-semibold rounded-xl hover:bg-muted transition-all duration-200"
                                         onClick={() => {
                                             setAddingSectionTo(cls.id);
                                             setSectionDialogOpen(true);
@@ -374,7 +374,7 @@ export default function ClassesPage() {
             {loading && (
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {[1, 2, 3].map((i) => (
-                        <Card key={i} className="border-border/50 bg-card rounded-2xl shadow-none">
+                        <Card key={i} className="border-border bg-card rounded-xl shadow-none">
                             <CardHeader>
                                 <div className="h-6 w-32 bg-muted animate-pulse rounded-lg" />
                             </CardHeader>

@@ -27,7 +27,7 @@ function pad2(n: number): string {
 }
 
 export function AttendanceManualTab({ filters, onSaveComplete }: Props) {
-    const supabase = useMemo(() => createClient() as any, []);
+    const supabase = useMemo(() => createClient(), []);
     const { selectedClass, selectedSection, year, month } = filters;
     const daysInMonth = getDaysInMonth(year, month);
 
@@ -213,7 +213,7 @@ export function AttendanceManualTab({ filters, onSaveComplete }: Props) {
 
     if (!selectedClass || !selectedSection) {
         return (
-            <div className="rounded-2xl border-2 border-dashed border-border/50 p-12 text-center">
+            <div className="rounded-2xl border-2 border-dashed border-border p-12 text-center">
                 <PencilSimpleLine size={40} strokeWidth={1.5} className="text-muted-foreground/40 mx-auto mb-3" />
                 <p className="text-sm text-slate-400 font-medium">Select a class and section to enter attendance manually</p>
             </div>
@@ -231,7 +231,7 @@ export function AttendanceManualTab({ filters, onSaveComplete }: Props) {
 
     if (students.length === 0) {
         return (
-            <div className="rounded-2xl border-2 border-dashed border-border/50 p-12 text-center">
+            <div className="rounded-2xl border-2 border-dashed border-border p-12 text-center">
                 <p className="text-sm text-slate-400">No students found for this class/section</p>
             </div>
         );
@@ -261,7 +261,7 @@ export function AttendanceManualTab({ filters, onSaveComplete }: Props) {
                         variant="outline"
                         onClick={() => void loadData()}
                         disabled={saving}
-                        className="h-11 rounded-xl border-border/50 bg-white hover:bg-muted/50 text-muted-foreground font-bold shadow-none"
+                        className="h-11 rounded-xl border-border bg-card hover:bg-muted text-muted-foreground font-bold shadow-none"
                     >
                         <ArrowCounterClockwise size={16} strokeWidth={2} className="mr-2" />
                         Reset
@@ -288,15 +288,15 @@ export function AttendanceManualTab({ filters, onSaveComplete }: Props) {
 
 
             {/* Grid */}
-            <div className="bg-card rounded-2xl border border-border/50 shadow-none overflow-hidden">
+            <div className="bg-card rounded-2xl border border-border shadow-none overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-xs">
                         <thead>
-                            <tr className="bg-muted/50">
-                                <th className="sticky left-0 z-20 bg-muted/50 text-left py-3 px-4 font-bold text-muted-foreground uppercase tracking-widest text-[10px] min-w-[50px] border-r border-border/50">
+                            <tr className="bg-muted">
+                                <th className="sticky left-0 z-20 bg-muted text-left py-3 px-4 font-bold text-muted-foreground uppercase tracking-widest text-[10px] min-w-[50px] border-r border-border">
                                     Roll
                                 </th>
-                                <th className="sticky left-[66px] z-20 bg-muted/50 text-left py-3 px-4 font-bold text-muted-foreground uppercase tracking-widest text-[10px] min-w-[120px] border-r border-border/50">
+                                <th className="sticky left-[66px] z-20 bg-muted text-left py-3 px-4 font-bold text-muted-foreground uppercase tracking-widest text-[10px] min-w-[120px] border-r border-border">
                                     Name
                                 </th>
                                 {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((d) => (
@@ -319,12 +319,12 @@ export function AttendanceManualTab({ filters, onSaveComplete }: Props) {
                                 return (
                                     <tr
                                         key={student.id}
-                                        className={`border-t border-border/50 hover:bg-muted/50 transition-colors ${idx % 2 === 0 ? "bg-white" : "bg-muted/50/30"}`}
+                                        className={`border-t border-border hover:bg-muted transition-colors ${idx % 2 === 0 ? "bg-card" : "bg-background"}`}
                                     >
-                                        <td className="sticky left-0 z-10 bg-inherit py-2 px-4 font-mono font-bold text-muted-foreground border-r border-border/50 text-[11px]">
+                                        <td className="sticky left-0 z-10 bg-inherit py-2 px-4 font-mono font-bold text-muted-foreground border-r border-border text-[11px]">
                                             {student.roll}
                                         </td>
-                                        <td className="sticky left-[66px] z-10 bg-inherit py-2 px-4 font-bold text-foreground truncate max-w-[120px] border-r border-border/50 text-[11px]">
+                                        <td className="sticky left-[66px] z-10 bg-inherit py-2 px-4 font-bold text-foreground truncate max-w-[120px] border-r border-border text-[11px]">
                                             {student.name}
                                         </td>
                                         {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((d) => {
@@ -361,7 +361,7 @@ export function AttendanceManualTab({ filters, onSaveComplete }: Props) {
                         </tbody>
                     </table>
                 </div>
-                <div className="border-t border-border/50 bg-muted/50 px-4 py-3 flex items-center justify-between text-[11px] font-bold text-muted-foreground">
+                <div className="border-t border-border bg-muted/50 px-4 py-3 flex items-center justify-between text-[11px] font-bold text-muted-foreground">
                     <span>{filtered.length} student{filtered.length !== 1 ? "s" : ""}</span>
 
                 </div>

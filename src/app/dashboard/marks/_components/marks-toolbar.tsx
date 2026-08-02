@@ -31,14 +31,14 @@ const MarksToolbar = React.memo(function MarksToolbar({
     onSave,
 }: MarksToolbarProps) {
     return (
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-border/50 bg-card">
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-border bg-card">
             <div className="flex items-center gap-3">
                 <h2 className="text-base font-semibold text-foreground">
                     {subjectName}
                     <span className="text-muted-foreground font-normal mx-1.5">—</span>
                     <span className="text-muted-foreground font-normal">{examName}</span>
                 </h2>
-                <Badge variant="outline" className="border-border/50 text-muted-foreground rounded-md bg-muted/50 font-mono text-[10px] uppercase tracking-wider">
+                <Badge variant="outline" className="border-border text-muted-foreground rounded-md bg-muted/50 font-mono text-[10px] uppercase tracking-wider">
                     FM: {fullMarks}
                 </Badge>
             </div>
@@ -71,7 +71,7 @@ const MarksToolbar = React.memo(function MarksToolbar({
                     onClick={onSave}
                     disabled={saving || hasErrors}
                     size="sm"
-                    className={hasUnsaved ? "bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 font-semibold shadow-none h-8 px-4 text-xs transition-all duration-200" : "border-border/50 text-foreground font-semibold rounded-lg hover:bg-muted transition-all duration-200 h-8 px-4 text-xs bg-transparent border"}
+                    className={hasUnsaved ? "bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 font-semibold shadow-none h-8 px-4 text-xs transition-all duration-200" : "border-border text-foreground font-semibold rounded-lg hover:bg-muted transition-all duration-200 h-8 px-4 text-xs bg-transparent border"}
                 >
                     <FloppyDisk size={14} strokeWidth={1.5} className="mr-1.5" />
                     {saving ? "Saving…" : "Save All"}

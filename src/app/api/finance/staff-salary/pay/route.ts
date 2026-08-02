@@ -15,7 +15,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: "Missing required fields" }, { status: 400 });
     }
 
-    const supabase = (await createServerSupabaseClient()) as any;
+    const supabase = await createServerSupabaseClient();
     
     // 1. Fetch Staff Salary Config from staff_salary_configs
     const { data: config, error: configError } = await supabase
@@ -41,9 +41,9 @@ export async function POST(request: Request) {
     }
 
     // 3. Calculate gross and net
-    const sumValues = (obj: Record<string, any>) => Object.values(obj).reduce((sum: number, val: any) => sum + Number(val), 0);
-    const totalAllowances = sumValues(config.allowances || {});
-    const totalDeductions = sumValues(config.deductions || {});
+    const sumValues = (obj: Record<string, unknown>) => Object.values(obj || {}).reduce((sum: number, val: unknown) => sum + Number(val || 0), 0);
+    const totalAllowances = sumValues(config.allowances as Record<string, unknown>);
+    const totalDeductions = sumValues(config.deductions as Record<string, unknown>);
     
     const gross_salary = config.basic_salary + totalAllowances;
     const net_salary = gross_salary - totalDeductions;
@@ -113,7 +113,8 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ success: true, data: { ...salaryResult, staff, school } });
 
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Internal server error";
+    return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }

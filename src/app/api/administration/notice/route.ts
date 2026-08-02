@@ -6,15 +6,22 @@ export async function GET(request: NextRequest) {
     try {
         const { searchParams } = new URL(request.url);
         const audience = searchParams.get("audience");
+        const isPublishedParam = searchParams.get("is_published");
 
-        const supabase = (await createServerSupabaseClient()) as any;
+        const supabase = await createServerSupabaseClient();
         let query = supabase
             .from("notices")
             .select(NOTICE_COLUMNS)
             .order("created_at", { ascending: false });
 
         if (audience && audience !== "all") {
-            query = query.or(`audience.eq.${audience},audience.eq.all`);
+            if (["students", "parents", "teachers"].includes(audience)) {
+                query = query.or(`audience.eq.${audience},audience.eq.all`);
+            }
+        }
+
+        if (isPublishedParam !== null) {
+            query = query.eq("is_published", isPublishedParam === "true");
         }
 
         const { data, error } = await query;
@@ -49,17 +56,22 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ success: false, error: "priority must be: low, normal, high, or urgent" }, { status: 400 });
         }
 
-        const supabase = (await createServerSupabaseClient()) as any;
+        const supabase = await createServerSupabaseClient();
 
         if (body.id) {
+            const updatePayload: Record<string, unknown> = {
+                title,
+                content,
+                ...(audience && { audience }),
+                ...(priority && { priority }),
+            };
+            if (is_published !== undefined) {
+                updatePayload.is_published = Boolean(is_published);
+            }
+
             const { data, error } = await supabase
                 .from("notices")
-                .update({
-                    title, content,
-                    audience: audience || "all",
-                    priority: priority || "normal",
-                    is_published: is_published !== false,
-                })
+                .update(updatePayload)
                 .eq("id", body.id)
                 .select()
                 .single();
@@ -100,7 +112,7 @@ export async function DELETE(request: NextRequest) {
             return NextResponse.json({ success: false, error: "Missing id parameter" }, { status: 400 });
         }
 
-        const supabase = (await createServerSupabaseClient()) as any;
+        const supabase = await createServerSupabaseClient();
         const { error } = await supabase.from("notices").delete().eq("id", id);
 
         if (error) {

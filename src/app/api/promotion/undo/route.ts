@@ -1,17 +1,12 @@
 import { NextResponse } from "next/server";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { requireRole } from "@/lib/api-auth";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
-    const supabase = (await createServerSupabaseClient()) as any;
-
-    const {
-        data: { user },
-    } = await supabase.auth.getUser();
-    if (!user && process.env.AUTH_DISABLED !== "true") {
-        return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
-    }
+    const auth = await requireRole(["super_admin", "admin"]);
+    if (auth instanceof NextResponse) return auth;
+    const { supabase } = auth;
 
     try {
         const body = await request.json().catch(() => ({}));
@@ -48,13 +43,13 @@ export async function POST(request: Request) {
             );
         }
 
-        const result = data as Record<string, unknown>;
+        const result = (data || {}) as Record<string, unknown>;
 
         return NextResponse.json({
             success: true,
             data: {
-                restored: result.restored,
-                academic_year_restored: result.academic_year_restored,
+                restored: result.restored ?? 0,
+                academic_year_restored: result.academic_year_restored ?? null,
             },
         });
     } catch (err: unknown) {

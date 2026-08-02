@@ -22,7 +22,7 @@ export default function StaffSalaryConfigPage() {
   const [allowances, setAllowances] = useState<any[]>([]);
   const [deductions, setDeductions] = useState<any[]>([]);
 
-  const supabase = createClient() as any;
+  const supabase = createClient();
 
   useEffect(() => {
     const fetchStaff = async () => {
@@ -133,13 +133,13 @@ export default function StaffSalaryConfigPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground font-heading mb-1">Staff Salary Configuration</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground  mb-1">Staff Salary Configuration</h1>
         <p className="text-muted-foreground text-sm mt-1">Set basic salary, allowances and deductions for general staff.</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <Card className="lg:col-span-8 shadow-none border border-border/50 rounded-2xl overflow-hidden">
-          <CardHeader className="bg-muted/30 border-b border-border/50">
+        <Card className="lg:col-span-8 shadow-none border border-border rounded-xl overflow-hidden">
+          <CardHeader className="bg-muted/30 border-b border-border">
             <CardTitle className="text-lg font-bold text-foreground">Staff Configuration</CardTitle>
           </CardHeader>
           <CardContent className="pt-6">
@@ -148,7 +148,7 @@ export default function StaffSalaryConfigPage() {
                 <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground px-1">Select Staff</Label>
                 <Select value={selectedStaffId} onValueChange={setSelectedStaffId}>
                   <SelectTrigger className="h-11 rounded-xl bg-muted border-0 font-bold text-foreground focus:ring-1 focus:ring-ring/30 shadow-none"><SelectValue placeholder="Select staff member..." /></SelectTrigger>
-                  <SelectContent className="border-border/50 rounded-xl shadow-md max-h-[300px]">
+                  <SelectContent className="border-border rounded-xl shadow-md max-h-[300px]">
                     {staffList.map(s => (
                       <SelectItem key={s.id} value={s.id} className="rounded-lg font-medium">{s.name} {s.designation ? `(${s.designation})` : ''}</SelectItem>
                     ))}
@@ -160,15 +160,15 @@ export default function StaffSalaryConfigPage() {
                 <div className="flex justify-center py-6"><SpinnerGap size={24} strokeWidth={2} className="animate-spin text-muted-foreground/40" /></div>
               ) : selectedStaffId && (
                 <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2">
-                  <div className="space-y-2 border border-border/50 p-5 rounded-2xl bg-muted/50/30">
+                  <div className="space-y-2 border border-border p-5 rounded-xl bg-muted/50/30">
                     <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground px-1 block mb-3">Basic Salary</Label>
-                    <Input type="number" className="w-48 font-mono text-lg font-black h-11 rounded-xl bg-white border border-border/50 shadow-none focus-visible:ring-1 focus-visible:ring-ring/30" value={basicSalary} onChange={e => setBasicSalary(e.target.value)} />
+                    <Input type="number" className="w-48 font-mono text-lg font-black h-11 rounded-xl bg-background border border-border shadow-none focus-visible:ring-1 focus-visible:ring-ring/30" value={basicSalary} onChange={e => setBasicSalary(e.target.value)} />
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Allowances */}
                     <div className="space-y-4">
-                      <div className="flex items-center justify-between border-b border-border/50 pb-2">
+                      <div className="flex items-center justify-between border-b border-border pb-2">
                         <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground px-1">Allowances (+)</Label>
                         <Button type="button" variant="ghost" size="sm" className="h-8 px-3 text-xs bg-muted hover:bg-muted/80 text-muted-foreground font-bold rounded-lg shadow-none" onClick={() => addComponent('allowance')}>
                           <Plus size={14} strokeWidth={2.5} className="mr-1" /> Add
@@ -188,7 +188,7 @@ export default function StaffSalaryConfigPage() {
 
                     {/* Deductions */}
                     <div className="space-y-4">
-                      <div className="flex items-center justify-between border-b border-border/50 pb-2">
+                      <div className="flex items-center justify-between border-b border-border pb-2">
                         <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground px-1">Deductions (-)</Label>
                         <Button type="button" variant="ghost" size="sm" className="h-8 px-3 text-xs bg-muted hover:bg-muted/80 text-muted-foreground font-bold rounded-lg shadow-none" onClick={() => addComponent('deduction')}>
                           <Plus size={14} strokeWidth={2.5} className="mr-1" /> Add
@@ -207,7 +207,7 @@ export default function StaffSalaryConfigPage() {
                     </div>
                   </div>
 
-                  <div className="flex justify-end pt-5 border-t border-border/50 items-center">
+                  <div className="flex justify-end pt-5 border-t border-border items-center">
                     {(userRole !== 'admin' && userRole !== 'super_admin') && <span className="text-xs font-bold text-red-500 mr-4">Only Admin can change configuration.</span>}
                     <Button type="submit" className="h-11 px-6 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold shadow-none" disabled={submitting || (userRole !== 'admin' && userRole !== 'super_admin')}>
                       {submitting ? <SpinnerGap size={16} strokeWidth={2} className="mr-2 animate-spin" /> : <CheckCircle size={16} strokeWidth={2} className="mr-2" />}
@@ -221,8 +221,8 @@ export default function StaffSalaryConfigPage() {
         </Card>
 
         {selectedStaffId && (
-          <Card className="lg:col-span-4 shadow-none border border-border/50 rounded-2xl h-fit bg-card text-foreground">
-            <CardHeader className="pb-3 border-b border-border/50 bg-muted/30">
+          <Card className="lg:col-span-4 shadow-none border border-border rounded-xl h-fit bg-card text-foreground">
+            <CardHeader className="pb-3 border-b border-border bg-muted/30">
               <CardTitle className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Summary</CardTitle>
             </CardHeader>
             <CardContent className="pt-5 space-y-4">
@@ -238,7 +238,7 @@ export default function StaffSalaryConfigPage() {
                 <span className="text-muted-foreground font-bold">Total Deductions</span>
                 <span className="font-mono font-bold text-red-500">-{totalDed.toLocaleString('en-IN')} TK</span>
               </div>
-              <div className="pt-4 mt-2 border-t border-border/50 flex justify-between items-center">
+              <div className="pt-4 mt-2 border-t border-border flex justify-between items-center">
                 <span className="font-bold text-foreground">Net Salary</span>
                 <span className="font-black font-mono text-xl text-foreground">{net.toLocaleString('en-IN')} TK</span>
               </div>

@@ -7,11 +7,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Save, Wand2, AlertTriangle, Plus, Trash2 } from "lucide-react";
+import { Save, Wand2, AlertTriangle, Plus, Trash2, Printer, Tag, FileText, ChevronDown } from "lucide-react";
 import { autoAllocateSeats, RoomCapacity, SectionDemand } from "@/lib/exam-seat-utils";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { printHtml } from "@/lib/print-utils";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface SeatAllocationLocal {
     room_id: string;
@@ -27,6 +34,14 @@ interface ExamScheduleEntry {
     end_time: string;
 }
 
+interface SchoolInfo {
+    name: string;
+    address: string;
+    phone: string;
+    email: string;
+    logo_url?: string;
+}
+
 export function SeatPlanTab({ exams }: { exams: { id: string; name: string }[] }) {
     const [selectedExam, setSelectedExam] = useState<string>("");
     const [selectedShift, setSelectedShift] = useState<string>("");
@@ -34,12 +49,19 @@ export function SeatPlanTab({ exams }: { exams: { id: string; name: string }[] }
     const [rooms, setRooms] = useState<RoomCapacity[]>([]);
     const [classes, setClasses] = useState<{ id: string; name: string; numeric_value?: number | null }[]>([]);
     const [sections, setSections] = useState<{ id: string; class_id: string; name: string }[]>([]);
-    const [students, setStudents] = useState<{ id: string; class_id: string; section_id: string }[]>([]);
+    const [students, setStudents] = useState<{ id: string; class_id: string; section_id: string; roll?: string; name?: string }[]>([]);
+    const [schoolInfo, setSchoolInfo] = useState<SchoolInfo | null>(null);
     const [schedules, setSchedules] = useState<ExamScheduleEntry[]>([]);
     
     const [allocations, setAllocations] = useState<SeatAllocationLocal[]>([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+
+    // States for Desk Slip Filter Dialog
+    const [isPrintDeskStickersDialogOpen, setIsPrintDeskStickersDialogOpen] = useState(false);
+    const [printClassFilter, setPrintClassFilter] = useState<string>("all");
+    const [printSectionFilter, setPrintSectionFilter] = useState<string>("all");
+    const [printRoomFilter, setPrintRoomFilter] = useState<string>("all");
 
     // States for manual seat allocation
     const [isManualDialogOpen, setIsManualDialogOpen] = useState(false);
@@ -50,6 +72,26 @@ export function SeatPlanTab({ exams }: { exams: { id: string; name: string }[] }
 
     // Custom demands state to allow specifying/editing student counts for auto seat planning
     const [customDemands, setCustomDemands] = useState<Record<string, number>>({});
+
+    // All available classes for desk slips (sorted by numeric value)
+    const deskSlipClasses = useMemo(() => {
+        return [...classes].sort((a, b) => (a.numeric_value ?? 999) - (b.numeric_value ?? 999));
+    }, [classes]);
+
+    // All available sections for selected class or all sections
+    const deskSlipSections = useMemo(() => {
+        if (printClassFilter === "all") return sections;
+        return sections.filter(s => s.class_id === printClassFilter);
+    }, [sections, printClassFilter]);
+
+    // Calculate matching slips count for dialog preview directly from students database
+    const matchingDeskSlipsCount = useMemo(() => {
+        return students.filter(s => {
+            if (printClassFilter !== "all" && s.class_id !== printClassFilter) return false;
+            if (printSectionFilter !== "all" && s.section_id !== printSectionFilter) return false;
+            return true;
+        }).length;
+    }, [students, printClassFilter, printSectionFilter]);
 
     // Automatically calculate and prefill manual student count based on selection
     useEffect(() => {
@@ -146,12 +188,17 @@ export function SeatPlanTab({ exams }: { exams: { id: string; name: string }[] }
     const fetchBaseData = useCallback(async () => {
         setLoading(true);
         try {
-            const [roomsRes, classesRes, sectionsRes, studentsRes] = await Promise.all([
+            const [roomsRes, classesRes, sectionsRes, studentsRes, schoolRes] = await Promise.all([
                 supabase.from("rooms").select("id, name, capacity, tables_count, seats_per_table, order_index").order("order_index", { ascending: true }),
                 supabase.from("classes").select("id, name, numeric_value").order("numeric_value", { ascending: true }),
                 supabase.from("sections").select("id, class_id, name"),
-                supabase.from("students").select("id, class_id, section_id"),
+                supabase.from("students").select("id, class_id, section_id, roll, name"),
+                (supabase as any).from("school_info").select("name, address, phone, email, logo_url").limit(1).single(),
             ]);
+
+            if (schoolRes.data) {
+                setSchoolInfo(schoolRes.data as SchoolInfo);
+            }
 
             const parsedRooms: RoomCapacity[] = (roomsRes.data || []).map((r) => ({
                 id: r.id,
@@ -484,35 +531,770 @@ export function SeatPlanTab({ exams }: { exams: { id: string; name: string }[] }
         .reduce((sum, a) => sum + a.allocated_students, 0);
     const roomRemainingCapacity = Math.max(0, roomCapacity - roomAllocated);
 
+    // Calculate roll ranges per room allocation
+    const calculateAllocatedRanges = useCallback(() => {
+        const offsetMap = new Map<string, number>();
+        const resultMap = new Map<string, { rollRange: string; count: number; startRoll: string; endRoll: string }>();
+
+        allocations.forEach(alloc => {
+            if (alloc.allocated_students <= 0) return;
+            const key = `${alloc.class_id}||${alloc.section_id}`;
+            const secStudents = students
+                .filter(s => s.class_id === alloc.class_id && s.section_id === alloc.section_id)
+                .sort((a, b) => {
+                    const rA = parseInt(a.roll || "0", 10);
+                    const rB = parseInt(b.roll || "0", 10);
+                    if (!isNaN(rA) && !isNaN(rB) && rA !== 0 && rB !== 0) return rA - rB;
+                    return (a.roll || "").localeCompare(b.roll || "", undefined, { numeric: true });
+                });
+
+            const offset = offsetMap.get(key) || 0;
+            const count = alloc.allocated_students;
+            const startIndex = offset;
+            const endIndex = offset + count - 1;
+            offsetMap.set(key, offset + count);
+
+            let startRoll = "";
+            let endRoll = "";
+
+            if (secStudents.length > 0) {
+                startRoll = startIndex < secStudents.length ? (secStudents[startIndex].roll || `Roll ${startIndex + 1}`) : `Roll ${startIndex + 1}`;
+                endRoll = endIndex < secStudents.length ? (secStudents[endIndex].roll || `Roll ${endIndex + 1}`) : `Roll ${startIndex + count}`;
+            } else {
+                startRoll = `Roll ${startIndex + 1}`;
+                endRoll = `Roll ${startIndex + count}`;
+            }
+
+            const rollRange = startRoll === endRoll ? startRoll : `${startRoll} – ${endRoll}`;
+            resultMap.set(`${alloc.room_id}||${alloc.class_id}||${alloc.section_id}`, {
+                rollRange,
+                count,
+                startRoll,
+                endRoll
+            });
+        });
+
+        return resultMap;
+    }, [allocations, students]);
+
+    // Helper to get shift name + time label
+    const getShiftLabel = useCallback((shiftStr: string) => {
+        if (!shiftStr) return "";
+        const [startTime, endTime] = shiftStr.split("||");
+        const formatTime = (t: string) => {
+            try {
+                const [h, m] = t.split(":").map(Number);
+                const ampm = h >= 12 ? "PM" : "AM";
+                const h12 = h % 12 || 12;
+                return `${h12}:${m.toString().padStart(2, "0")} ${ampm}`;
+            } catch { return t; }
+        };
+        const timeText = startTime && endTime ? `${formatTime(startTime)} – ${formatTime(endTime)}` : "";
+        
+        let shiftName = "";
+        if (selectedExam) {
+            try {
+                const saved = localStorage.getItem(`exam_config_${selectedExam}`);
+                if (saved) {
+                    const config = JSON.parse(saved);
+                    const normTime = (t: string) => (t || "").substring(0, 5);
+                    const found = (config.shifts || []).find((s: any) => 
+                        normTime(s.start_time) === normTime(startTime) && normTime(s.end_time) === normTime(endTime)
+                    );
+                    if (found?.name) {
+                        shiftName = found.name;
+                    }
+                }
+            } catch {}
+        }
+
+        if (shiftName && timeText) {
+            return `${shiftName} (${timeText})`;
+        }
+        return shiftName || timeText;
+    }, [selectedExam]);
+
+    // Print Handler 1: Door Notice Cards
+    const handlePrintDoorNoticeCards = () => {
+        if (allocations.length === 0) {
+            toast.warning("No seat allocations found to print Door Notice Cards.");
+            return;
+        }
+
+        const currentExam = exams.find(e => e.id === selectedExam);
+        const examName = currentExam ? currentExam.name : "EXAM";
+        const shiftText = getShiftLabel(selectedShift);
+
+        const roomsMap = new Map<string, { room: RoomCapacity; items: { className: string; sectionName: string; count: number }[] }>();
+
+        allocations.forEach(alloc => {
+            if (alloc.allocated_students <= 0) return;
+            const room = rooms.find(r => r.id === alloc.room_id);
+            const cls = classes.find(c => c.id === alloc.class_id);
+            const sec = sections.find(s => s.id === alloc.section_id);
+            if (!room || !cls || !sec) return;
+
+            const current = roomsMap.get(room.id) || { room, items: [] };
+            current.items.push({
+                className: cls.name,
+                sectionName: sec.name,
+                count: alloc.allocated_students
+            });
+            roomsMap.set(room.id, current);
+        });
+
+        const sName = schoolInfo?.name || "SCHOOL / COLLEGE NAME";
+        const sAddr = schoolInfo?.address || "Institution Address";
+
+        let cardsHtml = "";
+        Array.from(roomsMap.values()).forEach(({ room, items }) => {
+            const totalInRoom = items.reduce((sum, i) => sum + i.count, 0);
+            cardsHtml += `
+                <div class="door-card">
+                    <div class="card-header">
+                        <div class="school-title">${sName}</div>
+                        <div class="school-sub">${sAddr}</div>
+                        <div class="badge">EXAM HALL DOOR NOTICE</div>
+                    </div>
+                    <div class="meta-row">
+                        <div><strong>EXAM:</strong> ${examName}</div>
+                        <div><strong>SHIFT / TIME:</strong> ${shiftText}</div>
+                    </div>
+                    <div class="room-hero">
+                        <div class="room-name">${room.name}</div>
+                        <div class="room-cap">Total Capacity: ${room.capacity} | Allocated Students: ${totalInRoom}</div>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Class</th>
+                                <th>Section</th>
+                                <th style="text-align:center;">Students</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${items.map(item => `
+                                <tr>
+                                    <td style="font-weight:700;">${item.className}</td>
+                                    <td>${item.sectionName.replace(/^Section\s+/i, '')}</td>
+                                    <td style="text-align:center; font-weight:800;">${item.count}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                    <div class="card-footer">
+                        <div>Printed Date: ${new Date().toLocaleDateString()}</div>
+                        <div class="sig-box">
+                            <div class="sig-line">Exam Controller / Headmaster</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        const html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Exam Hall Door Notice Cards</title>
+            <style>
+                @page { size: A4 portrait; margin: 10mm; }
+                body { font-family: 'Segoe UI', Arial, sans-serif; color: #000000; margin: 0; padding: 0; background: #fff; -webkit-print-color-adjust: exact; }
+                .door-card {
+                    border: 3px double #000000;
+                    border-radius: 12px;
+                    padding: 24px;
+                    margin-bottom: 24px;
+                    box-sizing: border-box;
+                    page-break-inside: avoid;
+                    color: #000000;
+                }
+                .card-header { text-align: center; border-bottom: 2px solid #000000; padding-bottom: 12px; margin-bottom: 16px; }
+                .school-title { font-size: 22px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: #000000; }
+                .school-sub { font-size: 12px; color: #000000; margin-top: 2px; }
+                .badge { display: inline-block; background: transparent; color: #000000; font-size: 13px; font-weight: 800; padding: 4px 14px; margin-top: 8px; letter-spacing: 1px; text-transform: uppercase; }
+                .meta-row { display: flex; justify-content: space-between; font-size: 13px; background: transparent; padding: 10px 14px; border-radius: 8px; border: 1px solid #000000; margin-bottom: 16px; color: #000000; }
+                .room-hero { text-align: center; background: transparent; border: 2px solid #000000; border-radius: 10px; padding: 12px; margin-bottom: 16px; color: #000000; }
+                .room-name { font-size: 36px; font-weight: 900; color: #000000; }
+                .room-cap { font-size: 12px; font-weight: 600; color: #000000; margin-top: 2px; }
+                table { width: 100%; border-collapse: collapse; margin-top: 8px; color: #000000; }
+                th, td { border: 1.5px solid #000000; padding: 10px 12px; font-size: 13px; text-align: left; color: #000000; }
+                th { background: #ffffff; font-weight: 700; text-transform: uppercase; font-size: 11px; color: #000000; }
+                .card-footer { margin-top: 24px; display: flex; justify-content: space-between; align-items: flex-end; font-size: 11px; color: #000000; }
+                .sig-box { text-align: center; }
+                .sig-line { border-top: 1.5px dashed #000000; width: 180px; padding-top: 4px; font-weight: 600; color: #000000; }
+            </style>
+        </head>
+        <body>
+            ${cardsHtml}
+        </body>
+        </html>
+        `;
+        printHtml(html);
+    };
+
+    // Print Handler 2: Desk Stickers / Slips (Purely Class & Section based, No Shift dependency)
+    const handlePrintDeskStickers = (
+        filterClassId: string = "all",
+        filterSectionId: string = "all"
+    ) => {
+        let targetStudents = students.filter(s => {
+            if (filterClassId !== "all" && s.class_id !== filterClassId) return false;
+            if (filterSectionId !== "all" && s.section_id !== filterSectionId) return false;
+            return true;
+        });
+
+        if (targetStudents.length === 0) {
+            toast.warning("No students found for the selected Class & Section.");
+            return;
+        }
+
+        // Sort students by Class, Section, and Roll
+        targetStudents.sort((a, b) => {
+            const clsA = classes.find(c => c.id === a.class_id);
+            const clsB = classes.find(c => c.id === b.class_id);
+            const clsComp = (clsA?.numeric_value ?? 999) - (clsB?.numeric_value ?? 999);
+            if (clsComp !== 0) return clsComp;
+
+            const secA = sections.find(s => s.id === a.section_id);
+            const secB = sections.find(s => s.id === b.section_id);
+            const secComp = (secA?.name || "").localeCompare(secB?.name || "");
+            if (secComp !== 0) return secComp;
+
+            const rA = parseInt(a.roll || "0", 10);
+            const rB = parseInt(b.roll || "0", 10);
+            if (!isNaN(rA) && !isNaN(rB) && rA !== 0 && rB !== 0) return rA - rB;
+            return (a.roll || "").localeCompare(b.roll || "", undefined, { numeric: true });
+        });
+
+        const currentExam = exams.find(e => e.id === selectedExam);
+        const examName = currentExam ? currentExam.name : "EXAM";
+        const sName = schoolInfo?.name || "SCHOOL NAME";
+
+        interface DeskSlip {
+            className: string;
+            sectionName: string;
+            studentRoll: string;
+            studentName: string;
+        }
+
+        const deskSlips: DeskSlip[] = targetStudents.map(stud => {
+            const cls = classes.find(c => c.id === stud.class_id);
+            const sec = sections.find(s => s.id === stud.section_id);
+            return {
+                className: cls?.name || "",
+                sectionName: sec?.name || "",
+                studentRoll: stud.roll || "",
+                studentName: stud.name || ""
+            };
+        });
+
+        let pagesHtml = '';
+        for (let i = 0; i < deskSlips.length; i += 10) {
+            const pageSlips = deskSlips.slice(i, i + 10);
+            const slipsInPageHtml = pageSlips.map(slip => `
+                <div class="desk-slip">
+                    <div class="slip-school">${sName}</div>
+                    <div class="slip-exam">${examName}</div>
+                    <div class="slip-line">
+                        <span class="slip-label">Name:</span> <span class="slip-val">${slip.studentName ? slip.studentName : '___________________________'}</span>
+                    </div>
+                    <div class="slip-line">
+                        <span class="slip-label">Class:</span> <span class="slip-val">${slip.className}</span>
+                        &nbsp;&nbsp;&nbsp;&nbsp;
+                        <span class="slip-label">Section:</span> <span class="slip-val">${slip.sectionName}</span>
+                        &nbsp;&nbsp;&nbsp;&nbsp;
+                        <span class="slip-label">Roll:</span> <span class="slip-val">${slip.studentRoll}</span>
+                    </div>
+                </div>
+            `).join('');
+
+            pagesHtml += `
+                <div class="page">
+                    <div class="center-cut-line"><span class="scissor-center">✂</span></div>
+                    <div class="row-cut-line row-cut-1"><span class="scissor-row">✂</span></div>
+                    <div class="row-cut-line row-cut-2"><span class="scissor-row">✂</span></div>
+                    <div class="row-cut-line row-cut-3"><span class="scissor-row">✂</span></div>
+                    <div class="row-cut-line row-cut-4"><span class="scissor-row">✂</span></div>
+                    <div class="grid">
+                        ${slipsInPageHtml}
+                    </div>
+                </div>
+            `;
+        }
+
+        const html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Desk Stickers / Slips</title>
+            <style>
+                @page { size: A4 portrait; margin: 6mm; }
+                body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 0; background: #fff; -webkit-print-color-adjust: exact; color: #000000; }
+                .page { position: relative; page-break-after: always; page-break-inside: avoid; box-sizing: border-box; height: 285mm; overflow: hidden; }
+                .page:last-child { page-break-after: auto; }
+                .center-cut-line {
+                    position: absolute;
+                    top: 0;
+                    bottom: 0;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    border-left: 1.5px dashed #64748b;
+                    z-index: 10;
+                    pointer-events: none;
+                }
+                .scissor-center {
+                    position: absolute;
+                    top: 2px;
+                    left: -7px;
+                    background: #ffffff;
+                    font-size: 13px;
+                    color: #475569;
+                    padding: 2px 0;
+                    transform: rotate(-90deg);
+                }
+                .row-cut-line {
+                    position: absolute;
+                    left: 0;
+                    right: 0;
+                    border-top: 1.5px dashed #64748b;
+                    z-index: 10;
+                    pointer-events: none;
+                }
+                .scissor-row {
+                    position: absolute;
+                    left: 2px;
+                    top: -9px;
+                    background: #ffffff;
+                    font-size: 13px;
+                    color: #475569;
+                    padding: 0 2px;
+                }
+                .row-cut-1 { top: 54.75mm; }
+                .row-cut-2 { top: 113.25mm; }
+                .row-cut-3 { top: 171.75mm; }
+                .row-cut-4 { top: 230.25mm; }
+
+                .grid { 
+                    display: grid; 
+                    grid-template-columns: repeat(2, 93mm); 
+                    grid-template-rows: repeat(5, 51mm); 
+                    gap: 7.5mm 10mm; 
+                    height: 285mm;
+                    box-sizing: border-box;
+                    justify-content: center;
+                }
+                .desk-slip {
+                    border: 1.5px dashed #64748b;
+                    border-radius: 8px;
+                    padding: 6px 12px;
+                    text-align: left;
+                    background: transparent;
+                    box-sizing: border-box;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: space-evenly;
+                    height: 51mm;
+                    overflow: hidden;
+                }
+                .slip-school { 
+                    font-size: 14.5px; 
+                    font-weight: 800; 
+                    color: #000000; 
+                    text-transform: uppercase; 
+                    text-align: center; 
+                    letter-spacing: 0.2px; 
+                    line-height: 1.15;
+                }
+                .slip-exam { 
+                    font-size: 12.5px; 
+                    font-weight: 700; 
+                    color: #000000; 
+                    text-transform: uppercase; 
+                    text-align: center; 
+                    border-bottom: 1.5px solid #000000; 
+                    padding-bottom: 3px; 
+                    margin-bottom: 4px; 
+                    letter-spacing: 0.4px;
+                }
+                .slip-line { 
+                    font-size: 16px; 
+                    color: #000000; 
+                    margin-bottom: 2px; 
+                    line-height: 1.5; 
+                    white-space: nowrap; 
+                    overflow: hidden; 
+                    text-overflow: ellipsis; 
+                }
+                .slip-label { font-weight: 700; color: #000000; }
+                .slip-val { font-weight: 900; color: #000000; font-size: 17px; }
+            </style>
+        </head>
+        <body>
+            ${pagesHtml}
+        </body>
+        </html>
+        `;
+        printHtml(html);
+    };
+
+    // Print Handler 3: Master Seat Plan Sheet
+    const handlePrintMasterSeatPlan = () => {
+        if (allocations.length === 0) {
+            toast.warning("No seat allocations found to print Master Sheet.");
+            return;
+        }
+
+        const currentExam = exams.find(e => e.id === selectedExam);
+        const examName = currentExam ? currentExam.name : "EXAM";
+        const shiftText = getShiftLabel(selectedShift);
+        const rangesMap = calculateAllocatedRanges();
+
+        const sName = schoolInfo?.name || "SCHOOL / COLLEGE NAME";
+        const sAddr = schoolInfo?.address || "Institution Address";
+
+        let totalAllocated = 0;
+
+        const roomsMap = new Map<string, { room: RoomCapacity; items: { className: string; sectionName: string; count: number; rollRange: string }[] }>();
+
+        allocations.forEach(alloc => {
+            if (alloc.allocated_students <= 0) return;
+            const room = rooms.find(r => r.id === alloc.room_id);
+            const cls = classes.find(c => c.id === alloc.class_id);
+            const sec = sections.find(s => s.id === alloc.section_id);
+            if (!room || !cls || !sec) return;
+
+            totalAllocated += alloc.allocated_students;
+            const info = rangesMap.get(`${alloc.room_id}||${alloc.class_id}||${alloc.section_id}`);
+            const current = roomsMap.get(room.id) || { room, items: [] };
+            current.items.push({
+                className: cls.name,
+                sectionName: sec.name,
+                count: alloc.allocated_students,
+                rollRange: info?.rollRange || `Total: ${alloc.allocated_students}`
+            });
+            roomsMap.set(room.id, current);
+        });
+
+        const rowsHtml = Array.from(roomsMap.values()).map(({ room, items }) => {
+            const roomTotal = items.reduce((sum, i) => sum + i.count, 0);
+            const classesSummary = items.map(i => `${i.className} (${i.sectionName})`).join(", ");
+            const rollRangesSummary = items.map(i => `${i.className}-${i.sectionName}: ${i.rollRange}`).join("<br/>");
+
+            return `
+                <tr>
+                    <td style="font-weight:800; font-size:14px; color:#000000;">${room.name}</td>
+                    <td style="text-align:center;">${room.capacity}</td>
+                    <td style="text-align:center; font-weight:800;">${roomTotal}</td>
+                    <td style="font-weight:600;">${classesSummary}</td>
+                    <td class="roll-range">${rollRangesSummary}</td>
+                </tr>
+            `;
+        }).join('');
+
+        const html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Master Exam Seat Plan Sheet</title>
+            <style>
+                @page { size: A4 portrait; margin: 12mm; }
+                body { font-family: 'Segoe UI', Arial, sans-serif; color: #000000; margin: 0; padding: 0; background: #fff; -webkit-print-color-adjust: exact; }
+                .header { text-align: center; border-bottom: 2px solid #000000; padding-bottom: 12px; margin-bottom: 16px; }
+                .school-title { font-size: 24px; font-weight: 800; text-transform: uppercase; color: #000000; }
+                .school-sub { font-size: 12px; color: #000000; margin-top: 2px; }
+                .title-badge { display: inline-block; background: #000000; color: #fff; font-size: 13px; font-weight: 800; padding: 6px 20px; border-radius: 20px; margin-top: 10px; letter-spacing: 1px; }
+                .meta-bar { display: flex; justify-content: space-between; background: #f1f5f9; padding: 10px 16px; border-radius: 8px; border: 1px solid #000000; margin-bottom: 16px; font-size: 13px; font-weight: 600; color: #000000; }
+                table { width: 100%; border-collapse: collapse; margin-top: 12px; color: #000000; }
+                th, td { border: 1.5px solid #000000; padding: 10px 12px; font-size: 12px; text-align: left; color: #000000; }
+                th { background: #e2e8f0; font-weight: 700; text-transform: uppercase; font-size: 11px; color: #000000; }
+                .roll-range { font-family: monospace; font-size: 12px; font-weight: 700; color: #000000; line-height: 1.4; }
+                .footer-sig { margin-top: 40px; display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; color: #000000; }
+                .sig-line { border-top: 1.5px dashed #000000; width: 180px; text-align: center; padding-top: 4px; color: #000000; }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <div class="school-title">${sName}</div>
+                <div class="school-sub">${sAddr}</div>
+                <div class="title-badge">MASTER EXAM SEAT PLAN SHEET</div>
+            </div>
+            <div class="meta-bar">
+                <div>EXAM: ${examName}</div>
+                <div>SHIFT: ${shiftText}</div>
+                <div>TOTAL SEATED STUDENTS: ${totalAllocated}</div>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Room / Hall Name</th>
+                        <th style="text-align:center;">Capacity</th>
+                        <th style="text-align:center;">Allocated</th>
+                        <th>Classes & Sections</th>
+                        <th>Roll Ranges</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${rowsHtml}
+                </tbody>
+            </table>
+            <div class="footer-sig">
+                <div>Printed Date: ${new Date().toLocaleDateString()}</div>
+                <div class="sig-line">Exam Controller / Headmaster Signature</div>
+            </div>
+        </body>
+        </html>
+        `;
+        printHtml(html);
+    };
+
+    // Print Handler 4: Student Seat Audit Sheet (for Invigilators / Verification)
+    const handlePrintStudentSeatAuditSheet = () => {
+        if (allocations.length === 0) {
+            toast.warning("No seat allocations found to print Audit Sheet.");
+            return;
+        }
+
+        const currentExam = exams.find(e => e.id === selectedExam);
+        const examName = currentExam ? currentExam.name : "EXAM";
+        const shiftText = getShiftLabel(selectedShift);
+
+        const sName = schoolInfo?.name || "SCHOOL NAME";
+        const sAddr = schoolInfo?.address || "Address";
+
+        interface RoomAuditData {
+            roomName: string;
+            capacity: number;
+            students: {
+                benchNo: number;
+                position: string;
+                className: string;
+                sectionName: string;
+                roll: string;
+                name: string;
+            }[];
+        }
+
+        const roomAuditMap = new Map<string, RoomAuditData>();
+
+        const roomAllocMap = new Map<string, { classId: string; sectionId: string; count: number }[]>();
+        allocations.forEach(alloc => {
+            if (alloc.allocated_students <= 0) return;
+            const list = roomAllocMap.get(alloc.room_id) || [];
+            list.push({ classId: alloc.class_id, sectionId: alloc.section_id, count: alloc.allocated_students });
+            roomAllocMap.set(alloc.room_id, list);
+        });
+
+        roomAllocMap.forEach((allocsInRoom, roomId) => {
+            const room = rooms.find(r => r.id === roomId);
+            if (!room) return;
+
+            const roomStudents: { className: string; sectionName: string; roll: string; name: string }[] = [];
+            allocsInRoom.forEach(alloc => {
+                const cls = classes.find(c => c.id === alloc.classId);
+                const sec = sections.find(s => s.id === alloc.sectionId);
+                if (!cls || !sec) return;
+
+                const secStudents = students
+                    .filter(s => s.class_id === alloc.classId && s.section_id === alloc.sectionId)
+                    .sort((a, b) => {
+                        const rA = parseInt(a.roll || "0", 10);
+                        const rB = parseInt(b.roll || "0", 10);
+                        if (!isNaN(rA) && !isNaN(rB) && rA !== 0 && rB !== 0) return rA - rB;
+                        return (a.roll || "").localeCompare(b.roll || "", undefined, { numeric: true });
+                    });
+
+                for (let i = 0; i < alloc.count; i++) {
+                    const stud = secStudents[i];
+                    roomStudents.push({
+                        className: cls.name,
+                        sectionName: sec.name,
+                        roll: stud?.roll || (i + 1).toString(),
+                        name: stud?.name || "—"
+                    });
+                }
+            });
+
+            const totalBenches = room.tables_count > 0 ? room.tables_count : Math.ceil(roomStudents.length / 2);
+            const seatsPerBench = room.seats_per_table > 0 ? room.seats_per_table : 2;
+
+            const list: RoomAuditData["students"] = [];
+            let studentIdx = 0;
+            for (let b = 1; b <= totalBenches; b++) {
+                for (let s = 1; s <= seatsPerBench; s++) {
+                    if (studentIdx >= roomStudents.length) break;
+                    const stud = roomStudents[studentIdx];
+                    const posText = seatsPerBench === 2 ? (s === 1 ? "Left" : "Right") : `Seat ${s}`;
+                    list.push({
+                        benchNo: b,
+                        position: posText,
+                        className: stud.className,
+                        sectionName: stud.sectionName,
+                        roll: stud.roll,
+                        name: stud.name
+                    });
+                    studentIdx++;
+                }
+            }
+
+            roomAuditMap.set(room.id, {
+                roomName: room.name,
+                capacity: room.capacity,
+                students: list
+            });
+        });
+
+        let tablesHtml = "";
+        roomAuditMap.forEach(audit => {
+            const rowsHtml = audit.students.map(s => `
+                <tr>
+                    <td style="font-weight:700; text-align:center;">Bench #${s.benchNo} (${s.position})</td>
+                    <td style="font-weight:700; color:#000000; text-align:center;">${s.roll}</td>
+                    <td style="font-weight:700;">${s.name}</td>
+                    <td style="text-align:center;">${s.className} (${s.sectionName})</td>
+                    <td style="width:120px; border-bottom:1px dashed #000000;"></td>
+                </tr>
+            `).join('');
+
+            tablesHtml += `
+                <div class="room-page">
+                    <div class="header">
+                        <div class="school-name">${sName}</div>
+                        <div class="sub-title">${sAddr}</div>
+                        <div class="exam-title">${examName} — STUDENT SEAT AUDIT & VERIFICATION SHEET</div>
+                    </div>
+
+                    <div class="meta-row">
+                        <div><strong>HALL / ROOM:</strong> ${audit.roomName}</div>
+                        <div><strong>SHIFT:</strong> ${shiftText}</div>
+                        <div><strong>TOTAL SEATED:</strong> ${audit.students.length} / ${audit.capacity}</div>
+                    </div>
+
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width:160px; text-align:center;">Bench & Position</th>
+                                <th style="width:70px; text-align:center;">Roll</th>
+                                <th>Student Name</th>
+                                <th style="width:130px; text-align:center;">Class & Section</th>
+                                <th style="width:120px;">Invigilator Sign</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${rowsHtml}
+                        </tbody>
+                    </table>
+
+                    <div class="footer">
+                        <div>Invigilator Signature: _______________________</div>
+                        <div>Hall Controller Signature: _______________________</div>
+                    </div>
+                </div>
+            `;
+        });
+
+        const html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Student Seat Audit Sheet</title>
+            <style>
+                @page { size: A4 portrait; margin: 10mm; }
+                body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 0; color: #000000; background: #fff; -webkit-print-color-adjust: exact; }
+                .room-page { page-break-after: always; box-sizing: border-box; }
+                .room-page:last-child { page-break-after: auto; }
+                .header { text-align: center; border-bottom: 2px solid #000000; padding-bottom: 8px; margin-bottom: 12px; }
+                .school-name { font-size: 18px; font-weight: 800; text-transform: uppercase; color: #000000; }
+                .sub-title { font-size: 11px; color: #000000; }
+                .exam-title { font-size: 13px; font-weight: 700; color: #000000; margin-top: 4px; text-transform: uppercase; }
+                .meta-row { display: flex; justify-content: space-between; background: #f8fafc; padding: 8px 12px; border-radius: 6px; border: 1px solid #000000; font-size: 12px; margin-bottom: 12px; color: #000000; }
+                table { width: 100%; border-collapse: collapse; font-size: 12px; color: #000000; }
+                th, td { border: 1px solid #000000; padding: 6px 8px; text-align: left; color: #000000; }
+                th { background: #f1f5f9; font-weight: 700; text-transform: uppercase; font-size: 11px; color: #000000; }
+                .footer { margin-top: 24px; display: flex; justify-content: space-between; font-size: 11px; font-weight: 600; padding-top: 12px; color: #000000; }
+            </style>
+        </head>
+        <body>
+            ${tablesHtml}
+        </body>
+        </html>
+        `;
+
+        printHtml(html);
+    };
+
     return (
         <div className="space-y-4">
             <div className="flex items-center gap-3 flex-wrap">
                 <Select value={selectedExam} onValueChange={setSelectedExam}>
-                    <SelectTrigger className="w-[200px] h-11 rounded-xl border-0 bg-muted text-foreground font-semibold shadow-none focus:ring-1 focus:ring-ring/30">
+                    <SelectTrigger className="w-full sm:w-[200px] h-11 rounded-xl border-0 bg-muted text-foreground font-semibold shadow-none focus:ring-1 focus:ring-ring/30">
                         <SelectValue placeholder="Select Exam" />
                     </SelectTrigger>
-                    <SelectContent className="rounded-xl border-border/50 shadow-md">
+                    <SelectContent className="rounded-xl border-border shadow-md">
                         {exams.map(e => <SelectItem key={e.id} value={e.id} className="rounded-lg">{e.name}</SelectItem>)}
                     </SelectContent>
                 </Select>
 
                 <Select value={selectedShift} onValueChange={setSelectedShift} disabled={!selectedExam || availableShifts.length === 0}>
-                    <SelectTrigger className="w-[200px] h-11 rounded-xl border-0 bg-muted text-foreground font-semibold shadow-none focus:ring-1 focus:ring-ring/30">
+                    <SelectTrigger className="w-full sm:w-[260px] h-11 rounded-xl border-0 bg-muted text-foreground font-semibold shadow-none focus:ring-1 focus:ring-ring/30">
                         <SelectValue placeholder="Select Shift" />
                     </SelectTrigger>
-                    <SelectContent className="rounded-xl border-border/50 shadow-md">
+                    <SelectContent className="rounded-xl border-border shadow-md">
                         {availableShifts.map((s, idx) => {
-                            return <SelectItem key={s} value={s} className="rounded-lg">Shift {idx + 1}</SelectItem>;
+                            const label = getShiftLabel(s) || `Shift ${idx + 1}`;
+                            return <SelectItem key={s} value={s} className="rounded-lg">{label}</SelectItem>;
                         })}
                     </SelectContent>
                 </Select>
 
-                <div className="ml-auto flex gap-2">
+                <div className="w-full sm:w-auto flex gap-2 flex-wrap sm:ml-auto">
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button 
+                                variant="outline"
+                                disabled={students.length === 0}
+                                className="w-full sm:w-auto h-11 rounded-xl font-semibold border-border text-foreground bg-background hover:bg-muted shadow-none transition-all duration-200"
+                            >
+                                <Printer className="mr-2 h-4 w-4" /> Print Reports <ChevronDown className="ml-1.5 h-3.5 w-3.5 opacity-60" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-64 rounded-xl border-border shadow-md">
+                            <DropdownMenuItem onClick={handlePrintDoorNoticeCards} className="rounded-lg cursor-pointer py-2.5">
+                                <Printer className="mr-2.5 h-4 w-4 text-primary" />
+                                <div>
+                                    <div className="font-semibold text-xs">Door Notice Cards</div>
+                                    <div className="text-[10px] text-muted-foreground">Print room door cards</div>
+                                </div>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setIsPrintDeskStickersDialogOpen(true)} className="rounded-lg cursor-pointer py-2.5">
+                                <Tag className="mr-2.5 h-4 w-4 text-primary" />
+                                <div>
+                                    <div className="font-semibold text-xs">Desk Stickers / Slips</div>
+                                    <div className="text-[10px] text-muted-foreground">Print bench seat slips by class/section</div>
+                                </div>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={handlePrintMasterSeatPlan} className="rounded-lg cursor-pointer py-2.5">
+                                <FileText className="mr-2.5 h-4 w-4 text-primary" />
+                                <div>
+                                    <div className="font-semibold text-xs">Master Seat Plan Sheet</div>
+                                    <div className="text-[10px] text-muted-foreground">Print notice board summary</div>
+                                </div>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={handlePrintStudentSeatAuditSheet} className="rounded-lg cursor-pointer py-2.5">
+                                <Printer className="mr-2.5 h-4 w-4 text-emerald-600" />
+                                <div>
+                                    <div className="font-semibold text-xs text-emerald-700 dark:text-emerald-400">Student Seat Audit Sheet</div>
+                                    <div className="text-[10px] text-muted-foreground">Print invigilator seat verification list</div>
+                                </div>
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+
                     <Button 
                         variant="outline" 
                         onClick={() => setIsManualDialogOpen(true)} 
                         disabled={!selectedShift || loading}
-                        className="h-11 rounded-xl font-semibold border-border/50 text-foreground bg-background hover:bg-muted shadow-none transition-all duration-200"
+                        className="w-full sm:w-auto h-11 rounded-xl font-semibold border-border text-foreground bg-background hover:bg-muted shadow-none transition-all duration-200"
                     >
                         <Plus className="mr-2 h-4 w-4" /> Add Allocation
                     </Button>
@@ -520,7 +1302,7 @@ export function SeatPlanTab({ exams }: { exams: { id: string; name: string }[] }
                     <Button 
                         onClick={handleSave} 
                         disabled={!selectedShift || saving || allocations.length === 0}
-                        className="h-11 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 font-semibold shadow-none transition-all duration-200"
+                        className="w-full sm:w-auto h-11 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 font-semibold shadow-none transition-all duration-200"
                     >
                         <Save className="mr-2 h-4 w-4" /> Save Seat Plan
                     </Button>
@@ -556,7 +1338,7 @@ export function SeatPlanTab({ exams }: { exams: { id: string; name: string }[] }
                 <div className="flex flex-col lg:flex-row gap-6">
                     {/* Left Column: Student Demands box */}
                     <div className="w-full lg:w-80 shrink-0">
-                        <Card className="border-border/50 shadow-none rounded-2xl">
+                        <Card className="border-border shadow-none rounded-xl">
                             <CardHeader className="pb-3 border-b border-border/30">
                                 <CardTitle className="text-base font-bold text-foreground">Student Demands</CardTitle>
                                 <p className="text-xs text-muted-foreground">Specify total student counts for each class/section in this shift.</p>
@@ -587,7 +1369,7 @@ export function SeatPlanTab({ exams }: { exams: { id: string; name: string }[] }
                                                     min="0"
                                                     value={value || ""}
                                                     onChange={(e) => handleUpdateCustomDemand(d.class_id, d.section_id, parseInt(e.target.value) || 0)}
-                                                    className={`w-20 h-9 text-center font-semibold rounded-lg bg-background text-foreground border-border/50 focus:ring-1 ${isScheduled ? 'border-primary/20 focus:ring-primary' : ''}`}
+                                                    className={`w-20 h-9 text-center font-semibold rounded-lg bg-background text-foreground border-border focus:ring-1 ${isScheduled ? 'border-primary/20 focus:ring-primary' : ''}`}
                                                     placeholder="0"
                                                 />
                                             </div>
@@ -612,7 +1394,7 @@ export function SeatPlanTab({ exams }: { exams: { id: string; name: string }[] }
                     {/* Right Column: Rooms Grid and Unallocated Students list */}
                     <div className="flex-1 space-y-4">
                         {unallocatedDemands.length > 0 && (
-                            <Card className="border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-700 shadow-none rounded-2xl">
+                            <Card className="border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-700 shadow-none rounded-xl">
                                 <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
                                     <CardTitle className="text-base font-semibold text-amber-700 dark:text-amber-300">Unallocated Students</CardTitle>
                                     <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
@@ -640,7 +1422,7 @@ export function SeatPlanTab({ exams }: { exams: { id: string; name: string }[] }
                                 const isUnconfigured = room.tables_count === 0;
 
                                 return (
-                                    <Card key={room.id} className={`border-border/50 shadow-none rounded-2xl transition-colors ${isOver ? 'border-destructive' : ''} ${isUnconfigured ? 'opacity-50' : ''}`}>
+                                    <Card key={room.id} className={`border-border shadow-none rounded-xl transition-colors ${isOver ? 'border-destructive' : ''} ${isUnconfigured ? 'opacity-50' : ''}`}>
                                         <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
                                             <CardTitle className="text-base font-semibold">{room.name}</CardTitle>
                                             <Badge variant={isOver ? 'destructive' : isFull ? 'default' : 'secondary'} className="rounded-md">
@@ -668,7 +1450,7 @@ export function SeatPlanTab({ exams }: { exams: { id: string; name: string }[] }
                                                                         const count = parseInt(e.target.value) || 0;
                                                                         handleUpdateAllocationCount(room.id, s.class_id, s.section_id, count);
                                                                     }}
-                                                                    className="w-16 h-8 text-center font-mono font-bold rounded-lg border-border/50 bg-background text-foreground"
+                                                                    className="w-16 h-8 text-center font-mono font-bold rounded-lg border-border bg-background text-foreground"
                                                                 />
                                                                 <Button
                                                                     variant="ghost"
@@ -694,7 +1476,7 @@ export function SeatPlanTab({ exams }: { exams: { id: string; name: string }[] }
                 </div>
             )}
             <Dialog open={isManualDialogOpen} onOpenChange={setIsManualDialogOpen}>
-                <DialogContent className="sm:max-w-md rounded-2xl">
+                <DialogContent className="sm:max-w-md rounded-xl">
                     <DialogHeader>
                         <DialogTitle>Add Seat Allocation</DialogTitle>
                     </DialogHeader>
@@ -773,6 +1555,84 @@ export function SeatPlanTab({ exams }: { exams: { id: string; name: string }[] }
                         >
                             Add Allocation
                         </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Dialog for Printing Desk Slips strictly by Class / Section */}
+            <Dialog open={isPrintDeskStickersDialogOpen} onOpenChange={setIsPrintDeskStickersDialogOpen}>
+                <DialogContent className="sm:max-w-md rounded-xl">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2 text-foreground">
+                            <Tag className="h-5 w-5 text-primary" /> Print Desk Stickers / Slips
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-2 text-foreground">
+                        <div className="grid gap-1.5">
+                            <Label>Select Class</Label>
+                            <Select 
+                                value={printClassFilter} 
+                                onValueChange={(v) => { 
+                                    setPrintClassFilter(v); 
+                                    setPrintSectionFilter("all"); 
+                                }}
+                            >
+                                <SelectTrigger className="rounded-lg">
+                                    <SelectValue placeholder="All Classes" />
+                                </SelectTrigger>
+                                <SelectContent className="rounded-lg">
+                                    <SelectItem value="all">All Classes</SelectItem>
+                                    {deskSlipClasses.map(c => (
+                                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        
+                        <div className="grid gap-1.5">
+                            <Label>Select Section</Label>
+                            <Select 
+                                value={printSectionFilter} 
+                                onValueChange={setPrintSectionFilter}
+                            >
+                                <SelectTrigger className="rounded-lg">
+                                    <SelectValue placeholder="All Sections" />
+                                </SelectTrigger>
+                                <SelectContent className="rounded-lg">
+                                    <SelectItem value="all">All Sections</SelectItem>
+                                    {deskSlipSections.map(s => (
+                                        <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="text-xs text-muted-foreground bg-muted/40 p-3 rounded-xl border border-border/40 flex items-center justify-between">
+                            <span>Matching Student Desk Slips:</span>
+                            <Badge variant="secondary" className="font-mono font-bold text-sm px-2.5 py-0.5 rounded-lg bg-primary/10 text-primary border-0">
+                                {matchingDeskSlipsCount} Slips
+                            </Badge>
+                        </div>
+
+                        <div className="flex gap-2 justify-end mt-2">
+                            <Button 
+                                variant="outline" 
+                                onClick={() => setIsPrintDeskStickersDialogOpen(false)}
+                                className="rounded-xl font-semibold"
+                            >
+                                Cancel
+                            </Button>
+                            <Button 
+                                onClick={() => {
+                                    handlePrintDeskStickers(printClassFilter, printSectionFilter);
+                                    setIsPrintDeskStickersDialogOpen(false);
+                                }} 
+                                disabled={matchingDeskSlipsCount === 0}
+                                className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl font-semibold shadow-none"
+                            >
+                                <Printer className="mr-2 h-4 w-4" /> Print Slips ({matchingDeskSlipsCount})
+                            </Button>
+                        </div>
                     </div>
                 </DialogContent>
             </Dialog>

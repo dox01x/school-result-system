@@ -122,23 +122,23 @@ export default function DailyClosingPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground font-heading mb-1">Daily Cash Closing</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground  mb-1">Daily Cash Closing</h1>
         <p className="text-muted-foreground text-sm mt-1">End-of-day reconciliation — match software records with cash box.</p>
       </div>
 
       {/* Date Picker */}
-      <Card className="bg-card rounded-2xl border border-border/50 shadow-none">
-        <CardContent className="p-4 flex flex-col sm:flex-row items-end gap-4">
-          <div className="space-y-1.5 flex-1 max-w-xs">
+      <Card className="bg-card rounded-2xl border border-border shadow-none">
+        <CardContent className="p-4 flex flex-col md:flex-row items-stretch md:items-end gap-4">
+          <div className="space-y-1.5 w-full md:max-w-xs">
             <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground px-1">Select Date</Label>
             <Input type="date" value={date} onChange={e => setDate(e.target.value)} className="h-11 rounded-xl bg-muted border-0 font-bold text-foreground focus-visible:ring-1 focus-visible:ring-ring/30 shadow-none" />
           </div>
-          <Button onClick={loadData} disabled={loading} className="h-11 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold shadow-none px-6">
-            {loading ? <SpinnerGap size={16} strokeWidth={2} className="mr-2 animate-spin" /> : <MagnifyingGlass size={16} strokeWidth={2} className="mr-2" />}
+          <Button onClick={loadData} disabled={loading} className="w-full md:w-auto h-11 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold shadow-none px-6">
+            {loading ? <SpinnerGap size={16} strokeWidth={2} className="mr-2 animate-spin" /> : <MagnifyingGlass size={16} strokeWidth={2.5} className="mr-2" />}
             Load
           </Button>
           {data && (
-            <Button onClick={handlePrint} variant="outline" className="ml-auto h-11 rounded-xl border-border/50 bg-white hover:bg-muted/50 text-muted-foreground font-bold shadow-none px-6">
+            <Button onClick={handlePrint} variant="outline" className="w-full md:w-auto md:ml-auto h-11 rounded-xl border-border bg-white hover:bg-muted/50 text-muted-foreground font-bold shadow-none px-6">
               <Printer size={16} strokeWidth={2} className="mr-2" /> Print Report
             </Button>
           )}
@@ -153,7 +153,7 @@ export default function DailyClosingPage() {
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
           {/* Date Header */}
           <div className="text-center">
-            <Badge variant="outline" className="px-4 py-2 text-sm font-bold border-border/50 text-muted-foreground shadow-none">
+            <Badge variant="outline" className="px-4 py-2 text-sm font-bold border-border text-muted-foreground shadow-none">
               <CalendarBlank size={16} strokeWidth={2} className="mr-1.5 text-muted-foreground/60" />
               {new Date(data.date).toLocaleDateString('en-GB', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })}
             </Badge>
@@ -161,7 +161,7 @@ export default function DailyClosingPage() {
 
           {/* Summary Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card className="bg-card rounded-2xl p-6 border border-border shadow-none">
+            <Card className="bg-card rounded-xl p-6 border border-border shadow-none">
               <CardContent className="p-0">
                 <div className="flex items-start justify-between mb-4">
                   <div className="bg-muted/50 rounded-xl p-3">
@@ -174,7 +174,7 @@ export default function DailyClosingPage() {
               </CardContent>
             </Card>
 
-            <Card className="bg-card rounded-2xl p-6 border border-border shadow-none">
+            <Card className="bg-card rounded-xl p-6 border border-border shadow-none">
               <CardContent className="p-0">
                 <div className="flex items-start justify-between mb-4">
                   <div className="bg-muted/50 rounded-xl p-3">
@@ -186,7 +186,7 @@ export default function DailyClosingPage() {
               </CardContent>
             </Card>
 
-            <Card className="bg-card rounded-2xl p-6 border border-border shadow-none">
+            <Card className="bg-card rounded-xl p-6 border border-border shadow-none">
               <CardContent className="p-0">
                 <div className="flex items-start justify-between mb-4">
                   <div className="bg-muted/50 rounded-xl p-3">
@@ -198,7 +198,7 @@ export default function DailyClosingPage() {
               </CardContent>
             </Card>
 
-            <Card className="bg-card rounded-2xl p-6 border border-border shadow-none">
+            <Card className="bg-card rounded-xl p-6 border border-border shadow-none">
               <CardContent className="p-0">
                 <div className="flex items-start justify-between mb-4">
                   <div className="bg-muted/50 rounded-xl p-3">
@@ -215,13 +215,13 @@ export default function DailyClosingPage() {
           </div>
 
           {/* Method Breakdown */}
-          <Card className="bg-card rounded-2xl border border-border/50 shadow-none">
-            <CardHeader className="pb-3 border-b border-border/50">
+          <Card className="bg-card rounded-2xl border border-border shadow-none">
+            <CardHeader className="pb-3 border-b border-border">
               <CardTitle className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Collection by Payment Method</CardTitle>
             </CardHeader>
             <CardContent className="pt-4">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-xl border border-border/50">
+                <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-xl border border-border">
                   <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center">
                     <Money size={20} strokeWidth={2} className="text-muted-foreground" />
                   </div>
@@ -230,7 +230,7 @@ export default function DailyClosingPage() {
                     <p className="font-mono font-black text-foreground">{formatTaka(data.method_breakdown?.cash?.income || 0)}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-xl border border-border/50">
+                <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-xl border border-border">
                   <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center">
                     <CreditCard size={20} strokeWidth={2} className="text-muted-foreground" />
                   </div>
@@ -239,7 +239,7 @@ export default function DailyClosingPage() {
                     <p className="font-mono font-black text-foreground">{formatTaka(data.method_breakdown?.bank?.income || 0)}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-xl border border-border/50">
+                <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-xl border border-border">
                   <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center">
                     <DeviceMobile size={20} strokeWidth={2} className="text-muted-foreground" />
                   </div>
@@ -254,8 +254,8 @@ export default function DailyClosingPage() {
 
           {/* Tuition Payments List */}
           {data.tuition_payments?.length > 0 && (
-            <Card className="bg-card rounded-2xl border border-border/50 shadow-none overflow-hidden">
-              <CardHeader className="pb-3 border-b border-border/50 bg-muted/50">
+            <Card className="bg-card rounded-2xl border border-border shadow-none overflow-hidden">
+              <CardHeader className="pb-3 border-b border-border bg-muted/50">
                 <CardTitle className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
                   <Receipt size={16} strokeWidth={2} className="text-foreground" /> Fee Collections ({data.tuition_payments.length})
                 </CardTitle>
@@ -263,7 +263,7 @@ export default function DailyClosingPage() {
               <CardContent className="p-0">
                 <Table>
                   <TableHeader>
-                    <TableRow className="bg-muted/30 hover:bg-muted/30 border-border/50">
+                    <TableRow className="bg-muted/30 hover:bg-muted/30 border-border">
                       <TableHead className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground w-10">#</TableHead>
                       <TableHead className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">Student</TableHead>
                       <TableHead className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">Class</TableHead>
@@ -274,10 +274,10 @@ export default function DailyClosingPage() {
                   </TableHeader>
                   <TableBody>
                     {data.tuition_payments.map((p: any, i: number) => (
-                      <TableRow key={i} className="border-border/50">
+                      <TableRow key={i} className="border-border">
                         <TableCell className="text-[11px] font-bold text-muted-foreground/60">{i + 1}</TableCell>
                         <TableCell className="text-[11px] font-bold text-foreground">{p.student}</TableCell>
-                        <TableCell><Badge variant="outline" className="text-[9px] font-bold border-border/50 text-muted-foreground uppercase tracking-widest shadow-none px-1.5 py-0">{p.class}</Badge></TableCell>
+                        <TableCell><Badge variant="outline" className="text-[9px] font-bold border-border text-muted-foreground uppercase tracking-widest shadow-none px-1.5 py-0">{p.class}</Badge></TableCell>
                         <TableCell className="font-mono text-[11px] font-medium text-muted-foreground">{p.receipt}</TableCell>
                         <TableCell>
                           <span className="bg-muted text-muted-foreground px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-widest">{(p.method || 'cash').replace('_', ' ')}</span>
@@ -293,8 +293,8 @@ export default function DailyClosingPage() {
 
           {/* Expenses List */}
           {data.expenses?.length > 0 && (
-            <Card className="bg-card rounded-2xl border border-border/50 shadow-none overflow-hidden">
-              <CardHeader className="pb-3 border-b border-border/50 bg-muted/50">
+            <Card className="bg-card rounded-2xl border border-border shadow-none overflow-hidden">
+              <CardHeader className="pb-3 border-b border-border bg-muted/50">
                 <CardTitle className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
                   <TrendDown size={16} strokeWidth={2} className="text-red-600" /> Expenses ({data.expenses.length})
                 </CardTitle>
@@ -302,7 +302,7 @@ export default function DailyClosingPage() {
               <CardContent className="p-0">
                 <Table>
                   <TableHeader>
-                    <TableRow className="bg-muted/30 hover:bg-muted/30 border-border/50">
+                    <TableRow className="bg-muted/30 hover:bg-muted/30 border-border">
                       <TableHead className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground w-10">#</TableHead>
                       <TableHead className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">Category</TableHead>
                       <TableHead className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">Description</TableHead>
@@ -311,9 +311,9 @@ export default function DailyClosingPage() {
                   </TableHeader>
                   <TableBody>
                     {data.expenses.map((e: any, i: number) => (
-                      <TableRow key={i} className="border-border/50">
+                      <TableRow key={i} className="border-border">
                         <TableCell className="text-[11px] font-bold text-muted-foreground/60">{i + 1}</TableCell>
-                        <TableCell><Badge variant="outline" className="text-[9px] font-bold border-border/50 text-muted-foreground uppercase tracking-widest shadow-none px-1.5 py-0">{e.category.replace('_', ' ')}</Badge></TableCell>
+                        <TableCell><Badge variant="outline" className="text-[9px] font-bold border-border text-muted-foreground uppercase tracking-widest shadow-none px-1.5 py-0">{e.category.replace('_', ' ')}</Badge></TableCell>
                         <TableCell className="text-[11px] font-bold text-muted-foreground">{e.description}</TableCell>
                         <TableCell className="text-right font-mono font-bold text-red-600">-{formatTaka(Number(e.amount))}</TableCell>
                       </TableRow>
@@ -326,8 +326,8 @@ export default function DailyClosingPage() {
 
           {/* Salary Payments */}
           {data.salary_payments?.length > 0 && (
-            <Card className="bg-card rounded-2xl border border-border/50 shadow-none overflow-hidden">
-              <CardHeader className="pb-3 border-b border-border/50 bg-muted/50">
+            <Card className="bg-card rounded-2xl border border-border shadow-none overflow-hidden">
+              <CardHeader className="pb-3 border-b border-border bg-muted/50">
                 <CardTitle className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
                   <Users size={16} strokeWidth={2} className="text-foreground" /> Salary Payments ({data.salary_payments.length})
                 </CardTitle>
@@ -335,7 +335,7 @@ export default function DailyClosingPage() {
               <CardContent className="p-0">
                 <Table>
                   <TableHeader>
-                    <TableRow className="bg-muted/30 hover:bg-muted/30 border-border/50">
+                    <TableRow className="bg-muted/30 hover:bg-muted/30 border-border">
                       <TableHead className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground w-10">#</TableHead>
                       <TableHead className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">Staff</TableHead>
                       <TableHead className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">Slip</TableHead>
@@ -344,7 +344,7 @@ export default function DailyClosingPage() {
                   </TableHeader>
                   <TableBody>
                     {data.salary_payments.map((s: any, i: number) => (
-                      <TableRow key={i} className="border-border/50">
+                      <TableRow key={i} className="border-border">
                         <TableCell className="text-[11px] font-bold text-muted-foreground/60">{i + 1}</TableCell>
                         <TableCell className="text-[11px] font-bold text-foreground">{s.staff}</TableCell>
                         <TableCell className="font-mono text-[11px] font-medium text-muted-foreground">{s.slip}</TableCell>
@@ -359,7 +359,7 @@ export default function DailyClosingPage() {
 
           {/* Empty state */}
           {data.tuition_count === 0 && data.expenses?.length === 0 && data.salary_payments?.length === 0 && (
-            <div className="text-center py-16 text-muted-foreground bg-muted/50 rounded-2xl border border-border/50">
+            <div className="text-center py-16 text-muted-foreground bg-muted/50 rounded-2xl border border-border">
               <CalendarBlank size={48} strokeWidth={1.5} className="mx-auto mb-3 text-muted-foreground/40" />
               <p className="font-bold text-foreground">No transactions found</p>
               <p className="text-[11px] font-bold mt-1 uppercase tracking-widest text-muted-foreground/60">No financial activity recorded for this date.</p>

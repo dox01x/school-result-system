@@ -127,44 +127,44 @@ export default function MonthlyReportPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground font-heading mb-1">Monthly Report</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground  mb-1">Monthly Report</h1>
         <p className="text-muted-foreground text-sm mt-1">Detailed financial breakdown for any month.</p>
       </div>
 
       {/* Funnels */}
-      <Card className="bg-card rounded-2xl border border-border/50 shadow-none">
-        <CardContent className="p-4 flex flex-col sm:flex-row items-end gap-4">
-          <div className="space-y-1 w-full sm:w-48">
+      <Card className="bg-card rounded-2xl border border-border shadow-none">
+        <CardContent className="p-4 flex flex-col md:flex-row items-stretch md:items-end gap-4">
+          <div className="space-y-1 w-full md:w-48">
             <Label className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest px-1">Month</Label>
             <Select value={month} onValueChange={setMonth}>
               <SelectTrigger className="h-11 rounded-xl bg-muted border-0 font-bold text-foreground focus:ring-1 focus:ring-ring/30 shadow-none">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="border-border/50 rounded-xl shadow-md">
+              <SelectContent className="border-border rounded-xl shadow-md">
                 {Array.from({length: 12}, (_, i) => i + 1).map(m => (
                   <SelectItem key={m} value={m.toString()} className="rounded-lg font-medium">{getMonthName(m)}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-1 w-full sm:w-32">
+          <div className="space-y-1 w-full md:w-32">
             <Label className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest px-1">Year</Label>
             <Select value={year} onValueChange={setYear}>
               <SelectTrigger className="h-11 rounded-xl bg-muted border-0 font-bold text-foreground focus:ring-1 focus:ring-ring/30 shadow-none">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="border-border/50 rounded-xl shadow-md">
+              <SelectContent className="border-border rounded-xl shadow-md">
                 {[currentYear - 1, currentYear, currentYear + 1].map(y => (
                   <SelectItem key={y} value={y.toString()} className="rounded-lg font-medium">{y}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
-          <Button onClick={loadReport} disabled={loading} className="h-11 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold shadow-none px-6">
+          <Button onClick={loadReport} disabled={loading} className="w-full md:w-auto h-11 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold shadow-none px-6">
             {loading ? <SpinnerGap size={16} strokeWidth={2} className="mr-2 animate-spin" /> : <MagnifyingGlass size={16} strokeWidth={2} className="mr-2" />}
             Generate
           </Button>
-          <Button onClick={handlePrint} variant="outline" disabled={!report} className="ml-auto h-11 rounded-xl border-border/50 bg-white hover:bg-muted/50 text-muted-foreground font-bold shadow-none px-6">
+          <Button onClick={handlePrint} variant="outline" disabled={!report} className="w-full md:w-auto md:ml-auto h-11 rounded-xl border-border bg-white hover:bg-muted/50 text-muted-foreground font-bold shadow-none px-6">
             <Printer size={16} strokeWidth={2} className="mr-2" /> Print
           </Button>
         </CardContent>
@@ -175,7 +175,7 @@ export default function MonthlyReportPage() {
         <div className="flex justify-center p-12"><SpinnerGap size={32} strokeWidth={1.5} className="animate-spin text-muted-foreground/40" /></div>
       ) : report ? (
         <div className="space-y-6">
-          <div className="text-center border-b border-border/50 pb-4">
+          <div className="text-center border-b border-border pb-4">
             <h2 className="text-xl font-bold text-foreground flex items-center justify-center gap-2">
               <ChartBar size={20} strokeWidth={2} className="text-muted-foreground" />
               {getMonthName(report.month)} {report.year}
@@ -184,8 +184,8 @@ export default function MonthlyReportPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Income */}
-            <Card className="bg-card rounded-2xl border border-border/50 shadow-none">
-              <CardHeader className="pb-3 border-b border-border/50">
+            <Card className="bg-card rounded-2xl border border-border shadow-none">
+              <CardHeader className="pb-3 border-b border-border">
                 <CardTitle className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
                   <TrendUp size={16} strokeWidth={2} className="text-foreground" /> Income Breakdown
                 </CardTitle>
@@ -194,7 +194,7 @@ export default function MonthlyReportPage() {
                 <Table>
                   <TableBody>
                     {report.income_breakdown.map((inc, i) => (
-                      <TableRow key={i} className="border-border/50">
+                      <TableRow key={i} className="border-border">
                         <TableCell className="capitalize text-[11px] font-bold text-muted-foreground">{inc.category.replace('_', ' ')}</TableCell>
                         <TableCell className="text-right font-mono font-bold text-foreground">{formatTaka(inc.amount)}</TableCell>
                       </TableRow>
@@ -208,8 +208,8 @@ export default function MonthlyReportPage() {
             </Card>
 
             {/* Expense */}
-            <Card className="bg-card rounded-2xl border border-border/50 shadow-none">
-              <CardHeader className="pb-3 border-b border-border/50">
+            <Card className="bg-card rounded-2xl border border-border shadow-none">
+              <CardHeader className="pb-3 border-b border-border">
                 <CardTitle className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
                   <TrendDown size={16} strokeWidth={2} className="text-red-600" /> Expense Breakdown
                 </CardTitle>
@@ -218,7 +218,7 @@ export default function MonthlyReportPage() {
                 <Table>
                   <TableBody>
                     {report.expense_breakdown.map((exp, i) => (
-                      <TableRow key={i} className="border-border/50">
+                      <TableRow key={i} className="border-border">
                         <TableCell className="capitalize text-[11px] font-bold text-muted-foreground">{exp.category.replace('_', ' ')}</TableCell>
                         <TableCell className="text-right font-mono font-bold text-red-600">{formatTaka(exp.amount)}</TableCell>
                       </TableRow>
@@ -234,7 +234,7 @@ export default function MonthlyReportPage() {
 
           {/* Tuition + Salary Summary */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card className="shadow-none rounded-2xl border border-border/50 bg-muted/50">
+            <Card className="shadow-none rounded-2xl border border-border bg-muted/50">
               <CardContent className="p-6 text-center space-y-3">
                 <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Tuition Fees</p>
                 <div className="flex flex-col items-center gap-1">
@@ -245,7 +245,7 @@ export default function MonthlyReportPage() {
                 <Badge className="bg-muted hover:bg-muted/80 text-foreground border-0 rounded-md px-2 py-0.5 font-bold text-[10px] uppercase tracking-widest">{report.tuition_summary.collection_rate}% collected</Badge>
               </CardContent>
             </Card>
-            <Card className="shadow-none rounded-2xl border border-border/50 bg-muted/50">
+            <Card className="shadow-none rounded-2xl border border-border bg-muted/50">
               <CardContent className="p-6 text-center space-y-3">
                 <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Staff Salaries</p>
                 <div className="flex flex-col items-center gap-1">
@@ -258,7 +258,7 @@ export default function MonthlyReportPage() {
           </div>
 
           {/* Net */}
-          <div className="text-center pt-6 border-t-2 border-border/50">
+          <div className="text-center pt-6 border-t-2 border-border">
             <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-1">Net Balance</p>
             <p className={`text-5xl font-black font-mono tracking-tight ${report.net_balance >= 0 ? 'text-foreground' : 'text-red-600'}`}>
               {report.net_balance >= 0 ? '+' : ''}{formatTaka(report.net_balance)}

@@ -127,14 +127,14 @@ const ImportDialog = React.memo(function ImportDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="bg-card rounded-3xl border-border/50 shadow-lg sm:max-w-[500px]">
+            <DialogContent className="bg-card rounded-xl border-border shadow-lg sm:max-w-[500px]">
                 <DialogHeader>
                     <DialogTitle>Import Marks</DialogTitle>
                 </DialogHeader>
                 <Tabs defaultValue="csv" className="w-full">
                     <TabsList className="grid w-full grid-cols-2 bg-muted rounded-xl p-1 h-11">
-                        <TabsTrigger value="csv" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">CSV File</TabsTrigger>
-                        <TabsTrigger value="sheets" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">Google Sheets</TabsTrigger>
+                        <TabsTrigger value="csv" className="rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-xs">CSV File</TabsTrigger>
+                        <TabsTrigger value="sheets" className="rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-xs">Google Sheets</TabsTrigger>
                     </TabsList>
 
                     {/* ── CSV Tab ── */}
@@ -236,7 +236,7 @@ const ImportDialog = React.memo(function ImportDialog({
                             </div>
                         </div>
 
-                        <div className="flex items-center justify-between pt-2 border-t border-dashed border-border/50 mt-auto">
+                        <div className="flex items-center justify-between pt-2 border-t border-dashed border-border mt-auto">
                             <div className="text-xs text-muted-foreground flex gap-1 items-center">
                                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                                 need: roll, name, {useDetailed ? "theory, mcq…" : "marks"}

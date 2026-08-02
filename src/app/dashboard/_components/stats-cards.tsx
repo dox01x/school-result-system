@@ -3,12 +3,12 @@
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import {
-    GraduationCap, Users, ClipboardList,
-    TrendingUp, School,
+    GraduationCap, Users, ClipboardList, School,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 /* ── Count-up hook ── */
-function useCountUp(target: number, duration = 800) {
+function useCountUp(target: number, duration = 600) {
     const [val, setVal] = useState(0);
     const ref = useRef<number>(0);
     useEffect(() => {
@@ -46,25 +46,24 @@ export function StatsCards({ students, classes, sections, exams }: Props) {
     const sectionsCount = useCountUp(sections);
     const examsCount = useCountUp(exams);
 
-    const cards = [
-        { label: "Total Students", val: studentsCount, icon: GraduationCap, iconBg: "bg-muted", iconColor: "text-foreground group-hover:scale-110", href: "/dashboard/students" },
-        { label: "Active Classes", val: classesCount, icon: School, iconBg: "bg-muted", iconColor: "text-foreground group-hover:scale-110", href: "/dashboard/classes" },
-        { label: "Sections", val: sectionsCount, icon: Users, iconBg: "bg-muted", iconColor: "text-foreground group-hover:scale-110", href: "/dashboard/classes" },
-        { label: "Total Exams", val: examsCount, icon: ClipboardList, iconBg: "bg-muted", iconColor: "text-foreground group-hover:scale-110", href: "/dashboard/exams" },
+    const cards: { label: string; val: number; icon: LucideIcon; href: string }[] = [
+        { label: "Students", val: studentsCount, icon: GraduationCap, href: "/dashboard/students" },
+        { label: "Classes", val: classesCount, icon: School, href: "/dashboard/classes" },
+        { label: "Sections", val: sectionsCount, icon: Users, href: "/dashboard/classes" },
+        { label: "Exams", val: examsCount, icon: ClipboardList, href: "/dashboard/exams" },
     ];
 
     return (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 stagger-children">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {cards.map((c) => (
                 <Link key={c.label} href={c.href}>
-                    <div className="group bg-card rounded-2xl p-6 border border-border shadow-sm hover:border-border dark:hover:border-border hover:shadow-md transition-all duration-300 cursor-pointer flex flex-col justify-between h-full">
-                        <div className="flex items-start justify-between mb-6">
-                            <div className={`${c.iconBg} rounded-2xl p-3.5 transition-transform duration-300`}><c.icon className={`h-6 w-6 ${c.iconColor} transition-transform duration-300`} strokeWidth={1.5} /></div>
-                            <TrendingUp className="h-5 w-5 text-muted-foreground/40 dark:text-muted-foreground group-hover:text-foreground dark:group-hover:text-muted-foreground/40 transition-colors" strokeWidth={2} />
+                    <div className="bg-card rounded-xl p-5 border border-border hover:border-border/80 transition-colors cursor-pointer">
+                        <div className="flex items-center justify-between mb-3">
+                            <p className="text-[13px] font-medium text-muted-foreground">{c.label}</p>
+                            <c.icon className="h-4 w-4 text-muted-foreground/50" strokeWidth={1.5} />
                         </div>
-                        <div>
-                            <div className="text-4xl font-black tracking-tighter text-foreground tabular-nums leading-none">{c.val}</div>
-                            <p className="text-sm text-muted-foreground mt-2 font-semibold">{c.label}</p>
+                        <div className="text-2xl font-semibold text-foreground tabular-nums">
+                            {c.val}
                         </div>
                     </div>
                 </Link>

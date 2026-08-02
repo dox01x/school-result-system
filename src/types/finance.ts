@@ -14,6 +14,15 @@ export interface FeeStructure {
   created_at: string;
 }
 
+export interface FeeDetailItem {
+  type: FeeType | string;
+  amount: number;
+  month?: number;
+  year?: number;
+  exam_name?: string;
+  description?: string;
+}
+
 export interface TuitionPayment {
   id: string;
   receipt_number: string;
@@ -21,12 +30,7 @@ export interface TuitionPayment {
   class_name: string;
   section?: string;
   fee_type: FeeType;
-  fee_details?: {
-    type: FeeType | string;
-    amount: number;
-    month?: number;
-    year?: number;
-  }[];
+  fee_details?: FeeDetailItem[];
   month?: number;
   year: number;
   amount_due: number;
@@ -152,7 +156,7 @@ export interface TuitionReceiptData {
   receipt_number: string;
   student: { name: string; class_name: string; section: string; roll?: string };
   fee_type: string;
-  fee_details?: { type: string; amount: number; month?: number; year?: number }[];
+  fee_details?: FeeDetailItem[];
   month_name?: string;
   year: number;
   amount_due: number;

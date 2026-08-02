@@ -17,7 +17,7 @@ import { toast } from "sonner";
 import { TeacherProfileSheet } from "@/components/teachers/teacher-profile-sheet";
 
 export default function TeachersPage() {
-    const supabase = useMemo(() => createClient() as any, []);
+    const supabase = useMemo(() => createClient(), []);
 
     const [teachers, setTeachers] = useState<Teacher[]>([]);
     const [loading, setLoading] = useState(true);
@@ -105,13 +105,13 @@ export default function TeachersPage() {
                         onChange={(e) => setSearchQuery(e.target.value)}
                     />
                 </div>
-                <Button className="bg-primary text-primary-foreground font-semibold rounded-xl hover:bg-primary/90 transition-all duration-200 btn-press" onClick={() => { setTeacherForm({ id: "", name: "", phone: "", email: "", subject_specialty: "", designation: "" }); setTeacherDialogOpen(true); }}>
+                <Button className="bg-primary text-primary-foreground font-semibold rounded-xl hover:bg-primary/90 transition-all duration-200 " onClick={() => { setTeacherForm({ id: "", name: "", phone: "", email: "", subject_specialty: "", designation: "" }); setTeacherDialogOpen(true); }}>
                     <Plus size={16} strokeWidth={1.5} className=" mr-1" /> Add Teacher
                 </Button>
             </div>
 
             {filteredTeachers.length === 0 ? (
-                <Card className="border-dashed border-2 border-border/50 bg-transparent shadow-none">
+                <Card className="border-dashed border-2 border-border bg-transparent shadow-none">
                     <CardContent className="flex flex-col items-center justify-center py-16 text-center">
                         <Users size={48} strokeWidth={1.2} className=" text-muted-foreground/40 mb-4" />
                         <h3 className="font-semibold text-lg mb-1">No Teachers Added</h3>

@@ -40,7 +40,7 @@ export function StatsSection() {
   }, []);
 
   return (
-    <section className="relative -mt-16 z-10 pb-12">
+    <section id="stats" className="relative -mt-16 z-10 pb-12">
       <div ref={ref} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
           {stats.map((s) => (
@@ -51,7 +51,7 @@ export function StatsSection() {
               <div className="bg-brand-accent/10 text-brand-accent p-3 rounded-xl w-fit mx-auto mb-4">
                 <s.icon className="w-6 h-6" />
               </div>
-              <p className="text-3xl md:text-4xl font-extrabold text-brand tabular-nums">
+              <p className="text-3xl md:text-4xl font-semibold text-brand tabular-nums">
                 <Counter target={s.value} suffix={s.suffix} active={visible} />
               </p>
               <p className="text-sm text-slate-500 font-medium mt-1">{s.label}</p>

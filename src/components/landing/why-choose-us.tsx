@@ -20,7 +20,7 @@ const reasons = [
 
 export function WhyChooseUs() {
   return (
-    <section className="py-20 md:py-28 bg-surface">
+    <section id="why-us" className="py-20 md:py-28 bg-surface">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid lg:grid-cols-2 items-center gap-16">
           {/* Left: Header */}
@@ -28,7 +28,7 @@ export function WhyChooseUs() {
             <span className="inline-flex items-center gap-1.5 bg-brand/5 text-brand text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-widest">
               🏆 Why Choose Us
             </span>
-            <h2 className="text-3xl md:text-4xl font-heading font-bold tracking-tight text-[#0F172A]" style={{ textWrap: "balance" }}>
+            <h2 className="text-3xl md:text-4xl  font-bold tracking-tight text-[#0F172A]" style={{ textWrap: "balance" }}>
               Built by Educators,{" "}
               <span className="text-brand-accent">For Educators</span>
             </h2>

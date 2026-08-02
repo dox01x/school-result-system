@@ -20,7 +20,7 @@ import { UserCog, Plus, Trash2, CheckCircle, XCircle } from "lucide-react";
 import { toast } from "sonner";
 
 export default function TeacherShiftPage() {
-    const supabase = useMemo(() => createClient() as any, []);
+    const supabase = useMemo(() => createClient(), []);
 
     const [teachers, setTeachers] = useState<Teacher[]>([]);
     const [shifts, setShifts] = useState<TeacherShift[]>([]);
@@ -249,8 +249,8 @@ export default function TeacherShiftPage() {
 
             <Tabs defaultValue="shifts">
                 <TabsList className="bg-muted border-0 rounded-xl p-1 mb-4">
-                    <TabsTrigger value="shifts" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-none">Duty Roster</TabsTrigger>
-                    <TabsTrigger value="leaves" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-none">
+                    <TabsTrigger value="shifts" className="rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-none">Duty Roster</TabsTrigger>
+                    <TabsTrigger value="leaves" className="rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-none">
                         Leave Requests
                         {leaveRequests.filter((l) => l.status === "pending").length > 0 && (
                             <Badge variant="secondary" className="ml-1.5 h-5 px-1.5 text-[10px] bg-muted text-foreground border-0">
@@ -262,7 +262,7 @@ export default function TeacherShiftPage() {
 
                 <TabsContent value="shifts" className="space-y-4">
                     <div className="flex justify-end">
-                        <Button className="bg-primary text-primary-foreground font-semibold rounded-xl hover:bg-primary/90 transition-all duration-200 btn-press" onClick={() => {
+                        <Button className="bg-primary text-primary-foreground font-semibold rounded-xl hover:bg-primary/90 transition-all duration-200 " onClick={() => {
                             setShiftForm({ id: "", teacher_id: "", shift_date: "", start_time: "08:00", end_time: "14:00", duty_type: "regular", notes: "" });
                             setShiftDialogOpen(true);
                         }}>
@@ -271,7 +271,7 @@ export default function TeacherShiftPage() {
                     </div>
 
                     {shifts.length === 0 ? (
-                        <Card className="border-dashed border-2 border-border/50 bg-transparent shadow-none">
+                        <Card className="border-dashed border-2 border-border bg-transparent shadow-none">
                             <CardContent className="flex flex-col items-center justify-center py-16 text-center">
                                 <UserCog className="h-12 w-12 text-muted-foreground/40 mb-4" strokeWidth={1.2} />
                                 <h3 className="font-semibold text-lg text-foreground mb-1">No Shifts Assigned</h3>
@@ -327,7 +327,7 @@ export default function TeacherShiftPage() {
 
                 <TabsContent value="leaves" className="space-y-4">
                     <div className="flex justify-end">
-                        <Button className="bg-primary text-primary-foreground font-semibold rounded-xl hover:bg-primary/90 transition-all duration-200 btn-press" onClick={() => {
+                        <Button className="bg-primary text-primary-foreground font-semibold rounded-xl hover:bg-primary/90 transition-all duration-200 " onClick={() => {
                             setLeaveForm({ teacher_id: "", start_date: "", end_date: "", reason: "" });
                             setProxyAssignments({});
                             setLeaveDialogOpen(true);
@@ -337,7 +337,7 @@ export default function TeacherShiftPage() {
                     </div>
 
                     {leaveRequests.length === 0 ? (
-                        <Card className="border-dashed border-2 border-border/50 bg-transparent shadow-none">
+                        <Card className="border-dashed border-2 border-border bg-transparent shadow-none">
                             <CardContent className="flex flex-col items-center justify-center py-16 text-center">
                                 <UserCog className="h-12 w-12 text-muted-foreground/40 mb-4" strokeWidth={1.2} />
                                 <h3 className="font-semibold text-lg text-foreground mb-1">No Leave Requests</h3>
@@ -472,7 +472,7 @@ export default function TeacherShiftPage() {
                         </div>
 
                         {classesToCover.length > 0 && (
-                            <div className="grid gap-2 border-t border-border/50 pt-3 mt-2 max-h-[250px] overflow-y-auto pr-2">
+                            <div className="grid gap-2 border-t border-border pt-3 mt-2 max-h-[250px] overflow-y-auto pr-2">
                                 <Label className="text-sm font-semibold text-foreground mb-1">Proxy Assignments</Label>
                                 {classesToCover.map((c, i) => {
                                     const key = `${c.date}_${c.routine.id}`;

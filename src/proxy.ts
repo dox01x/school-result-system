@@ -1,32 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
+import { canAccessRoute, type UserRole } from "@/lib/rbac";
 
 const AUTH_DISABLED = process.env.AUTH_DISABLED === "true";
-
-/**
- * Route-to-role access map.
- * Sorted by specificity (longest paths first checked).
- * super_admin and admin always have full access (handled in code).
- */
-const ROUTE_ROLES: { path: string; roles: string[] }[] = [
-  { path: "/dashboard/users", roles: ["super_admin"] },
-  { path: "/dashboard/settings", roles: ["super_admin", "admin"] },
-  { path: "/dashboard/finance", roles: ["super_admin", "admin", "accountant"] },
-  { path: "/dashboard/marks", roles: ["super_admin", "admin", "exam_controller", "class_teacher"] },
-  { path: "/dashboard/exams", roles: ["super_admin", "admin", "exam_controller"] },
-  { path: "/dashboard/results", roles: ["super_admin", "admin", "exam_controller"] },
-  { path: "/dashboard/students", roles: ["super_admin", "admin", "class_teacher"] },
-  { path: "/dashboard/classes", roles: ["super_admin", "admin", "exam_controller"] },
-  { path: "/dashboard/subjects", roles: ["super_admin", "admin", "exam_controller"] },
-  { path: "/dashboard/administration/exam-schedule", roles: ["super_admin", "admin", "exam_controller"] },
-  { path: "/dashboard/administration/teachers-rooms", roles: ["super_admin", "admin"] },
-  { path: "/dashboard/administration/routine", roles: ["super_admin", "admin"] },
-  { path: "/dashboard/administration/notice", roles: ["super_admin", "admin"] },
-  { path: "/dashboard/administration/teacher-shift", roles: ["super_admin", "admin"] },
-  { path: "/dashboard/attendance", roles: ["super_admin", "admin", "class_teacher"] },
-  { path: "/dashboard/promotion", roles: ["super_admin", "admin"] },
-  { path: "/dashboard/archive", roles: ["super_admin", "admin"] },
-];
 
 function redirectWithCookies(
   request: NextRequest,
@@ -67,38 +43,29 @@ export async function proxy(request: NextRequest) {
     return redirectWithCookies(request, supabaseResponse, "/dashboard");
   }
 
-  // Root → redirect
+  // Root route "/" redirects to login (or dashboard if already authenticated)
   if (pathname === "/") {
     return redirectWithCookies(request, supabaseResponse, user ? "/dashboard" : "/login");
   }
 
-  // Role-based route guard for dashboard routes
+
+  // Role-based route guard for dashboard sub-routes
   if (user && pathname.startsWith("/dashboard") && pathname !== "/dashboard") {
-    // Reuse the supabase client from updateSession (no duplicate creation)
     const { data: profile } = await supabase
       .from("profiles")
       .select("role")
       .eq("id", user.id)
       .single();
 
-    const role = profile?.role || "admin";
+    const role = profile?.role as UserRole | undefined;
 
-    // super_admin and admin bypass all route checks
-    if (role !== "super_admin" && role !== "admin") {
-      // Find the most specific matching route
-      const sorted = [...ROUTE_ROLES].sort((a, b) => b.path.length - a.path.length);
-
-      for (const entry of sorted) {
-        if (pathname === entry.path || pathname.startsWith(entry.path + "/")) {
-          if (!entry.roles.includes(role)) {
-            // Redirect to dashboard with an access denied indicator
-            return redirectWithCookies(request, supabaseResponse, "/dashboard?access=denied");
-          }
-          break;
-        }
-      }
+    if (!role || !canAccessRoute(role, pathname)) {
+      return redirectWithCookies(request, supabaseResponse, "/dashboard?access=denied");
     }
   }
+
+  // Prevent caching of authenticated pages
+  supabaseResponse.headers.set("Cache-Control", "no-store, max-age=0");
 
   return supabaseResponse;
 }

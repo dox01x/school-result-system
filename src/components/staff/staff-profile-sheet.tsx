@@ -31,7 +31,7 @@ export function StaffProfileSheet({
     onRequestEdit,
     onRequestDelete,
 }: StaffProfileProps) {
-    const supabase = useMemo(() => createClient() as any, []);
+    const supabase = createClient();
     const [loading, setLoading] = useState(false);
     const [staff, setStaff] = useState<Staff | null>(null);
     const [salaryConfig, setSalaryConfig] = useState<any>(null);
@@ -80,7 +80,7 @@ export function StaffProfileSheet({
         return () => {
             cancelled = true;
         };
-    }, [open, staffId, supabase]);
+    }, [open, staffId]);
 
     const salaryNumbers = useMemo(() => {
         if (!salaryConfig) return { basic: 0, allowances: 0, deductions: 0, net: 0 };
@@ -129,7 +129,7 @@ export function StaffProfileSheet({
                         Staff profile, payroll information and actions.
                     </DialogDescription>
                 </DialogHeader>
-                <ScrollArea className="max-h-[80vh] h-[800px]">
+                <ScrollArea className="max-h-[75vh]">
                     {loading || !staff ? (
                         <div className="p-6 text-sm text-muted-foreground">Loading profile...</div>
                     ) : (
@@ -161,9 +161,9 @@ export function StaffProfileSheet({
 
                             <Tabs defaultValue="overview" className="space-y-4">
                                 <TabsList className="w-full justify-start overflow-x-auto bg-muted border-0 rounded-xl p-1">
-                                    <TabsTrigger value="overview" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-none">Overview</TabsTrigger>
-                                    <TabsTrigger value="payroll" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-none">Payroll</TabsTrigger>
-                                    <TabsTrigger value="actions" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-none">Actions</TabsTrigger>
+                                    <TabsTrigger value="overview" className="rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-none">Overview</TabsTrigger>
+                                    <TabsTrigger value="payroll" className="rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-none">Payroll</TabsTrigger>
+                                    <TabsTrigger value="actions" className="rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-none">Actions</TabsTrigger>
                                 </TabsList>
 
                                 <TabsContent value="overview" className="space-y-4">

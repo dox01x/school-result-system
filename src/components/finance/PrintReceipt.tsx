@@ -9,7 +9,7 @@ interface PrintReceiptProps {
 
 export default function PrintReceipt({ data }: PrintReceiptProps) {
   return (
-    <div className="hidden print:block print:w-[80mm] print:m-0 print:p-4 text-black bg-card font-sans text-sm">
+    <div className="hidden print:block print:w-[80mm] print:m-0 print:p-4 text-black bg-white font-sans text-sm">
       {/* 
         This is styled for a POS thermal printer or an A4 paper top corner. 
         Adjust w-[80mm] to w-full if you want full A4 size.
@@ -68,8 +68,8 @@ export default function PrintReceipt({ data }: PrintReceiptProps) {
                   <td className="py-1 capitalize">
                     {item.type === 'arrears' 
                       ? 'Previous Arrears'
-                      : (item as any).exam_name 
-                        ? `${item.type.replace('_', ' ')} (${(item as any).exam_name})`
+                      : item.exam_name 
+                        ? `${item.type.replace('_', ' ')} (${item.exam_name})`
                         : `${item.type} ${item.month ? `(${getMonthName(item.month)})` : ''}`
                     }
                   </td>
@@ -130,6 +130,10 @@ export default function PrintReceipt({ data }: PrintReceiptProps) {
 
       {/* CSS to ensure clean printing */}
       <style dangerouslySetInnerHTML={{__html: `
+        @page {
+          size: auto;
+          margin: 0mm;
+        }
         @media print {
           body * {
             visibility: hidden;
@@ -143,9 +147,11 @@ export default function PrintReceipt({ data }: PrintReceiptProps) {
             top: 0;
             margin: 0;
             padding: 10px;
+            width: 100%;
           }
         }
       `}} />
     </div>
   );
 }
+

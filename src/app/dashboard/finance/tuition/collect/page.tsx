@@ -34,7 +34,7 @@ function isPerExamFee(type: string) {
 }
 
 export default function CollectTuitionPage() {
-  const supabase = createClient() as any;
+  const supabase = createClient();
 
   // MagnifyingGlass
   const [searchId, setSearchId] = useState('');
@@ -710,7 +710,7 @@ export default function CollectTuitionPage() {
       </div>
 
       {/* ─── Search Bar ─── */}
-      <div className="bg-card rounded-2xl border border-border/50 p-5">
+      <div className="bg-card rounded-2xl border border-border p-5">
         <div className="flex flex-col lg:flex-row gap-4 items-end">
           <div className="flex-1 min-w-[140px]">
             <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-2 px-1">Class</p>
@@ -718,7 +718,7 @@ export default function CollectTuitionPage() {
               <SelectTrigger className="w-full h-11 rounded-xl border-0 bg-muted hover:bg-muted/80 transition-colors text-foreground font-semibold shadow-none focus:ring-1 focus:ring-ring/30">
                 <SelectValue placeholder="Select Class" />
               </SelectTrigger>
-              <SelectContent className="rounded-xl border-border/50 shadow-md">
+              <SelectContent className="rounded-xl border-border shadow-md">
                 {classes.map(c => <SelectItem key={c.id} value={c.id} className="rounded-lg">{c.name}</SelectItem>)}
               </SelectContent>
             </Select>
@@ -729,7 +729,7 @@ export default function CollectTuitionPage() {
               <SelectTrigger className="w-full h-11 rounded-xl border-0 bg-muted hover:bg-muted/80 transition-colors text-foreground font-semibold shadow-none focus:ring-1 focus:ring-ring/30">
                 <SelectValue placeholder="Select Section" />
               </SelectTrigger>
-              <SelectContent className="rounded-xl border-border/50 shadow-md">
+              <SelectContent className="rounded-xl border-border shadow-md">
                 <SelectItem value="all" className="rounded-lg">All Sections</SelectItem>
                 {sections.length === 0
                   ? <SelectItem value="none" className="rounded-lg">No Sections</SelectItem>
@@ -744,7 +744,7 @@ export default function CollectTuitionPage() {
               <SelectTrigger className="w-full h-11 rounded-xl border-0 bg-muted hover:bg-muted/80 transition-colors text-foreground font-semibold shadow-none focus:ring-1 focus:ring-ring/30">
                 <SelectValue placeholder="Select Student" />
               </SelectTrigger>
-              <SelectContent className="rounded-xl border-border/50 shadow-md">
+              <SelectContent className="rounded-xl border-border shadow-md">
                 {studentsList.map(st => (
                   <SelectItem key={st.id} value={st.id} className="rounded-lg">{st.name} (Roll: {st.roll})</SelectItem>
                 ))}
@@ -779,7 +779,7 @@ export default function CollectTuitionPage() {
           {student && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-4">
               {/* Student Card */}
-              <Card className="border border-border/50 shadow-none bg-card rounded-2xl relative overflow-hidden">
+              <Card className="border border-border shadow-none bg-card rounded-xl relative overflow-hidden">
                 <CardHeader>
                   <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center mb-3 shadow-none border-0">
                     <UserCircle className="w-7 h-7 text-muted-foreground" strokeWidth={1.5} />
@@ -805,7 +805,7 @@ export default function CollectTuitionPage() {
               </Card>
 
               {/* Payment Status */}
-              <Card className="border border-border/50 shadow-none bg-card rounded-2xl">
+              <Card className="border border-border shadow-none bg-card rounded-xl">
                 <CardContent className="pt-5 space-y-4">
                   <h4 className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest flex items-center gap-1.5">
                     <WarningCircle size={14} strokeWidth={1.5} className="text-orange-500" /> Payment Status ({paymentYear})
@@ -864,8 +864,8 @@ export default function CollectTuitionPage() {
 
         {/* Right: Billing */}
         <div className="lg:col-span-8">
-          <Card className={`border border-border/50 shadow-none bg-card rounded-2xl transition-all duration-300 ${!student ? 'opacity-40 grayscale pointer-events-none' : ''}`}>
-            <CardHeader className="border-b border-border/50 pb-4">
+          <Card className={`border border-border shadow-none bg-card rounded-xl transition-all duration-300 ${!student ? 'opacity-40 grayscale pointer-events-none' : ''}`}>
+            <CardHeader className="border-b border-border pb-4">
               <CardTitle className="flex items-center gap-2 text-lg font-bold text-foreground tracking-tight">
                 <Receipt size={20} strokeWidth={1.5} className="text-muted-foreground" /> Billing Details
               </CardTitle>
@@ -948,7 +948,7 @@ export default function CollectTuitionPage() {
                     return (
                       <div key={idx} className="space-y-1.5">
                         <label className={`flex items-center gap-3 p-3 rounded-xl border-0 transition-all shadow-none
-                          ${locked ? 'opacity-50 cursor-not-allowed bg-muted/80' : fee.selected ? 'bg-muted/50 border-primary border cursor-pointer shadow-sm' : 'bg-muted hover:bg-muted/80 cursor-pointer'}`}
+                          ${locked ? 'opacity-50 cursor-not-allowed bg-muted/80' : fee.selected ? 'bg-muted/50 border-primary border cursor-pointer shadow-xs' : 'bg-muted hover:bg-muted/80 cursor-pointer'}`}
                         >
                           <Checkbox disabled={locked} checked={fee.selected || locked} onCheckedChange={() => !locked && toggleFee(idx)} className="border-border data-[state=checked]:bg-primary data-[state=checked]:text-white" />
                           <div className="flex-1">
@@ -964,12 +964,12 @@ export default function CollectTuitionPage() {
                             value={fee.amount}
                             onChange={e => handleAmountChange(idx, e.target.value)}
                             disabled={!fee.selected || locked}
-                            className="w-24 h-8 bg-white border-0 text-right text-sm px-2 font-mono font-bold focus-visible:ring-1 focus-visible:ring-ring/30 disabled:opacity-100 shadow-sm"
+                            className="w-24 h-8 bg-background border-0 text-right text-sm px-2 font-mono font-bold focus-visible:ring-1 focus-visible:ring-ring/30 disabled:opacity-100 shadow-sm text-foreground"
                           />
                         </label>
                         {/* Exam selector for per-exam fees */}
                         {perExam && fee.selected && (
-                          <div className="ml-9 mr-1 mt-2 space-y-1.5 border-l-2 border-border/50 pl-3 py-1">
+                          <div className="ml-9 mr-1 mt-2 space-y-1.5 border-l-2 border-border pl-3 py-1">
                             {relevantExams.map(exam => {
                               const examKey = `${fee.type.toLowerCase().trim()}__${exam.name}`;
                               const isPaidExam = paidExamFees.includes(examKey);
@@ -1008,14 +1008,14 @@ export default function CollectTuitionPage() {
               <div className="space-y-5">
                 <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-1">Payment Summary</h3>
 
-                <div className="bg-muted/50/80 border border-border/50 p-5 rounded-2xl shadow-none space-y-4">
+                <div className="bg-muted/50/80 border border-border p-5 rounded-xl shadow-none space-y-4">
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-muted-foreground font-bold tracking-tight">Fee Total</span>
                     <span className="font-mono font-bold text-foreground">{formatTaka(totalDue)}</span>
                   </div>
 
                   {/* Arrears */}
-                  <div className="flex justify-between items-center text-sm border-t border-border/50 pt-4">
+                  <div className="flex justify-between items-center text-sm border-t border-border pt-4">
                     <span className="flex flex-col">
                       <span className="font-bold text-red-600 tracking-tight">Arrears / Due</span>
                       {totalArrears > 0 && (
@@ -1025,7 +1025,7 @@ export default function CollectTuitionPage() {
                     <Input
                       type="number"
                       dir="rtl"
-                      className="w-24 h-9 bg-white shadow-sm border-0 focus-visible:ring-1 focus-visible:ring-orange-200 text-orange-700 font-mono font-bold"
+                      className="w-24 h-9 bg-background shadow-sm border-0 focus-visible:ring-1 focus-visible:ring-orange-200 text-orange-700 dark:text-orange-400 font-mono font-bold"
                       value={arrearsToPayStr}
                       onChange={(e) => setArrearsToPayStr(e.target.value)}
                       placeholder="0"
@@ -1033,12 +1033,12 @@ export default function CollectTuitionPage() {
                   </div>
 
                   {/* Discount */}
-                  <div className="flex justify-between items-center text-sm border-t border-border/50 pt-4">
+                  <div className="flex justify-between items-center text-sm border-t border-border pt-4">
                     <span className="text-muted-foreground font-bold tracking-tight">Discount</span>
                     <Input
                       type="number"
                       dir="rtl"
-                      className="w-24 h-9 bg-white shadow-sm border-0 text-red-500 font-mono font-bold focus-visible:ring-1 focus-visible:ring-ring/20"
+                      className="w-24 h-9 bg-background shadow-sm border-0 text-red-500 font-mono font-bold focus-visible:ring-1 focus-visible:ring-ring/20"
                       value={discount}
                       onChange={(e) => setDiscount(e.target.value)}
                       placeholder="0"
@@ -1046,29 +1046,29 @@ export default function CollectTuitionPage() {
                   </div>
 
                   {/* Late Fine (Optional) */}
-                  <div className="flex justify-between items-center text-sm border-t border-border/50 pt-4">
+                  <div className="flex justify-between items-center text-sm border-t border-border pt-4">
                     <span className="text-muted-foreground font-bold tracking-tight">Late Fine <span className="text-[10px] uppercase font-bold text-muted-foreground/60 tracking-widest ml-1">(optional)</span></span>
                     <Input
                       type="number"
                       dir="rtl"
-                      className="w-24 h-9 bg-white shadow-sm border-0 text-foreground font-mono font-bold focus-visible:ring-1 focus-visible:ring-ring/20"
+                      className="w-24 h-9 bg-background shadow-sm border-0 text-foreground font-mono font-bold focus-visible:ring-1 focus-visible:ring-ring/20"
                       value={lateFineStr}
                       onChange={(e) => setLateFineStr(e.target.value)}
                       placeholder="0"
                     />
                   </div>
 
-                  <div className="flex justify-between items-center text-sm border-t border-border/50 pt-4">
+                  <div className="flex justify-between items-center text-sm border-t border-border pt-4">
                     <span className="font-bold text-foreground tracking-tight">Net Payable</span>
-                    <span className="font-mono font-extrabold text-lg text-foreground tracking-tighter">{formatTaka(netPayable)}</span>
+                    <span className="font-mono font-semibold text-lg text-foreground tracking-tighter">{formatTaka(netPayable)}</span>
                   </div>
 
-                  <div className="flex justify-between items-center text-sm border-t border-border/50 pt-4">
+                  <div className="flex justify-between items-center text-sm border-t border-border pt-4">
                     <span className="font-bold text-foreground tracking-tight">Amount Paid</span>
                     <Input
                       type="number"
                       dir="rtl"
-                      className="w-32 h-10 bg-white shadow-sm border border-border/50 focus-visible:ring-2 focus-visible:ring-ring/30 font-mono font-black text-lg text-foreground"
+                      className="w-32 h-10 bg-background shadow-sm border border-border focus-visible:ring-2 focus-visible:ring-ring/30 font-mono font-black text-lg text-foreground"
                       value={amountPaidStr}
                       onChange={(e) => setAmountPaidStr(e.target.value)}
                       placeholder={netPayable.toString()}
@@ -1088,7 +1088,7 @@ export default function CollectTuitionPage() {
                   <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Method & Notes</Label>
                   <Select value={paymentMethod} onValueChange={setPaymentMethod}>
                     <SelectTrigger className="bg-muted border-0 shadow-none h-11 font-semibold text-foreground rounded-xl focus:ring-1 focus:ring-ring/30"><SelectValue /></SelectTrigger>
-                    <SelectContent className="border-border/50 shadow-md rounded-xl">
+                    <SelectContent className="border-border shadow-md rounded-xl">
                       <SelectItem value="cash" className="rounded-lg">Cash Payment</SelectItem>
                       <SelectItem value="bank" className="rounded-lg">Bank Transfer</SelectItem>
                       <SelectItem value="mobile_banking" className="rounded-lg">bKash / Nagad / Upay</SelectItem>

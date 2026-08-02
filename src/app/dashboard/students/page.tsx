@@ -81,7 +81,7 @@ function StudentsPageContent() {
     const [bgSyncing, setBgSyncing] = useState(false);
     // Confirm dialog state
     const [confirmState, setConfirmState] = useState<{ open: boolean; title: string; description: string; onConfirm: () => void }>({ open: false, title: "", description: "", onConfirm: () => {} });
-    const supabase = useMemo(() => createClient() as any, []);
+    const supabase = useMemo(() => createClient(), []);
     const router = useRouter();
     const searchParams = useSearchParams();
     const studentIdParam = searchParams.get("studentId");
@@ -503,13 +503,13 @@ function StudentsPageContent() {
                         {lastSyncTime && !bgSyncing && <span className="text-xs text-muted-foreground font-medium hidden sm:inline">Synced: {lastSyncTime.toLocaleTimeString()}</span>}
                         {bgSyncing && <span className="text-xs text-foreground flex items-center font-medium"><RefreshCw className="h-3 w-3 mr-1 animate-spin" strokeWidth={1.2} /> Syncing...</span>}
                         {lastSyncTime && !bgSyncing && <span className="text-xs text-muted-foreground font-medium">Synced: {lastSyncTime.toLocaleTimeString()}</span>}
-                        <Button variant="outline" onClick={() => setImportDialogOpen(true)} disabled={!selectedSection} className="rounded-xl border-border/50 hover:bg-muted/50">
+                        <Button variant="outline" onClick={() => setImportDialogOpen(true)} disabled={!selectedSection} className="rounded-xl border-border hover:bg-muted/50">
                             <Upload className="h-4 w-4 mr-2" strokeWidth={1.2} />Import
                         </Button>
                         <Button
                             onClick={() => { setForm({ roll: "", name: "", group_name: "None", student_id: "", gender: "", father_name: "", mother_name: "", date_of_birth: "", phone: "", address: "", blood_group: "" }); setEditingStudent(null); setDialogOpen(true); }}
                             disabled={!selectedSection}
-                            className="bg-primary text-primary-foreground font-semibold rounded-xl hover:bg-primary/90 transition-all duration-200 btn-press"
+                            className="bg-primary text-primary-foreground font-semibold rounded-xl hover:bg-primary/90 transition-all duration-200 "
                         >
                             <Plus size={16} strokeWidth={1.2} className=" mr-2" />Add Student
                         </Button>
@@ -518,7 +518,7 @@ function StudentsPageContent() {
             />
 
             {/* Funnels Card */}
-            <div className="bg-card rounded-2xl border border-border/50 p-5">
+            <div className="bg-card rounded-2xl border border-border p-5">
                 <div className="flex items-center gap-4 flex-wrap">
                     <div className="flex-1 min-w-[140px]">
                         <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-2">Class</p>
@@ -526,7 +526,7 @@ function StudentsPageContent() {
                             <SelectTrigger className="w-full h-11 rounded-xl border-0 bg-muted hover:bg-muted/80 transition-colors text-foreground font-semibold shadow-none focus:ring-1 focus:ring-ring/30">
                                 <SelectValue placeholder="Select class" />
                             </SelectTrigger>
-                            <SelectContent className="rounded-xl border-border/50 shadow-md">
+                            <SelectContent className="rounded-xl border-border shadow-md">
                                 {classes.map((c) => (
                                     <SelectItem key={c.id} value={c.id} className="rounded-lg">{c.name}</SelectItem>
                                 ))}
@@ -539,7 +539,7 @@ function StudentsPageContent() {
                             <SelectTrigger className="w-full h-11 rounded-xl border-0 bg-muted hover:bg-muted/80 transition-colors text-foreground font-semibold shadow-none focus:ring-1 focus:ring-ring/30">
                                 <SelectValue placeholder="Select section" />
                             </SelectTrigger>
-                            <SelectContent className="rounded-xl border-border/50 shadow-md">
+                            <SelectContent className="rounded-xl border-border shadow-md">
                                 {sections.map((s) => (
                                     <SelectItem key={s.id} value={s.id} className="rounded-lg">{s.name}</SelectItem>
                                 ))}
@@ -555,8 +555,8 @@ function StudentsPageContent() {
                     <CardContent className="flex items-center justify-between py-3">
                         <div className="flex items-center gap-2">
                             <span className="relative flex h-3 w-3">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-foreground/40 opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-3 w-3 bg-muted/500"></span>
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success/40 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-3 w-3 bg-success"></span>
                             </span>
                             <p className="text-sm text-foreground font-medium">
                                 Auto-Sync ON â€” every {syncIntervalSec}s
@@ -813,7 +813,7 @@ function StudentsPageContent() {
 
                             <div className="flex items-center justify-between pt-2 border-t border-dashed mt-auto">
                                 <div className="text-xs text-muted-foreground flex gap-1 items-center">
-                                    <span className="h-1.5 w-1.5 rounded-full bg-muted/500"></span> need: roll, name
+                                    <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground"></span> need: roll, name
                                 </div>
                                 <div className="flex gap-2">
                                     <DialogClose asChild><Button variant="ghost" size="sm">Cancel</Button></DialogClose>
@@ -826,7 +826,7 @@ function StudentsPageContent() {
             </Dialog>
 
             {!loading && students.length === 0 && selectedSection && (
-                <div className="bg-transparent rounded-2xl border-2 border-dashed border-border/50 p-12 text-center shadow-none">
+                <div className="bg-transparent rounded-2xl border-2 border-dashed border-border p-12 text-center shadow-none">
                     <div className="h-12 w-12 rounded-xl flex items-center justify-center mb-4 mx-auto text-muted-foreground/40">
                         <GraduationCap size={32} strokeWidth={1.2} />
                     </div>

@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function GET() {
     try {
-        const supabase = (await createServerSupabaseClient()) as any;
+        const supabase = await createServerSupabaseClient();
         const { data, error } = await supabase
             .from("routine_settings")
             .select(ROUTINE_SETTINGS_COLUMNS)
@@ -43,7 +43,17 @@ export async function PUT(request: NextRequest) {
         const body = await request.json();
         const { working_days, periods_per_day, period_duration_minutes, period_durations, break_after_period, break_duration_minutes, class_start_time } = body;
 
-        const supabase = (await createServerSupabaseClient()) as any;
+        if (periods_per_day !== undefined && (typeof periods_per_day !== "number" || periods_per_day <= 0)) {
+            return NextResponse.json({ success: false, error: "periods_per_day must be a positive number" }, { status: 400 });
+        }
+        if (period_duration_minutes !== undefined && (typeof period_duration_minutes !== "number" || period_duration_minutes <= 0)) {
+            return NextResponse.json({ success: false, error: "period_duration_minutes must be a positive number" }, { status: 400 });
+        }
+        if (break_duration_minutes !== undefined && (typeof break_duration_minutes !== "number" || break_duration_minutes < 0)) {
+            return NextResponse.json({ success: false, error: "break_duration_minutes must be a non-negative number" }, { status: 400 });
+        }
+
+        const supabase = await createServerSupabaseClient();
 
         // Check if a settings row exists
         const { data: existing } = await supabase

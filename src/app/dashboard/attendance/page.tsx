@@ -14,7 +14,7 @@ import { AttendanceImportTab } from "./_components/attendance-import-tab";
 import { AttendanceManualTab } from "./_components/attendance-manual-tab";
 
 export default function AttendancePage() {
-    const supabase = useMemo(() => createClient() as any, []);
+    const supabase = useMemo(() => createClient(), []);
     const now = new Date();
 
     // Shared filter state
@@ -149,7 +149,7 @@ export default function AttendancePage() {
             ) : (
                 <>
                     {/* Shared Filters */}
-                    <div className="bg-card rounded-2xl border border-border/50 shadow-none p-5">
+                    <div className="bg-card rounded-2xl border border-border shadow-none p-5">
                         <AttendanceFilters
                             classes={classes}
                             sections={sections}
@@ -164,7 +164,7 @@ export default function AttendancePage() {
 
                     {/* Tabs */}
                     <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-                        <TabsList className="bg-muted rounded-2xl p-1 h-auto flex-wrap border-0 shadow-none">
+                        <TabsList className="bg-muted rounded-xl p-1 h-auto flex-wrap border-0 shadow-none">
                             <TabsTrigger
                                 value="report"
                                 className="rounded-xl text-xs font-bold px-4 py-2.5 data-[state=active]:bg-card data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground transition-all"

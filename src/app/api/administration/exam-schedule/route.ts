@@ -1,15 +1,27 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { EXAM_SCHEDULE_COLUMNS } from "@/lib/supabase/select-columns";
+import { timeToMinutes } from "@/lib/conflict-detector";
 import { NextRequest, NextResponse } from "next/server";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
     try {
+        const { searchParams } = new URL(request.url);
+        const examId = searchParams.get("exam_id");
+        const classId = searchParams.get("class_id");
+        const subjectId = searchParams.get("subject_id");
+
         const supabase = await createServerSupabaseClient();
-        const { data, error } = await supabase
+        let query = supabase
             .from("exam_schedules")
             .select(EXAM_SCHEDULE_COLUMNS)
             .order("exam_date")
             .order("start_time");
+
+        if (examId) query = query.eq("exam_id", examId);
+        if (classId) query = query.eq("class_id", classId);
+        if (subjectId) query = query.eq("subject_id", subjectId);
+
+        const { data, error } = await query;
 
         if (error) {
             return NextResponse.json({ success: false, error: error.message }, { status: 500 });
@@ -33,6 +45,10 @@ export async function POST(request: NextRequest) {
             }, { status: 400 });
         }
 
+        if (timeToMinutes(end_time) <= timeToMinutes(start_time)) {
+            return NextResponse.json({ success: false, error: "end_time must be after start_time" }, { status: 400 });
+        }
+
         const supabase = await createServerSupabaseClient();
 
         if (body.id) {
@@ -44,7 +60,7 @@ export async function POST(request: NextRequest) {
                     invigilator_id: invigilator_id || null,
                 })
                 .eq("id", body.id)
-                .select()
+                .select(EXAM_SCHEDULE_COLUMNS)
                 .single();
 
             if (error) {
@@ -59,7 +75,7 @@ export async function POST(request: NextRequest) {
                     room_id: room_id || null,
                     invigilator_id: invigilator_id || null,
                 })
-                .select()
+                .select(EXAM_SCHEDULE_COLUMNS)
                 .single();
 
             if (error) {

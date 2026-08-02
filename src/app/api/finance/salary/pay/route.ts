@@ -18,10 +18,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: "Missing required fields" }, { status: 400 });
     }
 
-    const supabase = (await createServerSupabaseClient()) as any;
+    const supabase = await createServerSupabaseClient();
     
     // 1. Fetch Staff Config
-    // @ts-ignore
     const { data: config, error: configError } = await supabase
       .from('staff_salary_config')
       .select(STAFF_SALARY_CONFIG_COLUMNS)
@@ -34,7 +33,6 @@ export async function POST(request: Request) {
     }
 
     // 2. Check if already paid
-    // @ts-ignore
     const { data: existing } = await supabase
       .from('salary_payments')
       .select('id')
@@ -46,26 +44,23 @@ export async function POST(request: Request) {
     }
 
     // 3. Calculate gross and net
-    const sumValues = (obj: Record<string, any>) => Object.values(obj).reduce((sum: number, val: any) => sum + Number(val), 0);
-    const totalAllowances = sumValues(config.allowances || {});
-    const totalDeductions = sumValues(config.deductions || {});
+    const sumValues = (obj: Record<string, unknown>) => Object.values(obj || {}).reduce((sum: number, val: unknown) => sum + Number(val || 0), 0);
+    const totalAllowances = sumValues(config.allowances as Record<string, unknown>);
+    const totalDeductions = sumValues(config.deductions as Record<string, unknown>);
     
     const gross_salary = config.basic_salary + totalAllowances;
     const net_salary = gross_salary - totalDeductions;
 
     // Fetch staff info for typing and expense description
-    // @ts-ignore
     const { data: staff } = await supabase.from('teachers').select('name, designation, employee_type, phone').eq('id', staff_id).single();
     if (!staff) {
         return NextResponse.json({ success: false, error: "Staff not found" }, { status: 404 });
     }
 
     // 4. Generate Slip Number
-    // @ts-ignore
     const slip_number = await generateSlipNumber(supabase, year);
 
     // 5. Insert into salary_payments
-    // @ts-ignore
     const { data: salaryResult, error: insertError } = await supabase
       .from('salary_payments')
       .insert({
@@ -89,7 +84,6 @@ export async function POST(request: Request) {
     if (insertError) throw insertError;
 
     // 6. Automatically add to expense_entries
-    // @ts-ignore
     await supabase.from('expense_entries').insert({
       category: 'salary',
       amount: net_salary,
@@ -102,7 +96,6 @@ export async function POST(request: Request) {
     });
 
     // 7. Fetch School Info
-    // @ts-ignore
     const { data: school } = await supabase.from('school_info').select(SCHOOL_INFO_COLUMNS).single();
 
     // ═══════════════════ SMS CONFIRMATION (fire-and-forget) ═══════════════════
@@ -116,7 +109,7 @@ export async function POST(request: Request) {
           year,
           slipNumber: slip_number,
           schoolName: school?.name
-        }).catch(() => {}); // silently ignore SMS errors
+        }).catch(() => {});
       }
     } catch {
       // SMS errors must never affect salary flow
@@ -125,7 +118,8 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ success: true, data: { ...salaryResult, staff, school } } as unknown as ApiResponse<SalaryPayment>);
 
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Internal server error";
+    return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }

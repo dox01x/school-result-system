@@ -46,7 +46,7 @@ export default function AdministrationPage() {
                     const Icon = mod.icon;
                     return (
                         <Link key={mod.href} href={mod.href} className="group">
-                            <Card className="h-full transition-all duration-200 hover:border-border border border-border/50 shadow-none rounded-2xl bg-card">
+                            <Card className="h-full transition-all duration-200 hover:border-border border border-border shadow-none rounded-xl bg-card">
                                 <CardContent className="p-5 flex flex-col gap-3">
                                     <div className="flex items-center gap-3">
                                         <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center shrink-0">

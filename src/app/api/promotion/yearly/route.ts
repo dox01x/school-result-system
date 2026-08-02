@@ -1,17 +1,12 @@
 import { NextResponse } from "next/server";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { requireRole } from "@/lib/api-auth";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
-    const supabase = (await createServerSupabaseClient()) as any;
-
-    const {
-        data: { user },
-    } = await supabase.auth.getUser();
-    if (!user && process.env.AUTH_DISABLED !== "true") {
-        return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
-    }
+    const auth = await requireRole(["super_admin", "admin"]);
+    if (auth instanceof NextResponse) return auth;
+    const { supabase } = auth;
 
     try {
         const body = await request.json().catch(() => ({}));
@@ -22,7 +17,6 @@ export async function POST(request: Request) {
         });
 
         if (error) {
-            // Check for known error messages
             const msg = error.message || "";
             if (msg.includes("already completed")) {
                 return NextResponse.json(
@@ -36,17 +30,17 @@ export async function POST(request: Request) {
             );
         }
 
-        const result = data as Record<string, unknown>;
+        const result = (data || {}) as Record<string, unknown>;
 
         return NextResponse.json({
             success: true,
             data: {
-                promoted: result.promoted,
-                archived: result.archived,
-                new_examinee: result.new_examinee,
-                academic_year_from: result.academic_year_from,
-                academic_year_to: result.academic_year_to,
-                promotion_log_id: result.promotion_log_id,
+                promoted: result.promoted ?? 0,
+                archived: result.archived ?? 0,
+                new_examinee: result.new_examinee ?? 0,
+                academic_year_from: result.academic_year_from ?? null,
+                academic_year_to: result.academic_year_to ?? null,
+                promotion_log_id: result.promotion_log_id ?? null,
             },
         });
     } catch (err: unknown) {

@@ -34,7 +34,7 @@ type PromotionResult = {
 const STEPS = ["Configure", "Preview", "Confirm", "Report"];
 
 export default function PromotionPage() {
-    const supabase = useMemo(() => createClient() as any, []);
+    const supabase = useMemo(() => createClient(), []);
     const [step, setStep] = useState(0);
     const [schoolInfo, setSchoolInfo] = useState<{
         current_academic_year: string; last_promotion_year: string;
@@ -52,6 +52,64 @@ export default function PromotionPage() {
         promoted_count: number; archived_count: number; examinee_count: number;
         performed_at: string; is_undone: boolean;
     }>>([]);
+    const [promotionCheckEnabled, setPromotionCheckEnabled] = useState(true);
+    const [checkingEligibility, setCheckingEligibility] = useState(false);
+    const [failingStudents, setFailingStudents] = useState<any[]>([]);
+
+    const runEligibilityCheck = useCallback(async (year: string) => {
+        if (!year) return;
+        setCheckingEligibility(true);
+        try {
+            // Find marks in current academic year
+            const { data: marks } = await supabase
+                .from("marks")
+                .select("student_id, total, subjects(pass_marks)")
+                .eq("academic_year", year);
+
+            if (marks) {
+                // Filter marks where total < pass_marks
+                const failedMarks = marks.filter((m: any) => {
+                    const passMarks = m.subjects?.pass_marks ?? 33;
+                    return m.total !== null && Number(m.total) < passMarks;
+                });
+
+                if (failedMarks.length > 0) {
+                    // Group failing marks by student_id
+                    const failedMap: Record<string, number> = {};
+                    failedMarks.forEach((m: any) => {
+                        failedMap[m.student_id] = (failedMap[m.student_id] || 0) + 1;
+                    });
+
+                    const studentIds = Object.keys(failedMap);
+
+                    // Fetch student profiles and class details
+                    const { data: studentsData } = await supabase
+                        .from("students")
+                        .select("id, name, roll, classes ( name )")
+                        .in("id", studentIds);
+
+                    if (studentsData) {
+                        const mapped = studentsData.map((s: any) => ({
+                            id: s.id,
+                            name: s.name,
+                            roll: s.roll,
+                            className: s.classes?.name || "N/A",
+                            failedCount: failedMap[s.id] || 0
+                        }));
+                        setFailingStudents(mapped);
+                    }
+                } else {
+                    setFailingStudents([]);
+                }
+            } else {
+                setFailingStudents([]);
+            }
+        } catch (err) {
+            console.error("Failed to run promotion eligibility check:", err);
+        } finally {
+            setCheckingEligibility(false);
+        }
+    }, [supabase]);
 
     useEffect(() => {
         (async () => {
@@ -60,11 +118,19 @@ export default function PromotionPage() {
                 const yr = data.current_academic_year || String(new Date().getFullYear());
                 setSchoolInfo({ current_academic_year: yr, last_promotion_year: data.last_promotion_year || "" });
                 setTargetYear(String(Number(yr) + 1));
+                
+                // Read and run pre-flight check if enabled
+                const pCheck = localStorage.getItem("promotion_check_enabled");
+                const isEnabled = pCheck === null ? true : JSON.parse(pCheck);
+                setPromotionCheckEnabled(isEnabled);
+                if (isEnabled) {
+                    void runEligibilityCheck(yr);
+                }
             }
             const { data: logs } = await supabase.from("promotion_logs").select(PROMOTION_LOG_COLUMNS).order("performed_at", { ascending: false }).limit(5);
             if (logs) setRecentLogs(logs as typeof recentLogs);
         })();
-    }, []);
+    }, [runEligibilityCheck, supabase]);
 
     const currentYear = new Date().getFullYear();
 
@@ -144,7 +210,7 @@ export default function PromotionPage() {
             {step === 0 && (
                 <div className="space-y-4">
                     {currentYear.toString() !== schoolInfo.current_academic_year && schoolInfo.current_academic_year && (
-                        <Card className="border border-red-200 bg-red-50/50 shadow-none rounded-2xl">
+                        <Card className="border border-red-200 bg-red-50/50 shadow-none rounded-xl">
                             <CardContent className="py-4 flex items-start gap-3">
                                 <Warning size={20} strokeWidth={2} className="text-red-500 mt-0.5 shrink-0" />
                                 <div>
@@ -156,13 +222,41 @@ export default function PromotionPage() {
                     )}
 
                     {currentYear.toString() === schoolInfo.current_academic_year && schoolInfo.current_academic_year && (
-                        <div className="flex items-center gap-2 bg-muted/50 px-3 py-2 rounded-xl border border-border/50 inline-flex">
+                        <div className="flex items-center gap-2 bg-muted/50 px-3 py-2 rounded-xl border border-border inline-flex">
                             <CheckCircle size={16} strokeWidth={2} className="text-muted-foreground" />
                             <p className="text-xs font-bold text-muted-foreground tracking-tight">Calendar year and active academic year are in sync ({currentYear}). Everything is up to date.</p>
                         </div>
                     )}
 
-                    <Card className="border border-border/50 shadow-none bg-card rounded-2xl">
+                    {promotionCheckEnabled && failingStudents.length > 0 && (
+                        <Card className="border border-amber-200 bg-amber-50/50 shadow-none rounded-xl">
+                            <CardContent className="py-5">
+                                <div className="flex items-start gap-3">
+                                    <Warning size={20} strokeWidth={2.2} className="text-amber-500 mt-0.5 shrink-0" />
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-bold text-amber-900 tracking-tight">Failing Students Detected</p>
+                                        <p className="text-xs text-amber-700/80 mt-1 font-medium">
+                                            {failingStudents.length} student(s) have scored below 33% in one or more subjects this academic year. 
+                                            It is recommended to resolve their marks or verify their status before running bulk promotion.
+                                        </p>
+                                        <div className="mt-3 overflow-x-auto max-h-40 divide-y divide-amber-100 border border-amber-200/50 rounded-xl bg-white/70">
+                                            {failingStudents.map((s) => (
+                                                <div key={s.id} className="flex items-center justify-between px-3 py-2 text-xs">
+                                                    <span className="font-bold text-slate-800">{s.name} (Roll: {s.roll || "N/A"})</span>
+                                                    <div className="flex items-center gap-2">
+                                                        <Badge variant="outline" className="bg-amber-100/50 text-amber-800 border-amber-200/50 text-[10px] uppercase font-bold tracking-widest px-1.5 py-0.5 rounded-md shadow-none">{s.className}</Badge>
+                                                        <span className="text-[10px] font-bold text-red-600">{s.failedCount} Subject(s) failed</span>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
+
+                    <Card className="border border-border shadow-none bg-card rounded-xl">
                         <CardHeader><CardTitle className="text-base flex items-center gap-2 font-bold tracking-tight text-foreground"><Info size={18} strokeWidth={2} className="text-muted-foreground" />Current Status</CardTitle></CardHeader>
                         <CardContent>
                             <div className="grid gap-3 md:grid-cols-3">
@@ -186,7 +280,7 @@ export default function PromotionPage() {
                     </Card>
 
                     {recentLogs.length > 0 && (
-                        <Card className="border border-border/50 shadow-none bg-card rounded-2xl">
+                        <Card className="border border-border shadow-none bg-card rounded-xl">
                             <CardHeader><CardTitle className="text-base flex items-center gap-2 font-bold tracking-tight text-foreground"><Clock size={18} strokeWidth={2} className="text-muted-foreground" />Recent Promotions</CardTitle></CardHeader>
                             <CardContent>
                                 <div className="space-y-2">
@@ -230,7 +324,7 @@ export default function PromotionPage() {
                             { label: "New Examinee", value: preview.total_new_examinee, icon: GraduationCap, color: "text-muted-foreground", bg: "bg-muted" },
                             { label: "To Archive", value: preview.total_archive, icon: Archive, color: "text-muted-foreground", bg: "bg-muted/50" },
                         ].map((s) => (
-                            <Card key={s.label} className="border border-border/50 shadow-none bg-card rounded-2xl">
+                            <Card key={s.label} className="border border-border shadow-none bg-card rounded-xl">
                                 <CardContent className="py-4 flex items-center gap-3">
                                     <div className={`h-10 w-10 rounded-xl ${s.bg} flex items-center justify-center`}>
                                         <s.icon size={20} strokeWidth={2} className={`${s.color}`} />
@@ -244,7 +338,7 @@ export default function PromotionPage() {
                         ))}
                     </div>
 
-                    <Card className="border border-border/50 shadow-none bg-card rounded-2xl">
+                    <Card className="border border-border shadow-none bg-card rounded-xl">
                         <CardHeader><CardTitle className="text-base font-bold tracking-tight text-foreground">Class Transitions</CardTitle></CardHeader>
                         <CardContent>
                             <div className="space-y-2">
@@ -274,7 +368,7 @@ export default function PromotionPage() {
                     </Card>
 
                     {preview.examinee_to_archive.length > 0 && (
-                        <Card className="border border-border/50 shadow-none bg-card rounded-2xl">
+                        <Card className="border border-border shadow-none bg-card rounded-xl">
                             <CardHeader><CardTitle className="text-base flex items-center gap-2 font-bold tracking-tight text-foreground"><Archive size={18} strokeWidth={2} className="text-muted-foreground" />Examinee Students to Archive ({preview.examinee_to_archive.length})</CardTitle></CardHeader>
                             <CardContent>
                                 <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
@@ -285,7 +379,7 @@ export default function PromotionPage() {
                                         </div>
                                     ))}
                                     {preview.examinee_to_archive.length > 12 && (
-                                        <div className="rounded-xl border-2 border-dashed border-border/50 p-3 text-sm font-bold text-muted-foreground/60 text-center flex items-center justify-center">
+                                        <div className="rounded-xl border-2 border-dashed border-border p-3 text-sm font-bold text-muted-foreground/60 text-center flex items-center justify-center">
                                             +{preview.examinee_to_archive.length - 12} more...
                                         </div>
                                     )}
@@ -295,7 +389,7 @@ export default function PromotionPage() {
                     )}
 
                     <div className="flex gap-3">
-                        <Button variant="outline" onClick={() => setStep(0)} className="h-11 rounded-xl font-bold border-border/50 shadow-none hover:bg-muted/50 text-foreground px-6">← Back</Button>
+                        <Button variant="outline" onClick={() => setStep(0)} className="h-11 rounded-xl font-bold border-border shadow-none hover:bg-muted/50 text-foreground px-6">← Back</Button>
                         <Button onClick={() => setStep(2)} disabled={preview.transitions.length === 0} className="bg-primary text-primary-foreground font-bold rounded-xl shadow-none hover:bg-primary/90 h-11 px-6">
                             Continue to Confirm <ArrowRight size={16} strokeWidth={2} className="ml-2" />
                         </Button>
@@ -306,10 +400,10 @@ export default function PromotionPage() {
             {/* ─── STEP 2: Confirm ─── */}
             {step === 2 && preview && (
                 <div className="space-y-4">
-                    <Card className="border border-red-200 bg-red-50/50 shadow-none rounded-2xl">
+                    <Card className="border border-red-200 bg-red-50/50 shadow-none rounded-xl">
                         <CardHeader><CardTitle className="text-base flex items-center gap-2 text-red-700 font-bold tracking-tight"><Shield size={18} strokeWidth={2} className="text-red-500" />Final Confirmation Required</CardTitle></CardHeader>
                         <CardContent className="space-y-4">
-                            <div className="rounded-xl bg-white border border-red-100 p-4 space-y-2 text-sm font-medium text-red-900 shadow-sm">
+                            <div className="rounded-xl bg-white border border-red-100 p-4 space-y-2 text-sm font-medium text-red-900 shadow-xs">
                                 <p><strong className="font-bold text-red-950">Active Academic Year:</strong> {preview.current_academic_year} → {preview.next_academic_year}</p>
                                 <p><strong className="font-bold text-red-950">Students to promote:</strong> {preview.total_promote + preview.total_new_examinee}</p>
                                 <p><strong className="font-bold text-red-950">New Examinee:</strong> {preview.total_new_examinee}</p>
@@ -333,7 +427,7 @@ export default function PromotionPage() {
             {/* ─── STEP 3: Report ─── */}
             {step === 3 && result && (
                 <div className="space-y-4">
-                    <Card className="border border-emerald-200 bg-emerald-50/50 shadow-none rounded-2xl">
+                    <Card className="border border-emerald-200 bg-emerald-50/50 shadow-none rounded-xl">
                         <CardContent className="py-8 text-center space-y-4">
                             <div className="h-20 w-20 rounded-full bg-emerald-100/80 flex items-center justify-center mx-auto mb-2">
                                 <CheckCircle size={40} strokeWidth={2} className="text-emerald-600" />
@@ -344,13 +438,13 @@ export default function PromotionPage() {
                     </Card>
 
                     <div className="grid gap-3 md:grid-cols-3">
-                        <Card className="border border-border/50 shadow-none bg-card rounded-2xl"><CardContent className="py-6 text-center"><p className="text-4xl font-black text-foreground">{result.promoted}</p><p className="text-[11px] font-bold tracking-widest uppercase text-muted-foreground mt-2">Students Promoted</p></CardContent></Card>
-                        <Card className="border border-border/50 shadow-none bg-card rounded-2xl"><CardContent className="py-6 text-center"><p className="text-4xl font-black text-foreground">{result.new_examinee}</p><p className="text-[11px] font-bold tracking-widest uppercase text-muted-foreground mt-2">New Examinee</p></CardContent></Card>
-                        <Card className="border border-border/50 shadow-none bg-card rounded-2xl"><CardContent className="py-6 text-center"><p className="text-4xl font-black text-muted-foreground/60">{result.archived}</p><p className="text-[11px] font-bold tracking-widest uppercase text-muted-foreground/60 mt-2">Archived</p></CardContent></Card>
+                        <Card className="border border-border shadow-none bg-card rounded-xl"><CardContent className="py-6 text-center"><p className="text-4xl font-black text-foreground">{result.promoted}</p><p className="text-[11px] font-bold tracking-widest uppercase text-muted-foreground mt-2">Students Promoted</p></CardContent></Card>
+                        <Card className="border border-border shadow-none bg-card rounded-xl"><CardContent className="py-6 text-center"><p className="text-4xl font-black text-foreground">{result.new_examinee}</p><p className="text-[11px] font-bold tracking-widest uppercase text-muted-foreground mt-2">New Examinee</p></CardContent></Card>
+                        <Card className="border border-border shadow-none bg-card rounded-xl"><CardContent className="py-6 text-center"><p className="text-4xl font-black text-muted-foreground/60">{result.archived}</p><p className="text-[11px] font-bold tracking-widest uppercase text-muted-foreground/60 mt-2">Archived</p></CardContent></Card>
                     </div>
 
                     <div className="flex gap-3">
-                        <Button variant="outline" onClick={downloadCSV} className="h-11 rounded-xl font-bold border border-border/50 shadow-none hover:bg-muted/50 text-foreground px-6"><DownloadSimple size={18} strokeWidth={2} className="mr-2" />Download CSV</Button>
+                        <Button variant="outline" onClick={downloadCSV} className="h-11 rounded-xl font-bold border border-border shadow-none hover:bg-muted/50 text-foreground px-6"><DownloadSimple size={18} strokeWidth={2} className="mr-2" />Download CSV</Button>
                         {!undone && (
                             <Button variant="outline" onClick={() => handleUndo(result.promotion_log_id)} disabled={undoing} className="h-11 rounded-xl font-bold border border-red-200 bg-red-50/50 text-red-700 hover:bg-red-100 shadow-none px-6">
                                 <ArrowCounterClockwise size={18} strokeWidth={2} className="mr-2" />{undoing ? "Undoing..." : "Undo Promotion (24h)"}

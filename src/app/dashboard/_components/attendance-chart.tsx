@@ -15,7 +15,7 @@ const AttendanceChartInner = dynamic(
     {
         ssr: false,
         loading: () => (
-            <div className="bg-card rounded-2xl p-5 border border-border">
+            <div className="bg-card rounded-xl p-5 border border-border">
                 <div className="flex items-center justify-between mb-4">
                     <div className="h-4 w-32 rounded-md bg-muted animate-pulse" />
                     <div className="h-3 w-12 rounded-md bg-muted animate-pulse" />

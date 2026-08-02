@@ -204,6 +204,12 @@ export function ExamDutiesTab({ exams }: { exams: { id: string; name: string }[]
         fetchExamScheduleDetails();
     }, [selectedExam, selectedDate, selectedShift, supabase]);
 
+    // Reset date & shift when exam changes
+    useEffect(() => {
+        setSelectedDate("");
+        setSelectedShift("");
+    }, [selectedExam]);
+
     // Reset shift when date changes
     useEffect(() => {
         setSelectedShift("");
@@ -563,12 +569,12 @@ export function ExamDutiesTab({ exams }: { exams: { id: string; name: string }[]
 
     return (
         <div className="space-y-6">
-                <div className="flex flex-col sm:flex-row sm:items-center gap-3 bg-card p-4 rounded-2xl border border-border/50">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3 bg-card p-4 rounded-2xl border border-border">
                     <Select value={selectedExam} onValueChange={setSelectedExam}>
                         <SelectTrigger className="w-full sm:w-[200px] h-11 rounded-xl border-0 bg-muted hover:bg-muted/80 transition-colors text-foreground font-semibold shadow-none focus:ring-1 focus:ring-ring/30">
                             <SelectValue placeholder="Select Exam" />
                         </SelectTrigger>
-                        <SelectContent className="rounded-xl border-border/50 shadow-md">
+                        <SelectContent className="rounded-xl border-border shadow-md">
                             {exams.map(e => <SelectItem key={e.id} value={e.id} className="rounded-lg">{e.name}</SelectItem>)}
                         </SelectContent>
                     </Select>
@@ -577,7 +583,7 @@ export function ExamDutiesTab({ exams }: { exams: { id: string; name: string }[]
                         <SelectTrigger className="w-full sm:w-[180px] h-11 rounded-xl border-0 bg-muted hover:bg-muted/80 transition-colors text-foreground font-semibold shadow-none focus:ring-1 focus:ring-ring/30">
                             <SelectValue placeholder="Select Date" />
                         </SelectTrigger>
-                        <SelectContent className="rounded-xl border-border/50 shadow-md">
+                        <SelectContent className="rounded-xl border-border shadow-md">
                             {availableDates.map(d => (
                                 <SelectItem key={d} value={d} className="rounded-lg">{formatDate(d)}</SelectItem>
                             ))}
@@ -588,7 +594,7 @@ export function ExamDutiesTab({ exams }: { exams: { id: string; name: string }[]
                         <SelectTrigger className="w-full sm:w-[220px] h-11 rounded-xl border-0 bg-muted hover:bg-muted/80 transition-colors text-foreground font-semibold shadow-none focus:ring-1 focus:ring-ring/30">
                             <SelectValue placeholder="Select Shift" />
                         </SelectTrigger>
-                        <SelectContent className="rounded-xl border-border/50 shadow-md">
+                        <SelectContent className="rounded-xl border-border shadow-md">
                             {availableShifts.map(s => {
                                 const [start, end] = s.split("||");
                                 return <SelectItem key={s} value={s} className="rounded-lg">{formatTime(start)} — {formatTime(end)}</SelectItem>;
@@ -601,7 +607,7 @@ export function ExamDutiesTab({ exams }: { exams: { id: string; name: string }[]
                             <Button
                                 variant="outline"
                                 onClick={handlePrint}
-                                className="w-full sm:w-auto h-11 rounded-xl font-semibold shadow-none border-border/50 transition-all duration-200 gap-2"
+                                className="w-full sm:w-auto h-11 rounded-xl font-semibold shadow-none border-border transition-all duration-200 gap-2"
                             >
                                 <Printer className="h-4 w-4" /> Print Duty List
                             </Button>
@@ -630,7 +636,7 @@ export function ExamDutiesTab({ exams }: { exams: { id: string; name: string }[]
                     <>
                         {/* Subject summary for this shift */}
                         {shiftSubjectsSummary.length > 0 && (
-                            <Card className="shadow-none border-border/50 rounded-2xl bg-blue-50/50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800">
+                            <Card className="shadow-none border-border rounded-xl bg-blue-50/50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800">
                                 <CardContent className="py-3 px-4">
                                     <p className="text-xs font-semibold text-blue-700 dark:text-blue-300 mb-2">Subjects in this shift:</p>
                                     <div className="flex flex-wrap gap-2">
@@ -666,13 +672,13 @@ export function ExamDutiesTab({ exams }: { exams: { id: string; name: string }[]
                                             .filter(t => !roomDutiesList.some(d => d.teacher_id === t.id));
                                             
                                         return (
-                                            <Card key={detail.room.id} className="shadow-none border-border/50 rounded-2xl">
-                                                <CardHeader className="py-3 bg-muted/30 border-b border-border/50 rounded-t-2xl">
+                                            <Card key={detail.room.id} className="shadow-none border-border rounded-xl">
+                                                <CardHeader className="py-3 bg-muted/30 border-b border-border rounded-t-2xl">
                                                     <CardTitle className="text-sm">{detail.room.name}</CardTitle>
                                                     {detail.seatedClasses.length > 0 && (
                                                         <div className="flex flex-wrap gap-1 mt-1.5">
                                                             {detail.seatedClasses.map((sc, idx) => (
-                                                                <Badge key={idx} variant="outline" className="text-[10px] rounded-md border-border/50 font-normal px-1.5 py-0">
+                                                                <Badge key={idx} variant="outline" className="text-[10px] rounded-md border-border font-normal px-1.5 py-0">
                                                                     {sc.class_name}{sc.section_name ? ` (${sc.section_name})` : ""} — {sc.allocated_students} students
                                                                 </Badge>
                                                             ))}
@@ -721,7 +727,9 @@ export function ExamDutiesTab({ exams }: { exams: { id: string; name: string }[]
                                                         </SelectTrigger>
                                                         <SelectContent className="rounded-xl">
                                                             {availableForRoom.length === 0 ? (
-                                                                <div className="px-2 py-1.5 text-xs text-muted-foreground text-center">No available teachers</div>
+                                                                <SelectItem value="_none" disabled className="text-xs text-muted-foreground">
+                                                                    No available teachers
+                                                                </SelectItem>
                                                             ) : (
                                                                 availableForRoom.map(t => (
                                                                     <SelectItem key={t.id} value={t.id} className="text-xs">{t.name}</SelectItem>
@@ -737,8 +745,8 @@ export function ExamDutiesTab({ exams }: { exams: { id: string; name: string }[]
                             </div>
 
                             <div>
-                                <Card className="shadow-none border-border/50 sticky top-4 rounded-2xl">
-                                    <CardHeader className="py-3 bg-muted/30 border-b border-border/50 rounded-t-2xl">
+                                <Card className="shadow-none border-border sticky top-4 rounded-xl">
+                                    <CardHeader className="py-3 bg-muted/30 border-b border-border rounded-t-2xl">
                                         <CardTitle className="text-sm">Total Duty Counts</CardTitle>
                                     </CardHeader>
                                     <CardContent className="p-0">

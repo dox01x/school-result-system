@@ -42,7 +42,7 @@ function extractGoogleSheetId(input: string): string {
 }
 
 export function AttendanceImportTab({ filters, onImportComplete }: Props) {
-    const supabase = useMemo(() => createClient() as any, []);
+    const supabase = useMemo(() => createClient(), []);
     const { selectedClass, selectedSection, year, month } = filters;
 
     const [sheetId, setSheetId] = useState("");
@@ -199,7 +199,7 @@ export function AttendanceImportTab({ filters, onImportComplete }: Props) {
 
     if (!selectedClass || !selectedSection) {
         return (
-            <div className="rounded-2xl border-2 border-dashed border-border/50 p-12 text-center">
+            <div className="rounded-2xl border-2 border-dashed border-border p-12 text-center">
                 <FileXls className="h-10 w-10 text-slate-300 mx-auto mb-3" />
                 <p className="text-sm text-slate-400 font-medium">Select a class and section to import attendance</p>
             </div>
@@ -209,7 +209,7 @@ export function AttendanceImportTab({ filters, onImportComplete }: Props) {
     return (
         <div className="space-y-5">
             {/* Sheet Format Guide */}
-            <div className="rounded-2xl border border-border/50 bg-card p-4 shadow-none">
+            <div className="rounded-2xl border border-border bg-card p-4 shadow-none">
                 <div className="flex items-center justify-between gap-3 flex-wrap">
                     <div>
                         <p className="text-sm font-bold text-foreground flex items-center gap-2">
@@ -278,7 +278,7 @@ export function AttendanceImportTab({ filters, onImportComplete }: Props) {
             </div>
 
             {/* Auto Sync */}
-            <div className="rounded-2xl border border-border/50 bg-card p-4 space-y-3 shadow-none">
+            <div className="rounded-2xl border border-border bg-card p-4 space-y-3 shadow-none">
                 <div className="flex items-center justify-between gap-3">
                     <div>
                         <p className="text-sm font-bold text-foreground">Auto Sync</p>
@@ -348,7 +348,7 @@ export function AttendanceImportTab({ filters, onImportComplete }: Props) {
 
             {/* Import Results */}
             {lastImport && (
-                <div className="rounded-2xl border border-border/50 bg-card p-4 space-y-3 shadow-none">
+                <div className="rounded-2xl border border-border bg-card p-4 space-y-3 shadow-none">
                     <p className="text-sm font-bold text-foreground tracking-tight">Import Results</p>
                     <div className="grid grid-cols-3 gap-3">
                         <div className="rounded-xl border-0 bg-muted p-3 text-center">

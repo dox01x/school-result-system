@@ -5,9 +5,10 @@ import { GraduationCap, Heart } from "lucide-react";
 
 const quickLinks = [
   { label: "Dashboard", href: "/dashboard" },
-  { label: "Features", href: "#features" },
+  { label: "Programs", href: "#programs" },
   { label: "Statistics", href: "#stats" },
   { label: "Testimonials", href: "#testimonials" },
+  { label: "Contact", href: "#contact" },
 ];
 
 const resources = [

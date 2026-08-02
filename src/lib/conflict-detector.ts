@@ -19,7 +19,7 @@ interface RoutineEntry {
 }
 
 interface Conflict {
-  type: "teacher" | "room";
+  type: "teacher" | "room" | "section";
   entity_name: string;
   day_of_week: number;
   entries: {
@@ -33,7 +33,10 @@ interface Conflict {
 }
 
 export function timeToMinutes(t: string): number {
-  const [h, m] = t.split(":").map(Number);
+  if (!t || typeof t !== "string") return 0;
+  const parts = t.split(":");
+  const h = parseInt(parts[0], 10) || 0;
+  const m = parseInt(parts[1], 10) || 0;
   return h * 60 + m;
 }
 
@@ -51,7 +54,7 @@ export function timesOverlap(
 }
 
 /**
- * Detect all teacher and room conflicts in a set of routine entries.
+ * Detect all teacher, room, and section conflicts in a set of routine entries.
  * Ignores an entry by its own id (so editing doesn't conflict with itself).
  */
 export function detectConflicts(
@@ -66,6 +69,7 @@ export function detectConflicts(
   // Group by teacher + day
   const teacherDayMap = new Map<string, RoutineEntry[]>();
   for (const entry of filtered) {
+    if (!entry.teacher_id) continue;
     const key = `${entry.teacher_id}__${entry.day_of_week}`;
     if (!teacherDayMap.has(key)) teacherDayMap.set(key, []);
     teacherDayMap.get(key)!.push(entry);
@@ -83,7 +87,6 @@ export function detectConflicts(
             group[j].end_time
           )
         ) {
-          if (group[i].class_id === group[j].class_id) continue;
           const existing = conflicts.find(
             (c) =>
               c.type === "teacher" &&
@@ -152,7 +155,6 @@ export function detectConflicts(
             group[j].end_time
           )
         ) {
-          if (group[i].class_id === group[j].class_id) continue;
           const existing = conflicts.find(
             (c) =>
               c.type === "room" &&
@@ -200,6 +202,75 @@ export function detectConflicts(
     }
   }
 
+  // Group by class+section + day
+  const sectionDayMap = new Map<string, RoutineEntry[]>();
+  for (const entry of filtered) {
+    if (!entry.class_id || !entry.section_id) continue;
+    const key = `${entry.class_id}__${entry.section_id}__${entry.day_of_week}`;
+    if (!sectionDayMap.has(key)) sectionDayMap.set(key, []);
+    sectionDayMap.get(key)!.push(entry);
+  }
+
+  // Check section conflicts
+  for (const [, group] of sectionDayMap) {
+    for (let i = 0; i < group.length; i++) {
+      for (let j = i + 1; j < group.length; j++) {
+        if (
+          timesOverlap(
+            group[i].start_time,
+            group[i].end_time,
+            group[j].start_time,
+            group[j].end_time
+          )
+        ) {
+          const sectionLabel = group[i].section_name ? `${group[i].class_name || ''} - ${group[i].section_name}` : "Section";
+          const existing = conflicts.find(
+            (c) =>
+              c.type === "section" &&
+              c.entity_name === sectionLabel &&
+              c.day_of_week === group[i].day_of_week
+          );
+          if (existing) {
+            if (!existing.entries.find((e) => e.id === group[j].id)) {
+              existing.entries.push({
+                id: group[j].id,
+                class_name: group[j].class_name || "",
+                section_name: group[j].section_name || "",
+                subject_name: group[j].subject_name || "",
+                start_time: group[j].start_time,
+                end_time: group[j].end_time,
+              });
+            }
+          } else {
+            conflicts.push({
+              type: "section",
+              entity_name: sectionLabel,
+              day_of_week: group[i].day_of_week,
+              entries: [
+                {
+                  id: group[i].id,
+                  class_name: group[i].class_name || "",
+                  section_name: group[i].section_name || "",
+                  subject_name: group[i].subject_name || "",
+                  start_time: group[i].start_time,
+                  end_time: group[i].end_time,
+                },
+                {
+                  id: group[j].id,
+                  class_name: group[j].class_name || "",
+                  section_name: group[j].section_name || "",
+                  subject_name: group[j].subject_name || "",
+                  start_time: group[j].start_time,
+                  end_time: group[j].end_time,
+                },
+              ],
+            });
+          }
+        }
+      }
+    }
+  }
+
   return conflicts;
 }
 
@@ -215,12 +286,14 @@ export function checkSingleEntryConflict(
     start_time: string;
     end_time: string;
     class_id?: string;
+    section_id?: string;
     id?: string;
   },
   existingEntries: RoutineEntry[]
-): { teacherConflict: RoutineEntry | null; roomConflict: RoutineEntry | null } {
+): { teacherConflict: RoutineEntry | null; roomConflict: RoutineEntry | null; sectionConflict: RoutineEntry | null } {
   let teacherConflict: RoutineEntry | null = null;
   let roomConflict: RoutineEntry | null = null;
+  let sectionConflict: RoutineEntry | null = null;
 
   for (const entry of existingEntries) {
     if (newEntry.id && entry.id === newEntry.id) continue;
@@ -228,7 +301,6 @@ export function checkSingleEntryConflict(
 
     if (
       entry.teacher_id === newEntry.teacher_id &&
-      entry.class_id !== newEntry.class_id &&
       timesOverlap(
         newEntry.start_time,
         newEntry.end_time,
@@ -242,7 +314,6 @@ export function checkSingleEntryConflict(
     if (
       newEntry.room_id &&
       entry.room_id === newEntry.room_id &&
-      entry.class_id !== newEntry.class_id &&
       timesOverlap(
         newEntry.start_time,
         newEntry.end_time,
@@ -252,7 +323,22 @@ export function checkSingleEntryConflict(
     ) {
       roomConflict = entry;
     }
+
+    if (
+      newEntry.class_id &&
+      newEntry.section_id &&
+      entry.class_id === newEntry.class_id &&
+      entry.section_id === newEntry.section_id &&
+      timesOverlap(
+        newEntry.start_time,
+        newEntry.end_time,
+        entry.start_time,
+        entry.end_time
+      )
+    ) {
+      sectionConflict = entry;
+    }
   }
 
-  return { teacherConflict, roomConflict };
+  return { teacherConflict, roomConflict, sectionConflict };
 }

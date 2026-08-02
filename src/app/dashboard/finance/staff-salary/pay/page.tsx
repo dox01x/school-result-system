@@ -33,7 +33,7 @@ export default function StaffPaySalaryPage() {
     note: ''
   });
 
-  const supabase = createClient() as any;
+  const supabase = createClient();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -189,9 +189,9 @@ export default function StaffPaySalaryPage() {
     return (
       <div className="space-y-6 max-w-xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold tracking-tight text-foreground font-heading mb-1">Staff Salary Slip</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground  mb-1">Staff Salary Slip</h1>
           <div className="flex gap-3">
-            <Button variant="outline" onClick={() => setLastSlip(null)} className="h-11 rounded-xl border-border/50 bg-white hover:bg-muted/50 text-muted-foreground font-bold shadow-none px-6">Pay Another</Button>
+            <Button variant="outline" onClick={() => setLastSlip(null)} className="h-11 rounded-xl border-border bg-white hover:bg-muted/50 text-muted-foreground font-bold shadow-none px-6">Pay Another</Button>
             <Button onClick={handlePrintSlip} className="h-11 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold shadow-none px-6">
               <Printer size={16} strokeWidth={2} className="mr-2" /> Print Slip
             </Button>
@@ -199,11 +199,11 @@ export default function StaffPaySalaryPage() {
         </div>
 
         <Card className="border-0 shadow-sm rounded-none max-w-2xl mx-auto font-sans bg-white p-8 text-black">
-          <div className="flex flex-col items-center justify-center pb-6 border-b border-border/50 text-center mb-6">
+          <div className="flex flex-col items-center justify-center pb-6 border-b border-border text-center mb-6">
             <h2 className="text-xl font-bold tracking-tight text-black uppercase">{s.school?.name || "SCHOOL NAME"}</h2>
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mt-1">{s.school?.address ? s.school.address + ' • ' : ''}Phone: {s.school?.phone || ''}</p>
           </div>
-          <div className="flex justify-between items-end border-b border-border/50 pb-4 mb-6">
+          <div className="flex justify-between items-end border-b border-border pb-4 mb-6">
             <div>
               <h1 className="text-lg font-bold uppercase tracking-widest mb-1">Staff Salary Slip</h1>
               <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">{s.slip_number}</p>
@@ -213,7 +213,7 @@ export default function StaffPaySalaryPage() {
               <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">{s.year}</p>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-y-4 gap-x-8 border-b border-border/50 pb-6 mb-6">
+          <div className="grid grid-cols-2 gap-y-4 gap-x-8 border-b border-border pb-6 mb-6">
             <div><p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 mb-1">Staff Name</p><p className="font-semibold text-sm text-black capitalize">{s.staff.name}</p></div>
             <div><p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 mb-1">Designation</p><p className="font-semibold text-sm text-black capitalize">{s.staff.designation || 'Staff'}</p></div>
             <div><p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 mb-1">Payment Date</p><p className="font-semibold text-sm text-black">{s.date}</p></div>
@@ -222,8 +222,8 @@ export default function StaffPaySalaryPage() {
 
           <table className="w-full text-sm mb-6">
             <thead><tr>
-              <th className="text-left text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 pb-3 border-b border-border/50">Description</th>
-              <th className="text-right text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 pb-3 border-b border-border/50">Amount</th>
+              <th className="text-left text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 pb-3 border-b border-border">Description</th>
+              <th className="text-right text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 pb-3 border-b border-border">Amount</th>
             </tr></thead>
             <tbody className="divide-y divide-transparent">
               <tr><td className="py-3 font-semibold text-black capitalize">Basic Salary</td><td className="text-right font-mono font-medium text-black py-3 text-sm">{formatTaka(s.config.basic_salary)}</td></tr>
@@ -236,7 +236,7 @@ export default function StaffPaySalaryPage() {
             </tbody>
           </table>
 
-          <div className="pt-4 border-t border-border/50 mb-8">
+          <div className="pt-4 border-t border-border mb-8">
             <div className="w-full space-y-2">
               <div className="flex justify-between items-center text-sm"><span className="font-semibold text-muted-foreground">Gross Earnings</span><span className="font-mono font-medium text-black text-sm">{formatTaka(s.gross)}</span></div>
               <div className="flex justify-between items-center text-sm"><span className="font-semibold text-muted-foreground">Total Deductions</span><span className="font-mono font-medium text-red-600 text-sm">-{formatTaka(s.deductions)}</span></div>
@@ -255,13 +255,13 @@ export default function StaffPaySalaryPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground font-heading mb-1">Pay Staff Salary</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground  mb-1">Pay Staff Salary</h1>
         <p className="text-muted-foreground text-sm mt-1">Disburse monthly salary to general staff.</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <Card className="lg:col-span-5 shadow-none border border-border/50 rounded-2xl h-fit overflow-hidden">
-          <CardHeader className="bg-muted/30 border-b border-border/50">
+        <Card className="lg:col-span-5 shadow-none border border-border rounded-xl h-fit overflow-hidden">
+          <CardHeader className="bg-muted/30 border-b border-border">
             <CardTitle className="text-lg font-bold text-foreground">Staff Salary Payment</CardTitle>
             <CardDescription className="font-bold text-muted-foreground">Ensure staff has an active salary configuration</CardDescription>
           </CardHeader>
@@ -271,7 +271,7 @@ export default function StaffPaySalaryPage() {
                 <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground px-1">Select Staff</Label>
                 <Select value={form.staff_id} onValueChange={v => setForm({...form, staff_id: v})}>
                   <SelectTrigger className="h-11 rounded-xl bg-muted border-0 font-bold text-foreground focus:ring-1 focus:ring-ring/30 shadow-none"><SelectValue placeholder="Select staff..." /></SelectTrigger>
-                  <SelectContent className="border-border/50 rounded-xl shadow-md max-h-[300px]">
+                  <SelectContent className="border-border rounded-xl shadow-md max-h-[300px]">
                     {staffList.map(s => (
                       <SelectItem key={s.id} value={s.id} className="rounded-lg font-medium">
                         {s.name} {s.designation ? `(${s.designation})` : ''}
@@ -285,7 +285,7 @@ export default function StaffPaySalaryPage() {
                   <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground px-1">Month</Label>
                   <Select value={form.month} onValueChange={v => setForm({...form, month: v})}>
                     <SelectTrigger className="h-11 rounded-xl bg-muted border-0 font-bold text-foreground focus:ring-1 focus:ring-ring/30 shadow-none"><SelectValue /></SelectTrigger>
-                    <SelectContent className="border-border/50 rounded-xl shadow-md">
+                    <SelectContent className="border-border rounded-xl shadow-md">
                       {Array.from({length: 12}, (_, i) => i + 1).map(m => (
                         <SelectItem key={m} value={m.toString()} className="rounded-lg font-medium">{getMonthName(m)}</SelectItem>
                       ))}
@@ -302,7 +302,7 @@ export default function StaffPaySalaryPage() {
                   <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground px-1">Method</Label>
                   <Select value={form.payment_method} onValueChange={v => setForm({...form, payment_method: v})}>
                     <SelectTrigger className="h-11 rounded-xl bg-muted border-0 font-bold text-foreground focus:ring-1 focus:ring-ring/30 shadow-none"><SelectValue /></SelectTrigger>
-                    <SelectContent className="border-border/50 rounded-xl shadow-md">
+                    <SelectContent className="border-border rounded-xl shadow-md">
                       <SelectItem value="cash" className="rounded-lg font-medium">Cash</SelectItem>
                       <SelectItem value="bank" className="rounded-lg font-medium">Bank Transfer</SelectItem>
                       <SelectItem value="mobile_banking" className="rounded-lg font-medium">Mobile Banking</SelectItem>
@@ -323,8 +323,8 @@ export default function StaffPaySalaryPage() {
         </Card>
 
         <div className="lg:col-span-7">
-          <Card className={`shadow-none border border-border/50 rounded-2xl transition-all duration-300 overflow-hidden ${!form.staff_id ? 'opacity-40 grayscale' : ''}`}>
-            <CardHeader className="border-b border-border/50 bg-muted/30 pb-4">
+          <Card className={`shadow-none border border-border rounded-xl transition-all duration-300 overflow-hidden ${!form.staff_id ? 'opacity-40 grayscale' : ''}`}>
+            <CardHeader className="border-b border-border bg-muted/30 pb-4">
               <CardTitle className="text-lg font-bold text-foreground flex items-center gap-2">
                 <Wallet size={20} strokeWidth={2.5} /> Staff Salary Preview
               </CardTitle>
@@ -335,15 +335,15 @@ export default function StaffPaySalaryPage() {
               ) : loadingConfig ? (
                 <div className="flex justify-center py-12"><SpinnerGap size={24} strokeWidth={2} className="animate-spin text-muted-foreground/40" /></div>
               ) : !salaryConfig ? (
-                <div className="text-center py-12 border-2 border-dashed border-border/50 rounded-2xl space-y-2">
+                <div className="text-center py-12 border-2 border-dashed border-border rounded-xl space-y-2">
                   <User size={40} strokeWidth={1.5} className="mx-auto text-muted-foreground/40" />
                   <p className="font-bold text-red-500">No salary configuration found</p>
                   <p className="text-xs font-bold text-muted-foreground/60">Configure salary for this staff member first</p>
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-xl border border-border/50">
-                    <div className="w-10 h-10 bg-white border border-border/50 shadow-sm rounded-full flex items-center justify-center">
+                  <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-xl border border-border">
+                    <div className="w-10 h-10 bg-white border border-border shadow-sm rounded-full flex items-center justify-center">
                       <User size={18} strokeWidth={2.5} className="text-muted-foreground" />
                     </div>
                     <div>
@@ -352,8 +352,8 @@ export default function StaffPaySalaryPage() {
                     </div>
                   </div>
 
-                  <div className="bg-card border border-border/50 rounded-xl p-4 space-y-2">
-                    <div className="flex justify-between text-sm border-b border-border/50 pb-2">
+                  <div className="bg-card border border-border rounded-xl p-4 space-y-2">
+                    <div className="flex justify-between text-sm border-b border-border pb-2">
                       <span className="text-muted-foreground font-bold">Basic Salary</span>
                       <span className="font-mono font-black text-foreground">{formatTaka(salaryConfig.basic_salary)}</span>
                     </div>
@@ -364,14 +364,14 @@ export default function StaffPaySalaryPage() {
                       </div>
                     ))}
                     {Object.entries(salaryConfig.deductions || {}).map(([k, v]: [string, any]) => (
-                      <div key={k} className="flex justify-between text-sm border-t border-border/50 pt-2">
+                      <div key={k} className="flex justify-between text-sm border-t border-border pt-2">
                         <span className="capitalize text-muted-foreground font-bold">{k}</span>
                         <span className="font-mono font-black text-red-500">-{formatTaka(Number(v))}</span>
                       </div>
                     ))}
                   </div>
 
-                  <div className="bg-card border border-border/50 rounded-xl p-4 mt-4">
+                  <div className="bg-card border border-border rounded-xl p-4 mt-4">
                     <div className="flex justify-between text-sm mb-1">
                       <span className="text-muted-foreground font-bold">Gross</span>
                       <span className="font-mono font-bold text-foreground">{formatTaka(gross)}</span>
@@ -380,7 +380,7 @@ export default function StaffPaySalaryPage() {
                       <span className="text-muted-foreground font-bold">Deductions</span>
                       <span className="font-mono font-bold text-red-500">-{formatTaka(deductions)}</span>
                     </div>
-                    <div className="flex justify-between pt-3 mt-1 border-t border-border/50">
+                    <div className="flex justify-between pt-3 mt-1 border-t border-border">
                       <span className="font-bold text-foreground">Net Salary</span>
                       <span className="text-xl font-black font-mono text-foreground">{formatTaka(net)}</span>
                     </div>

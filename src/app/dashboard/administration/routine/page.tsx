@@ -525,20 +525,20 @@ ${schoolInfo?.logo_url ? `<img src="${schoolInfo.logo_url}" alt="Logo">` : ""}
             {/* View Toggle & Filters */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 flex-wrap no-print">
                 <div className="flex items-center rounded-lg border bg-muted/50 p-0.5">
-                    <button onClick={() => setViewMode("class")} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${viewMode === "class" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+                    <button onClick={() => setViewMode("class")} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${viewMode === "class" ? "bg-background text-foreground shadow-xs" : "text-muted-foreground hover:text-foreground"}`}>
                         <GridFour className="h-3.5 w-3.5" /> Class View
                     </button>
-                    <button onClick={() => setViewMode("teacher")} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${viewMode === "teacher" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+                    <button onClick={() => setViewMode("teacher")} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${viewMode === "teacher" ? "bg-background text-foreground shadow-xs" : "text-muted-foreground hover:text-foreground"}`}>
                         <Users size={12} strokeWidth={1.5} className=".5 .5" /> Teacher View
                     </button>
                 </div>
                 {viewMode === "class" ? (
                     <>
-                        <Select value={selectedClass} onValueChange={setSelectedClass}><SelectTrigger className="w-[160px]"><SelectValue placeholder="Select Class" /></SelectTrigger><SelectContent>{classes.map((c) => (<SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>))}</SelectContent></Select>
-                        <Select value={selectedSection} onValueChange={setSelectedSection}><SelectTrigger className="w-[160px]"><SelectValue placeholder="Select Section" /></SelectTrigger><SelectContent>{sections.map((s) => (<SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>))}</SelectContent></Select>
+                        <Select value={selectedClass} onValueChange={setSelectedClass}><SelectTrigger className="w-full sm:w-[160px]"><SelectValue placeholder="Select Class" /></SelectTrigger><SelectContent>{classes.map((c) => (<SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>))}</SelectContent></Select>
+                        <Select value={selectedSection} onValueChange={setSelectedSection}><SelectTrigger className="w-full sm:w-[160px]"><SelectValue placeholder="Select Section" /></SelectTrigger><SelectContent>{sections.map((s) => (<SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>))}</SelectContent></Select>
                     </>
                 ) : (
-                    <Select value={selectedTeacher} onValueChange={setSelectedTeacher}><SelectTrigger className="w-[220px]"><SelectValue placeholder="Select Teacher" /></SelectTrigger><SelectContent>{teachers.map((t) => (<SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>))}</SelectContent></Select>
+                    <Select value={selectedTeacher} onValueChange={setSelectedTeacher}><SelectTrigger className="w-full sm:w-[220px]"><SelectValue placeholder="Select Teacher" /></SelectTrigger><SelectContent>{teachers.map((t) => (<SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>))}</SelectContent></Select>
                 )}
                 {teachers.length === 0 && (<div className="flex items-center gap-1.5 text-amber-600 text-sm"><WarningCircle size={16} strokeWidth={1.5} className=" " /><span>Add teachers first</span></div>)}
             </div>

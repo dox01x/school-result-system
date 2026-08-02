@@ -3,14 +3,25 @@ import { CLASS_ROUTINE_COLUMNS } from "@/lib/supabase/select-columns";
 import { timeToMinutes, timesOverlap } from "@/lib/conflict-detector";
 import { NextRequest, NextResponse } from "next/server";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
     try {
-        const supabase = (await createServerSupabaseClient()) as any;
-        const { data, error } = await supabase
+        const { searchParams } = new URL(request.url);
+        const classId = searchParams.get("class_id");
+        const sectionId = searchParams.get("section_id");
+        const teacherId = searchParams.get("teacher_id");
+
+        const supabase = await createServerSupabaseClient();
+        let query = supabase
             .from("class_routines")
             .select(CLASS_ROUTINE_COLUMNS)
             .order("day_of_week")
             .order("start_time");
+
+        if (classId) query = query.eq("class_id", classId);
+        if (sectionId) query = query.eq("section_id", sectionId);
+        if (teacherId) query = query.eq("teacher_id", teacherId);
+
+        const { data, error } = await query;
 
         if (error) {
             return NextResponse.json({ success: false, error: error.message }, { status: 500 });
@@ -39,9 +50,29 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ success: false, error: "end_time must be after start_time" }, { status: 400 });
         }
 
-        const supabase = (await createServerSupabaseClient()) as any;
+        const supabase = await createServerSupabaseClient();
 
-        // Teacher conflict detection
+        // 1. Section conflict detection (same section double-booking check)
+        const { data: sectionSlots } = await supabase
+            .from("class_routines")
+            .select("id, start_time, end_time")
+            .eq("class_id", class_id)
+            .eq("section_id", section_id)
+            .eq("day_of_week", day_of_week);
+
+        if (sectionSlots && sectionSlots.length > 0) {
+            for (const slot of sectionSlots) {
+                if (body.id && slot.id === body.id) continue;
+                if (timesOverlap(start_time, end_time, slot.start_time, slot.end_time)) {
+                    return NextResponse.json({
+                        success: false,
+                        error: `Section conflict: This section already has a class scheduled at this time on this day.`,
+                    }, { status: 409 });
+                }
+            }
+        }
+
+        // 2. Teacher conflict detection
         const { data: teacherSlots } = await supabase
             .from("class_routines")
             .select("id, start_time, end_time, class_id, section_id")
@@ -52,7 +83,6 @@ export async function POST(request: NextRequest) {
             for (const slot of teacherSlots) {
                 if (body.id && slot.id === body.id) continue;
                 if (timesOverlap(start_time, end_time, slot.start_time, slot.end_time)) {
-                    if (slot.class_id === class_id) continue;
                     return NextResponse.json({
                         success: false,
                         error: `Teacher conflict: This teacher is already assigned to another class at this time on this day.`,
@@ -61,7 +91,7 @@ export async function POST(request: NextRequest) {
             }
         }
 
-        // Room conflict detection
+        // 3. Room conflict detection
         if (room_id) {
             const { data: roomSlots } = await supabase
                 .from("class_routines")
@@ -73,7 +103,6 @@ export async function POST(request: NextRequest) {
                 for (const slot of roomSlots) {
                     if (body.id && slot.id === body.id) continue;
                     if (timesOverlap(start_time, end_time, slot.start_time, slot.end_time)) {
-                        if (slot.class_id === class_id) continue;
                         return NextResponse.json({
                             success: false,
                             error: `Room conflict: This room is already booked for another class at this time on this day.`,
@@ -123,7 +152,7 @@ export async function DELETE(request: NextRequest) {
             return NextResponse.json({ success: false, error: "Missing id parameter" }, { status: 400 });
         }
 
-        const supabase = (await createServerSupabaseClient()) as any;
+        const supabase = await createServerSupabaseClient();
         const { error } = await supabase.from("class_routines").delete().eq("id", id);
 
         if (error) {

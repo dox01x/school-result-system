@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { PageHeader } from "@/components/layout/page-header";
 import {
     Shield, Plus, Trash2, UserCog, Loader2, Mail, KeyRound,
     Users, AlertTriangle, CheckCircle2
@@ -62,7 +63,7 @@ export default function UsersPage() {
     const [editFullName, setEditFullName] = useState("");
     const [editAssignments, setEditAssignments] = useState<{ class_id: string; section_id: string }[]>([]);
 
-    const supabase = useMemo(() => createClient() as any, []);
+    const supabase = useMemo(() => createClient(), []);
 
     const fetchUsers = useCallback(async () => {
         setLoading(true);
@@ -214,7 +215,7 @@ export default function UsersPage() {
     if (!isSuperAdmin(role)) {
         return (
             <div className="flex flex-col items-center justify-center py-20 gap-4">
-                <div className="h-16 w-16 rounded-2xl bg-red-500/10 flex items-center justify-center">
+                <div className="h-16 w-16 rounded-xl bg-red-500/10 flex items-center justify-center">
                     <AlertTriangle size={32} strokeWidth={1.5} className="text-red-500" />
                 </div>
                 <h2 className="text-xl font-bold text-foreground">Access Denied</h2>
@@ -225,28 +226,23 @@ export default function UsersPage() {
 
     return (
         <div className="flex flex-col gap-6">
-            {/* Page Header */}
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                    <div className="h-11 w-11 rounded-xl bg-primary/10 flex items-center justify-center">
-                        <Shield size={22} strokeWidth={1.5} className="text-primary" />
-                    </div>
-                    <div>
-                        <h2 className="text-xl font-bold text-foreground font-heading">User Management</h2>
-                        <p className="text-xs text-muted-foreground">{users.length} users registered</p>
-                    </div>
-                </div>
-                <Button
-                    onClick={() => { resetCreateForm(); setShowCreateDialog(true); }}
-                    className="gap-2"
-                >
-                    <Plus size={16} strokeWidth={2.5} />
-                    Add User
-                </Button>
-            </div>
+            <PageHeader
+                icon={Shield}
+                title="User Management"
+                subtitle={`${users.length} users registered`}
+                actions={
+                    <Button
+                        onClick={() => { resetCreateForm(); setShowCreateDialog(true); }}
+                        className="bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 font-semibold shadow-none transition-all duration-200 "
+                    >
+                        <Plus size={16} strokeWidth={2} className="mr-1.5" />
+                        Add User
+                    </Button>
+                }
+            />
 
             {/* Users Table */}
-            <div className="bg-card rounded-2xl border border-border/50 overflow-hidden">
+            <div className="bg-card rounded-2xl border border-border overflow-hidden">
                 {loading ? (
                     <div className="flex items-center justify-center py-20">
                         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -347,7 +343,7 @@ export default function UsersPage() {
             <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
                 <DialogContent className="sm:max-w-[480px]">
                     <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2 text-lg font-heading">
+                        <DialogTitle className="flex items-center gap-2 text-lg ">
                             <Plus size={20} strokeWidth={2} className="text-primary" />
                             Create New User
                         </DialogTitle>
@@ -462,7 +458,7 @@ export default function UsersPage() {
             <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
                 <DialogContent className="sm:max-w-[480px]">
                     <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2 text-lg font-heading">
+                        <DialogTitle className="flex items-center gap-2 text-lg ">
                             <UserCog size={20} strokeWidth={2} className="text-primary" />
                             Edit User
                         </DialogTitle>

@@ -53,7 +53,7 @@ export function AttendanceFilters({
                     <SelectTrigger className="bg-muted border-0 shadow-none h-11 rounded-xl font-bold text-foreground focus:ring-1 focus:ring-ring/30">
                         <SelectValue placeholder="Select class" />
                     </SelectTrigger>
-                    <SelectContent className="border-border/50 rounded-xl shadow-md">
+                    <SelectContent className="border-border rounded-xl shadow-md">
                         {classes.map((c) => (
                             <SelectItem key={c.id} value={c.id} className="rounded-lg font-medium">{c.name}</SelectItem>
                         ))}
@@ -66,7 +66,7 @@ export function AttendanceFilters({
                     <SelectTrigger className="bg-muted border-0 shadow-none h-11 rounded-xl font-bold text-foreground focus:ring-1 focus:ring-ring/30">
                         <SelectValue placeholder={filters.selectedClass ? "Select section" : "Select class first"} />
                     </SelectTrigger>
-                    <SelectContent className="border-border/50 rounded-xl shadow-md">
+                    <SelectContent className="border-border rounded-xl shadow-md">
                         {sections.map((s) => (
                             <SelectItem key={s.id} value={s.id} className="rounded-lg font-medium">{s.name}</SelectItem>
                         ))}
@@ -82,7 +82,7 @@ export function AttendanceFilters({
                     <SelectTrigger className="bg-muted border-0 shadow-none h-11 rounded-xl font-bold text-foreground focus:ring-1 focus:ring-ring/30">
                         <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="border-border/50 rounded-xl shadow-md">
+                    <SelectContent className="border-border rounded-xl shadow-md">
                         {yearOptions.map((y) => (
                             <SelectItem key={y} value={String(y)} className="rounded-lg font-medium">{y}</SelectItem>
                         ))}
@@ -95,7 +95,7 @@ export function AttendanceFilters({
                     <SelectTrigger className="bg-muted border-0 shadow-none h-11 rounded-xl font-bold text-foreground focus:ring-1 focus:ring-ring/30">
                         <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="border-border/50 rounded-xl shadow-md">
+                    <SelectContent className="border-border rounded-xl shadow-md">
                         {MONTHS.map((m) => (
                             <SelectItem key={m.v} value={String(m.v)} className="rounded-lg font-medium">
                                 {m.l}

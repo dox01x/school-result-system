@@ -5,19 +5,21 @@ import { Slot } from "radix-ui"
 import { cn } from "@/lib/utils"
 
 const badgeVariants = cva(
-  "inline-flex items-center justify-center rounded-full border border-transparent px-2 py-0.5 text-xs font-medium w-fit whitespace-nowrap shrink-0 [&>svg]:size-3 gap-1 [&>svg]:pointer-events-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive transition-[color,box-shadow] overflow-hidden",
+  "inline-flex items-center justify-center rounded-md border border-transparent px-2 py-0.5 text-[11px] font-medium w-fit whitespace-nowrap shrink-0 [&>svg]:size-3 gap-1 [&>svg]:pointer-events-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] transition-colors overflow-hidden",
   {
     variants: {
       variant: {
-        default: "bg-primary/10 text-primary hover:bg-primary/20 [a&]:hover:bg-primary/90",
+        default: "bg-primary/10 text-primary",
         secondary:
-          "bg-muted/50 text-foreground hover:bg-muted/80 [a&]:hover:bg-secondary/90",
+          "bg-muted text-muted-foreground",
         destructive:
-          "bg-destructive text-white [a&]:hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60",
+          "bg-destructive/10 text-destructive",
         outline:
-          "border-border/50 text-foreground [a&]:hover:bg-accent [a&]:hover:text-accent-foreground",
-        ghost: "[a&]:hover:bg-accent [a&]:hover:text-accent-foreground",
+          "border-border text-foreground",
+        ghost: "text-muted-foreground",
         link: "text-primary underline-offset-4 [a&]:hover:underline",
+        success: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+        warning: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
       },
     },
     defaultVariants: {

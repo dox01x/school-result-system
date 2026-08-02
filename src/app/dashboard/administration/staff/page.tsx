@@ -17,7 +17,7 @@ import { toast } from "sonner";
 import { StaffProfileSheet } from "@/components/staff/staff-profile-sheet";
 
 export default function StaffPage() {
-    const supabase = useMemo(() => createClient() as any, []);
+    const supabase = useMemo(() => createClient(), []);
 
     const [staffList, setStaffList] = useState<Staff[]>([]);
     const [loading, setLoading] = useState(true);
@@ -105,13 +105,13 @@ export default function StaffPage() {
                         onChange={(e) => setSearchQuery(e.target.value)}
                     />
                 </div>
-                <Button className="bg-primary text-primary-foreground font-semibold rounded-xl hover:bg-primary/90 transition-all duration-200 btn-press" onClick={() => { setStaffForm({ id: "", name: "", phone: "", email: "", designation: "" }); setStaffDialogOpen(true); }}>
+                <Button className="bg-primary text-primary-foreground font-semibold rounded-xl hover:bg-primary/90 transition-all duration-200 " onClick={() => { setStaffForm({ id: "", name: "", phone: "", email: "", designation: "" }); setStaffDialogOpen(true); }}>
                     <Plus size={16} strokeWidth={1.5} className=" mr-1" /> Add Staff
                 </Button>
             </div>
 
             {filteredStaff.length === 0 ? (
-                <Card className="border-dashed border-2 border-border/50 bg-transparent shadow-none">
+                <Card className="border-dashed border-2 border-border bg-transparent shadow-none">
                     <CardContent className="flex flex-col items-center justify-center py-16 text-center">
                         <Briefcase size={48} strokeWidth={1.2} className=" text-muted-foreground/40 mb-4" />
                         <h3 className="font-semibold text-lg mb-1">No Staff Added</h3>

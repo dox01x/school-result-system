@@ -62,7 +62,7 @@ export function StudentProfileSheet({
     onRequestTransfer,
     onRequestDelete,
 }: Props) {
-    const supabase = useMemo(() => createClient() as any, []);
+    const supabase = createClient();
     const [loading, setLoading] = useState(false);
     const [student, setStudent] = useState<Student | null>(null);
     const [classes, setClasses] = useState<Class[]>([]);
@@ -150,11 +150,10 @@ export function StudentProfileSheet({
             setSubjectMarks(processedMarks);
             setLoading(false);
         })();
-
         return () => {
             cancelled = true;
         };
-    }, [open, studentId, supabase]);
+    }, [open, studentId]);
 
     useEffect(() => {
         if (!actionForm.transferClassId) return;
@@ -328,7 +327,7 @@ export function StudentProfileSheet({
                     <DialogTitle className="text-xl">Student Profile</DialogTitle>
                     <DialogDescription>Detailed profile, academics, progress analysis, attendance and actions.</DialogDescription>
                 </DialogHeader>
-                <ScrollArea className="max-h-[80vh] h-[800px]">
+                <ScrollArea className="max-h-[75vh]">
                     {loading || !student ? (
                         <div className="p-6 text-sm text-muted-foreground">Loading profile...</div>
                     ) : (
@@ -359,11 +358,11 @@ export function StudentProfileSheet({
 
                             <Tabs defaultValue="overview" className="space-y-4">
                                 <TabsList className="w-full justify-start overflow-x-auto bg-muted border-0 rounded-xl p-1">
-                                    <TabsTrigger value="overview" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-none">Overview</TabsTrigger>
-                                    <TabsTrigger value="academic" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-none">Academic</TabsTrigger>
-                                    <TabsTrigger value="attendance" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-none">Attendance</TabsTrigger>
-                                    <TabsTrigger value="fees" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-none">Fees</TabsTrigger>
-                                    <TabsTrigger value="actions" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-none">Actions</TabsTrigger>
+                                    <TabsTrigger value="overview" className="rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-none">Overview</TabsTrigger>
+                                    <TabsTrigger value="academic" className="rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-none">Academic</TabsTrigger>
+                                    <TabsTrigger value="attendance" className="rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-none">Attendance</TabsTrigger>
+                                    <TabsTrigger value="fees" className="rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-none">Fees</TabsTrigger>
+                                    <TabsTrigger value="actions" className="rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-none">Actions</TabsTrigger>
                                 </TabsList>
 
                                 <TabsContent value="overview" className="space-y-4">
@@ -401,7 +400,7 @@ export function StudentProfileSheet({
                                                         <XAxis dataKey="exam" axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 12}} dy={10} />
                                                         <YAxis domain={[0, 100]} axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 12}} dx={-10} />
                                                         <Tooltip cursor={{fill: '#f1f5f9'}} contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}} />
-                                                        <Bar dataKey="percentage" fill="#18181b" radius={[6, 6, 0, 0]} barSize={40} />
+                                                        <Bar dataKey="percentage" fill="var(--primary)" radius={[6, 6, 0, 0]} barSize={40} />
                                                     </BarChart>
                                                 </ResponsiveContainer>
                                             )}

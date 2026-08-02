@@ -43,7 +43,7 @@ export default function FeeStructurePage() {
     academic_year: new Date().getFullYear().toString()
   });
 
-  const supabase = createClient() as any;
+  const supabase = createClient();
 
   const fetchData = async () => {
     setLoading(true);
@@ -128,14 +128,14 @@ export default function FeeStructurePage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground font-heading mb-1">Fee Structure</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground  mb-1">Fee Structure</h1>
         <p className="text-muted-foreground mt-1 text-sm">Configure class-wise fee amounts for the academic year.</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Form */}
-        <Card className="lg:col-span-4 border border-border/50 shadow-none rounded-2xl h-fit overflow-hidden">
-          <CardHeader className="bg-muted/30 border-b border-border/50">
+        <Card className="lg:col-span-4 border border-border shadow-none rounded-xl h-fit overflow-hidden">
+          <CardHeader className="bg-muted/30 border-b border-border">
             <CardTitle className="text-lg font-bold text-foreground flex items-center gap-2"><Plus size={20} strokeWidth={2.5} /> Add New Fee</CardTitle>
             <CardDescription className="font-bold text-muted-foreground">Define fee components for each class</CardDescription>
           </CardHeader>
@@ -149,7 +149,7 @@ export default function FeeStructurePage() {
                 <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground px-1">Class *</Label>
                 <Select value={form.class_name} onValueChange={v => setForm({...form, class_name: v})}>
                   <SelectTrigger className="h-11 rounded-xl bg-muted border-0 font-bold text-foreground focus:ring-1 focus:ring-ring/30 shadow-none"><SelectValue placeholder="Select class" /></SelectTrigger>
-                  <SelectContent className="border-border/50 rounded-xl shadow-md">
+                  <SelectContent className="border-border rounded-xl shadow-md">
                     {classes.map(c => <SelectItem key={c.id} value={c.name} className="rounded-lg font-medium">{c.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
@@ -158,7 +158,7 @@ export default function FeeStructurePage() {
                 <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground px-1">Fee Type *</Label>
                 <Select value={form.fee_type} onValueChange={v => setForm({...form, fee_type: v as FeeType})}>
                   <SelectTrigger className="h-11 rounded-xl bg-muted border-0 font-bold text-foreground focus:ring-1 focus:ring-ring/30 shadow-none"><SelectValue placeholder="Select type" /></SelectTrigger>
-                  <SelectContent className="border-border/50 rounded-xl shadow-md">
+                  <SelectContent className="border-border rounded-xl shadow-md">
                     <SelectItem value="tuition" className="rounded-lg font-medium">Tuition Fee (Monthly)</SelectItem>
                     <SelectItem value="admission" className="rounded-lg font-medium">Admission Fee (Yearly)</SelectItem>
                     <SelectItem value="mct_exam" className="rounded-lg font-medium">MCT Exam Fee (Per Exam)</SelectItem>
@@ -194,15 +194,15 @@ export default function FeeStructurePage() {
 
         {/* Fee List */}
         <div className="lg:col-span-8 space-y-4">
-          <Card className="border border-border/50 shadow-none rounded-2xl overflow-hidden">
-            <CardHeader className="border-b border-border/50 bg-muted/30 pb-4">
+          <Card className="border border-border shadow-none rounded-xl overflow-hidden">
+            <CardHeader className="border-b border-border bg-muted/30 pb-4">
               <CardTitle className="text-lg font-bold text-foreground flex items-center gap-2"><Gear size={20} strokeWidth={2.5} className="text-foreground" /> Configured Fees ({form.academic_year})</CardTitle>
             </CardHeader>
             <CardContent className="pt-6">
               {loading ? (
                 <div className="flex justify-center p-8"><SpinnerGap size={24} strokeWidth={2} className="animate-spin text-muted-foreground/40" /></div>
               ) : Object.keys(grouped).length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground border-2 border-dashed border-border/50 rounded-2xl">
+                <div className="text-center py-12 text-muted-foreground border-2 border-dashed border-border rounded-xl">
                   <Gear size={40} strokeWidth={1.5} className="mx-auto mb-3 text-muted-foreground/40" />
                   <p className="font-bold">No fee structures configured</p>
                   <p className="text-xs font-bold text-muted-foreground/60 mt-1">Add fees using the form on the left</p>
@@ -213,12 +213,12 @@ export default function FeeStructurePage() {
                     <div key={className}>
                       <div className="flex items-center gap-2 mb-3">
                         <h3 className="text-sm font-bold text-foreground">{className}</h3>
-                        <Badge variant="outline" className="bg-muted text-muted-foreground border-border/50 text-[9px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-md shadow-none">{items.length} fees</Badge>
+                        <Badge variant="outline" className="bg-muted text-muted-foreground border-border text-[9px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-md shadow-none">{items.length} fees</Badge>
                       </div>
-                      <div className="border border-border/50 rounded-xl overflow-hidden">
+                      <div className="border border-border rounded-xl overflow-hidden">
                         <Table>
                           <TableHeader>
-                            <TableRow className="bg-muted/30 border-border/50 hover:bg-muted/30">
+                            <TableRow className="bg-muted/30 border-border hover:bg-muted/30">
                               <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Fee Type</TableHead>
                               <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Frequency</TableHead>
                               <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground text-right">Amount</TableHead>
@@ -230,7 +230,7 @@ export default function FeeStructurePage() {
                               const monthly = isMonthly(f.fee_type);
                               const isEditing = editingId === f.id;
                               return (
-                                <TableRow key={f.id} className="group border-border/50 hover:bg-muted/30">
+                                <TableRow key={f.id} className="group border-border hover:bg-muted/30">
                                   <TableCell className="font-bold text-foreground text-xs capitalize">
                                     {f.fee_type === 'other' && f.description ? f.description : f.fee_type.replace('_', ' ')} Fee
                                   </TableCell>

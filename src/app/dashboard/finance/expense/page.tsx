@@ -51,7 +51,7 @@ export default function ExpensePage() {
   };
 
   const fetchRole = async () => {
-    const supabase = createClient() as any;
+    const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
       const { data } = await supabase.from('profiles').select('role').eq('id', user.id).single();
@@ -66,7 +66,7 @@ export default function ExpensePage() {
     if (!form.amount || !form.description) { toast.error('Amount and Description are required'); return; }
     setSubmitting(true);
     try {
-      const supabase = createClient() as any;
+      const supabase = createClient();
       const { data: user } = await supabase.auth.getUser();
       const res = await fetch('/api/finance/expense', {
         method: 'POST',
@@ -87,7 +87,7 @@ export default function ExpensePage() {
   const handleDelete = async (id: string) => {
     if (!confirm('Delete this expense entry?')) return;
     try {
-      const supabase = createClient() as any;
+      const supabase = createClient();
       const { error } = await supabase.from('expense_entries').delete().eq('id', id);
       if (error) throw error;
       toast.success('Deleted');
@@ -101,7 +101,7 @@ export default function ExpensePage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground font-heading mb-1">Expense Management</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground  mb-1">Expense Management</h1>
           <p className="text-muted-foreground text-sm mt-1">Track bills, purchases, and other outflows.</p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
@@ -110,7 +110,7 @@ export default function ExpensePage() {
               <Plus size={16} strokeWidth={2} className="mr-2" /> Record Expense
             </Button>
           </DialogTrigger>
-          <DialogContent className="border-border/50 shadow-lg rounded-2xl sm:max-w-[425px]">
+          <DialogContent className="border-border shadow-lg rounded-xl sm:max-w-[425px]">
             <DialogHeader><DialogTitle className="text-xl font-bold text-foreground">New Expense Entry</DialogTitle></DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4 pt-4">
               <div className="grid grid-cols-2 gap-4">
@@ -118,7 +118,7 @@ export default function ExpensePage() {
                   <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground px-1">Category</Label>
                   <Select value={form.category} onValueChange={v => setForm({...form, category: v})}>
                     <SelectTrigger className="h-11 rounded-xl bg-muted border-0 font-bold text-foreground focus:ring-1 focus:ring-ring/30 shadow-none"><SelectValue /></SelectTrigger>
-                    <SelectContent className="border-border/50 rounded-xl shadow-md">
+                    <SelectContent className="border-border rounded-xl shadow-md">
                       <SelectItem value="electricity" className="rounded-lg font-medium">Electricity</SelectItem>
                       <SelectItem value="water" className="rounded-lg font-medium">Water</SelectItem>
                       <SelectItem value="maintenance" className="rounded-lg font-medium">Maintenance</SelectItem>
@@ -150,7 +150,7 @@ export default function ExpensePage() {
                   <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground px-1">Payment Method</Label>
                   <Select value={form.payment_method} onValueChange={v => setForm({...form, payment_method: v})}>
                     <SelectTrigger className="h-11 rounded-xl bg-muted border-0 font-bold text-foreground focus:ring-1 focus:ring-ring/30 shadow-none"><SelectValue /></SelectTrigger>
-                    <SelectContent className="border-border/50 rounded-xl shadow-md">
+                    <SelectContent className="border-border rounded-xl shadow-md">
                       <SelectItem value="cash" className="rounded-lg font-medium">Cash</SelectItem>
                       <SelectItem value="bank" className="rounded-lg font-medium">Bank Transfer</SelectItem>
                       <SelectItem value="mobile_banking" className="rounded-lg font-medium">Mobile Banking</SelectItem>
@@ -173,8 +173,8 @@ export default function ExpensePage() {
 
       {/* Funnel + Total */}
       {/* Funnel + Total */}
-      <Card className="bg-card rounded-2xl border border-border/50 shadow-none">
-        <CardContent className="p-4 flex flex-col sm:flex-row items-end gap-3">
+      <Card className="bg-card rounded-2xl border border-border shadow-none">
+        <CardContent className="p-4 flex flex-col md:flex-row items-stretch md:items-end gap-3">
           <div className="flex items-center gap-1.5 text-[10px] font-bold text-muted-foreground uppercase tracking-widest mr-2 pb-3">
             <Funnel size={14} strokeWidth={2} /> Filter
           </div>
@@ -186,20 +186,20 @@ export default function ExpensePage() {
             <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground px-1">To</Label>
             <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="h-11 rounded-xl bg-muted border-0 font-bold text-foreground focus-visible:ring-1 focus-visible:ring-ring/30 shadow-none" />
           </div>
-          <Button onClick={fetchData} disabled={loading} className="h-11 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold shadow-none px-6">Apply</Button>
-          <Button variant="outline" onClick={() => { setDateFrom(''); setDateTo(''); setTimeout(fetchData, 100); }} className="h-11 rounded-xl border-border/50 bg-white hover:bg-muted/50 text-muted-foreground font-bold shadow-none px-6">Clear</Button>
-          <div className="ml-auto flex items-center gap-2 bg-primary text-primary-foreground px-5 h-11 rounded-xl shadow-none mt-4 sm:mt-0">
+          <Button onClick={fetchData} disabled={loading} className="w-full md:w-auto h-11 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold shadow-none px-6">Apply</Button>
+          <Button variant="outline" onClick={() => { setDateFrom(''); setDateTo(''); setTimeout(fetchData, 100); }} className="w-full md:w-auto h-11 rounded-xl border-border bg-white hover:bg-muted/50 text-muted-foreground font-bold shadow-none px-6">Clear</Button>
+          <div className="w-full md:w-auto md:ml-auto flex items-center justify-center md:justify-start gap-2 bg-primary text-primary-foreground px-5 h-11 rounded-xl shadow-none mt-4 md:mt-0">
             <TrendDown size={16} strokeWidth={2} className="text-muted-foreground/60" />
             <span className="text-sm font-black font-mono">Total: <span className="text-red-400">{formatTaka(totalExpense)}</span></span>
           </div>
         </CardContent>
       </Card>
 
-      <Card className="bg-card rounded-2xl border border-border/50 shadow-none overflow-hidden">
+      <Card className="bg-card rounded-2xl border border-border shadow-none overflow-hidden">
         <CardContent className="p-0">
           <Table>
             <TableHeader>
-              <TableRow className="bg-muted/30 hover:bg-muted/30 border-border/50">
+              <TableRow className="bg-muted/30 hover:bg-muted/30 border-border">
                 <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground w-[120px]">Date</TableHead>
                 <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Category</TableHead>
                 <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Description</TableHead>
@@ -215,10 +215,10 @@ export default function ExpensePage() {
                 <TableRow><TableCell colSpan={6} className="text-center py-12 text-muted-foreground font-bold text-sm">No expense records found.</TableCell></TableRow>
               ) : (
                 expenses.map(exp => (
-                  <TableRow key={exp.id} className="group border-border/50">
+                  <TableRow key={exp.id} className="group border-border">
                     <TableCell className="text-[11px] font-bold text-muted-foreground">{new Date(exp.expense_date).toLocaleDateString('en-GB')}</TableCell>
                     <TableCell>
-                      <Badge variant="outline" className="capitalize text-[9px] font-bold uppercase tracking-widest border-border/50 text-muted-foreground shadow-none px-1.5 py-0">{exp.category.replace('_', ' ')}</Badge>
+                      <Badge variant="outline" className="capitalize text-[9px] font-bold uppercase tracking-widest border-border text-muted-foreground shadow-none px-1.5 py-0">{exp.category.replace('_', ' ')}</Badge>
                     </TableCell>
                     <TableCell className="text-[11px] font-bold text-foreground">
                       {exp.description}

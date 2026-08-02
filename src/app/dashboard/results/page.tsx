@@ -26,8 +26,9 @@ import { PageHeader } from "@/components/layout/page-header";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
 
+import { SEMESTER_WEIGHTS } from "@/lib/constants/exam-defaults";
+
 const FINAL_RESULT_ID = "__final_result__";
-const SEMESTER_WEIGHTS: Record<number, number> = { 1: 0.25, 2: 0.25, 3: 0.50 };
 
 type StudentResult = {
     student: Student;
@@ -57,7 +58,7 @@ export default function ResultsPage() {
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedAcademicYear, setSelectedAcademicYear] = useState(new Date().getFullYear().toString());
 
-    const supabase = useMemo(() => createClient() as any, []);
+    const supabase = useMemo(() => createClient(), []);
 
     useEffect(() => {
         (async () => {
@@ -276,7 +277,8 @@ export default function ResultsPage() {
             const optionalSubjects = subjectResults.filter((r) => r.mark !== null && r.subject.is_optional);
             
             const totalMandatoryCount = subjectResults.filter((r) => !r.subject.is_optional).length;
-            const hasFailedMandatory = mandatorySubjects.some((r) => r.grade === "F");
+            // Check ALL mandatory subjects for failure (including those with no marks entered)
+            const hasFailedMandatory = subjectResults.some((r) => !r.subject.is_optional && r.grade === "F");
             
             let baseGpa = 0;
             let gpa = 0;
@@ -519,7 +521,7 @@ export default function ResultsPage() {
 
     const getGradeColor = (g: string) => {
         if (g === "F" || g === "N/A") return "bg-red-50 text-red-600 border border-red-200/50 rounded-md shadow-none font-semibold";
-        return "bg-muted/50 border border-border/50 text-foreground rounded-md shadow-none font-semibold";
+        return "bg-muted/50 border border-border text-foreground rounded-md shadow-none font-semibold";
     };
 
     const filteredResults = results.filter((r) => {
@@ -588,42 +590,36 @@ export default function ResultsPage() {
         const posHtml = (showPosition || isFinal) ? `<tr><td class="lb">Position</td><td class="vl" style="color:#1a365d;font-weight:700">${r.position}${r.position ? posSuffix(r.position) : "-"}</td><td class="lb">Total Students</td><td class="vl">${results.length}</td></tr>` : "";
 
         const css = `.rc-view *{margin:0;padding:0;box-sizing:border-box}
-.rc-view,.rc-view .pg{font-family:'Poppins',ui-sans-serif,system-ui,sans-serif;color:#1a202c;font-size:13px;line-height:1.6}
+.rc-view,.rc-view .pg{font-family:'Poppins',ui-sans-serif,system-ui,sans-serif;color:#1e293b;font-size:13px;line-height:1.6}
 .rc-view .pg{max-width:700px;margin:0 auto;padding:10mm 10mm}
-.rc-view .tb{border-top:4px double #1a365d;border-bottom:2px solid #1a365d;height:4px;margin-bottom:8px}
-.rc-view .bb{border-top:2px solid #1a365d;border-bottom:4px double #1a365d;height:4px;margin-top:10px}
+.rc-view .tb{border-top:4px double #1e3a5f;border-bottom:2px solid #1e3a5f;height:4px;margin-bottom:8px}
+.rc-view .bb{border-top:2px solid #1e3a5f;border-bottom:4px double #1e3a5f;height:4px;margin-top:10px}
 .rc-view .hdr{text-align:center;margin-bottom:6px}.rc-view .hdr img{height:48px;margin-bottom:4px}
-.rc-view .hdr h1{font-size:22px;font-weight:700;color:#1a365d;letter-spacing:1px}
-.rc-view .hdr .ad{font-size:12px;color:#555}.rc-view .hdr .ct{font-size:10px;color:#777}
-.rc-view .tbar{border-top:1px solid #ccc;border-bottom:1px solid #ccc;padding:5px 0;margin-top:8px;background:#f0f4ff;text-align:center}
-.rc-view .tbar h2{font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:#2d3748}
-.rc-view .tbar .en{font-size:12px;color:#4a5568;margin-top:1px}
+.rc-view .hdr h1{font-size:22px;font-weight:700;color:#1e3a5f;letter-spacing:1px}
+.rc-view .hdr .ad{font-size:12px;color:#475569}.rc-view .hdr .ct{font-size:10px;color:#64748b}
+.rc-view .tbar{border-top:1px solid #cbd5e1;border-bottom:1px solid #cbd5e1;padding:5px 0;margin-top:8px;background:#f0f5ff;text-align:center}
+.rc-view .tbar h2{font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:#1e3a5f}
+.rc-view .tbar .en{font-size:12px;color:#475569;margin-top:1px}
 .rc-view .itbl{width:100%;border-collapse:collapse;margin:12px 0;font-size:13px}
 .rc-view .itbl td{padding:4px 6px;border-bottom:1px solid #e2e8f0}
-.rc-view .lb{color:#718096;width:22%}.rc-view .vl{font-weight:600;width:28%}
-.rc-view .mtbl{width:100%;border-collapse:collapse;margin-bottom:10px;font-size:12px;border:2px solid #2d3748}
-.rc-view .mtbl th{background:#1a365d;color:#fff;padding:5px 8px;border:1px solid #2d3748;text-align:center;font-size:12px}
-.rc-view .mtbl td{padding:4px 8px;border:1px solid #2d3748;font-size:12px}
-.rc-view .mtbl tr.e{background:#fff}.rc-view .mtbl tr.o{background:#f8fafc}
-.rc-view .mtbl tr.tot{background:#edf2f7;font-weight:700}.rc-view .mtbl tr.tot td{border:1px solid #2d3748}
-.rc-view .stbl{width:100%;border-collapse:collapse;border:2px solid #2d3748;margin-bottom:10px;font-size:12px}
+.rc-view .lb{color:#64748b;width:22%}.rc-view .vl{font-weight:600;width:28%;color:#1e293b}
+.rc-view .mtbl{width:100%;border-collapse:collapse;margin-bottom:10px;font-size:12px;border:1.5px solid #cbd5e1}
+.rc-view .mtbl th{background:#1e3a5f;color:#fff;padding:5px 8px;border:1px solid #1e3a5f;text-align:center;font-size:12px}
+.rc-view .mtbl td{padding:4px 8px;border:1px solid #cbd5e1;font-size:12px;color:#334155}
+.rc-view .mtbl tr.e{background:#ffffff}.rc-view .mtbl tr.o{background:#f8fafc}
+.rc-view .mtbl tr.tot{background:#e8edf5;font-weight:700;color:#1e293b}.rc-view .mtbl tr.tot td{border:1px solid #cbd5e1}
+.rc-view .stbl{width:100%;border-collapse:collapse;border:1.5px solid #cbd5e1;margin-bottom:10px;font-size:12px}
 .rc-view .stbl td{padding:6px;text-align:center}
-.rc-view .sl{font-size:9px;color:#718096;text-transform:uppercase;letter-spacing:1px}
-.rc-view .sv{font-size:16px;font-weight:800;color:#1a365d}
-.rc-view .st td{background:#f0f4ff;border-right:1px solid #2d3748}.rc-view .st td:last-child{border-right:none}
-.rc-view .slabel{font-size:9px;color:#718096;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px}
+.rc-view .sl{font-size:9px;color:#64748b;text-transform:uppercase;letter-spacing:1px}
+.rc-view .sv{font-size:16px;font-weight:800;color:#1e3a5f}
+.rc-view .st td{background:#f0f5ff;border-right:1px solid #cbd5e1}.rc-view .st td:last-child{border-right:none}
+.rc-view .slabel{font-size:9px;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px}
 .rc-view .gtbl{width:100%;border-collapse:collapse;font-size:10px;margin-bottom:14px}
-.rc-view .gtbl th{background:#edf2f7;padding:3px 5px;border:1px solid #cbd5e0;text-align:center;font-weight:600}
-.rc-view .gtbl td{padding:3px 5px;border:1px solid #cbd5e0;text-align:center;color:#4a5568}
+.rc-view .gtbl th{background:#e8edf5;padding:3px 5px;border:1px solid #cbd5e1;text-align:center;font-weight:600;color:#1e3a5f}
+.rc-view .gtbl td{padding:3px 5px;border:1px solid #cbd5e1;text-align:center;color:#475569}
 .rc-view .sigs{width:100%;table-layout:fixed;margin-top:30px;border-collapse:collapse}
 .rc-view .sigs td{text-align:center;vertical-align:top}
-.rc-view .sigb{width:160px;margin:0 auto;border-top:1.5px solid #2d3748;padding-top:4px;font-size:10px;color:#4a5568}
-/* High contrast B&W theme for preview and print */
-.rc-view, .rc-view * { color: #000 !important; border-color: #000 !important; }
-.rc-view .mtbl th, .rc-view .mtbl th * { color: #fff !important; background-color: #000 !important; }
-.rc-view .tbar { background: transparent !important; border-top: 2px solid #000 !important; border-bottom: 2px solid #000 !important; }
-.rc-view .st td, .rc-view .mtbl tr.e, .rc-view .mtbl tr.o { background: transparent !important; }
-.rc-view .gtbl th, .rc-view .mtbl tr.tot { background: #e2e8f0 !important; }`;
+.rc-view .sigb{width:160px;margin:0 auto;border-top:1.5px solid #334155;padding-top:4px;font-size:10px;color:#475569}`;
 
         const body = `<div class="pg">
 <div class="tb"></div>
@@ -684,17 +680,17 @@ body{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !impor
         });
 
         const summaryHtml = `<div style="text-align:center;">
-<div style="margin-top:24px;font-size:12px;font-weight:700;color:#1a365d;text-transform:uppercase;margin-bottom:8px;letter-spacing:1px;">Grade Summary</div>
-<table style="width:100%;max-width:700px;border:2px solid #2d3748;border-collapse:collapse;margin:0 auto 20px auto;">
+<div style="margin-top:24px;font-size:12px;font-weight:700;color:#1e3a5f;text-transform:uppercase;margin-bottom:8px;letter-spacing:1px;">Grade Summary</div>
+<table style="width:100%;max-width:700px;border:1.5px solid #cbd5e1;border-collapse:collapse;margin:0 auto 20px auto;">
     <tr>
-        <th style="background:#edf2f7 !important;color:#1a365d !important;padding:6px 8px;border:1px solid #2d3748;font-size:12px;text-align:center;font-weight:700;">Grade</th>
-        ${gradesList.map((g) => `<th style="background:#edf2f7 !important;color:#1a365d !important;padding:6px 8px;border:1px solid #2d3748;font-size:12px;text-align:center;font-weight:700;">${g}</th>`).join('')}
-        <th style="background:#edf2f7 !important;color:#1a365d !important;padding:6px 8px;border:1px solid #2d3748;font-size:12px;text-align:center;font-weight:700;">Total</th>
+        <th style="background:#e8edf5 !important;color:#1e3a5f !important;padding:6px 8px;border:1px solid #cbd5e1;font-size:12px;text-align:center;font-weight:700;">Grade</th>
+        ${gradesList.map((g) => `<th style="background:#e8edf5 !important;color:#1e3a5f !important;padding:6px 8px;border:1px solid #cbd5e1;font-size:12px;text-align:center;font-weight:700;">${g}</th>`).join('')}
+        <th style="background:#e8edf5 !important;color:#1e3a5f !important;padding:6px 8px;border:1px solid #cbd5e1;font-size:12px;text-align:center;font-weight:700;">Total</th>
     </tr>
     <tr>
-        <td style="background:#f8fafc !important;padding:6px 8px;border:1px solid #2d3748;font-size:12px;font-weight:700;text-align:center;color:#1a365d !important;">Students</td>
-        ${gradesList.map((g) => `<td style="padding:6px 8px;border:1px solid #2d3748;font-size:13px;font-weight:700;text-align:center;color:#1a202c !important;">${gradeCounts[g]}</td>`).join('')}
-        <td style="background:#f8fafc !important;padding:6px 8px;border:1px solid #2d3748;font-size:13px;font-weight:700;text-align:center;color:#1a202c !important;">${sorted.length}</td>
+        <td style="background:#f8fafc !important;padding:6px 8px;border:1px solid #cbd5e1;font-size:12px;font-weight:700;text-align:center;color:#1e3a5f !important;">Students</td>
+        ${gradesList.map((g) => `<td style="padding:6px 8px;border:1px solid #cbd5e1;font-size:13px;font-weight:700;text-align:center;color:#334155 !important;">${gradeCounts[g]}</td>`).join('')}
+        <td style="background:#f8fafc !important;padding:6px 8px;border:1px solid #cbd5e1;font-size:13px;font-weight:700;text-align:center;color:#334155 !important;">${sorted.length}</td>
     </tr>
 </table>
 </div>`;
@@ -726,16 +722,11 @@ body{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !impor
 .tbar h2{font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:#2d3748}
 .tbar .en{font-size:12px;color:#4a5568;margin-top:1px}
 .info{font-size:12px;color:#4a5568;margin-bottom:8px}
-table{width:100%;border-collapse:collapse;font-size:12px;border:2px solid #2d3748}
-th{background:#1a365d !important;color:#fff !important;padding:7px 8px;border:1px solid #2d3748;text-align:center;white-space:nowrap;font-weight:700}
-td{text-align:center;padding:5px 8px;border:1px solid #2d3748}
-tr.e{background:#fff !important}
+table{width:100%;border-collapse:collapse;font-size:12px;border:1.5px solid #cbd5e1}
+th{background:#1e3a5f !important;color:#fff !important;padding:7px 8px;border:1px solid #1e3a5f;text-align:center;white-space:nowrap;font-weight:700}
+td{text-align:center;padding:5px 8px;border:1px solid #cbd5e1;color:#334155}
+tr.e{background:#ffffff !important}
 tr.o{background:#f8fafc !important}
-/* High contrast B&W theme for preview and print */
-*, body { color: #000 !important; border-color: #000 !important; }
-th, th * { color: #fff !important; background-color: #000 !important; }
-.tbar { background: transparent !important; border-top: 2px solid #000 !important; border-bottom: 2px solid #000 !important; }
-tr.e, tr.o { background: transparent !important; }
 </style></head><body><div class="pg">
 <div class="tb"></div>
 <div class="hdr">
@@ -812,27 +803,27 @@ body{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !impor
                 subtitle="Generate and view exam results."
             />
 
-            <div className="bg-card rounded-2xl border border-border/50 shadow-none p-5">
+            <div className="bg-card rounded-2xl border border-border shadow-none p-5">
                 <div className="flex items-center gap-4 flex-wrap">
                     <div className="flex-1 min-w-[140px]">
                         <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-2 px-1">Class</p>
                         <Select value={selectedClass} onValueChange={(v) => { setSelectedClass(v); setGenerated(false); }}>
                             <SelectTrigger className="w-full h-11 rounded-xl border-0 bg-muted hover:bg-muted/80 transition-colors text-foreground font-semibold shadow-none focus:ring-1 focus:ring-ring/30"><SelectValue placeholder="Select Class" /></SelectTrigger>
-                            <SelectContent className="rounded-xl border-border/50 shadow-md">{classes.map((c) => (<SelectItem key={c.id} value={c.id} className="rounded-lg">{c.name}</SelectItem>))}</SelectContent>
+                            <SelectContent className="rounded-xl border-border shadow-md">{classes.map((c) => (<SelectItem key={c.id} value={c.id} className="rounded-lg">{c.name}</SelectItem>))}</SelectContent>
                         </Select>
                     </div>
                     <div className="flex-1 min-w-[140px]">
                         <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-2 px-1">Section</p>
                         <Select value={selectedSection} onValueChange={(v) => { setSelectedSection(v); setGenerated(false); }}>
                             <SelectTrigger className="w-full h-11 rounded-xl border-0 bg-muted hover:bg-muted/80 transition-colors text-foreground font-semibold shadow-none focus:ring-1 focus:ring-ring/30"><SelectValue placeholder="All Sections" /></SelectTrigger>
-                            <SelectContent className="rounded-xl border-border/50 shadow-md"><SelectItem value="all" className="rounded-lg">All Sections</SelectItem>{sections.map((s) => (<SelectItem key={s.id} value={s.id} className="rounded-lg">{s.name}</SelectItem>))}</SelectContent>
+                            <SelectContent className="rounded-xl border-border shadow-md"><SelectItem value="all" className="rounded-lg">All Sections</SelectItem>{sections.map((s) => (<SelectItem key={s.id} value={s.id} className="rounded-lg">{s.name}</SelectItem>))}</SelectContent>
                         </Select>
                     </div>
                     <div className="flex-1 min-w-[140px]">
                         <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-2 px-1">Exam</p>
                         <Select value={selectedExam} onValueChange={(v) => { setSelectedExam(v); setGenerated(false); }}>
                             <SelectTrigger className="w-full h-11 rounded-xl border-0 bg-muted hover:bg-muted/80 transition-colors text-foreground font-semibold shadow-none focus:ring-1 focus:ring-ring/30"><SelectValue placeholder="Select Exam" /></SelectTrigger>
-                            <SelectContent className="rounded-xl border-border/50 shadow-md">
+                            <SelectContent className="rounded-xl border-border shadow-md">
                                 <SelectItem value={FINAL_RESULT_ID} className="rounded-lg">Final Result (Annual)</SelectItem>
                                 {exams.map((e) => (<SelectItem key={e.id} value={e.id} className="rounded-lg">{e.name}{e.exam_type === "semester" && " (Combined)"}</SelectItem>))}
                             </SelectContent>
@@ -842,31 +833,31 @@ body{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !impor
                         <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-2 px-1">Year</p>
                         <Select value={selectedAcademicYear} onValueChange={(v) => { setSelectedAcademicYear(v); setGenerated(false); }}>
                             <SelectTrigger className="w-full h-11 rounded-xl border-0 bg-muted hover:bg-muted/80 transition-colors text-foreground font-semibold shadow-none focus:ring-1 focus:ring-ring/30"><SelectValue placeholder="Active Academic Year" /></SelectTrigger>
-                            <SelectContent className="rounded-xl border-border/50 shadow-md">
+                            <SelectContent className="rounded-xl border-border shadow-md">
                                 {academicYearOptions.map((y) => (<SelectItem key={y} value={y} className="rounded-lg">{y}</SelectItem>))}
                             </SelectContent>
                         </Select>
                     </div>
                 </div>
                 <div className="mt-5 flex justify-end">
-                    <Button onClick={handleGenerate} disabled={!selectedClass || !selectedExam || processing} className="bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 shadow-none font-semibold transition-all duration-200 btn-press h-11 px-6 w-full sm:w-auto">
+                    <Button onClick={handleGenerate} disabled={!selectedClass || !selectedExam || processing} className="bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 shadow-none font-semibold transition-all duration-200  h-11 px-6 w-full sm:w-auto">
                         <Sparkle size={16} strokeWidth={1.5} className="mr-2" />{processing ? "Generating..." : "Generate Result"}
                     </Button>
                 </div>
             </div>
 
-            {isFinal && (<Card className="border-0 bg-muted/50 shadow-none rounded-2xl"><CardContent className="py-4"><p className="text-sm text-muted-foreground font-medium"><strong>Final Result:</strong> 1st Semester (25%) + 2nd Semester (25%) + 3rd Semester (50%)</p></CardContent></Card>)}
+            {isFinal && (<Card className="border-0 bg-muted/50 shadow-none rounded-xl"><CardContent className="py-4"><p className="text-sm text-muted-foreground font-medium"><strong>Final Result:</strong> 1st Semester (25%) + 2nd Semester (25%) + 3rd Semester (50%)</p></CardContent></Card>)}
 
-            {gradingRules.length === 0 && (<Card className="border-0 bg-red-50 shadow-none rounded-2xl"><CardContent className="flex items-center gap-3 py-4"><WarningCircle size={20} strokeWidth={1.5} className="text-red-500" /><p className="text-sm text-red-600 font-medium">No grading rules. Go to Exams &gt; Grading System.</p></CardContent></Card>)}
+            {gradingRules.length === 0 && (<Card className="border-0 bg-red-50 shadow-none rounded-xl"><CardContent className="flex items-center gap-3 py-4"><WarningCircle size={20} strokeWidth={1.5} className="text-red-500" /><p className="text-sm text-red-600 font-medium">No grading rules. Go to Exams &gt; Grading System.</p></CardContent></Card>)}
 
-            {!generated && (<div className="bg-transparent rounded-2xl border-2 border-dashed border-border/50 p-12 text-center shadow-none"><div className="h-12 w-12 rounded-xl flex items-center justify-center mb-4 mx-auto text-muted-foreground/40"><ChartBar size={32} strokeWidth={1.2} /></div><h3 className="font-semibold text-lg text-foreground mb-1">Generate Results</h3><p className="text-sm text-muted-foreground max-w-sm mx-auto">Select class, section, and exam type.</p></div>)}
+            {!generated && (<div className="bg-transparent rounded-2xl border-2 border-dashed border-border p-12 text-center shadow-none"><div className="h-12 w-12 rounded-xl flex items-center justify-center mb-4 mx-auto text-muted-foreground/40"><ChartBar size={32} strokeWidth={1.2} /></div><h3 className="font-semibold text-lg text-foreground mb-1">Generate Results</h3><p className="text-sm text-muted-foreground max-w-sm mx-auto">Select class, section, and exam type.</p></div>)}
 
             {generated && results.length > 0 && (
-                <Card className="bg-card rounded-2xl border-border/50 shadow-none overflow-hidden">
+                <Card className="bg-card rounded-2xl border-border shadow-none overflow-hidden">
                     <CardHeader className="pb-3 bg-white">
                         <CardTitle className="text-base flex items-center gap-2 flex-wrap">
                             {classes.find((c) => c.id === selectedClass)?.name}
-                            {selectedSection && selectedSection !== "all" && <Badge variant="outline" className="bg-muted/50 border-border/50 text-muted-foreground rounded-md shadow-none">{sections.find((s) => s.id === selectedSection)?.name}</Badge>}
+                            {selectedSection && selectedSection !== "all" && <Badge variant="outline" className="bg-muted/50 border-border text-muted-foreground rounded-md shadow-none">{sections.find((s) => s.id === selectedSection)?.name}</Badge>}
                             <span className="text-muted-foreground">-</span>
                             {isFinal ? "Final Result" : selectedExamObj?.name}
                             {isFinal && <Badge className="bg-muted text-foreground border-0 rounded-md shadow-none hover:bg-muted/80">Annual</Badge>}
@@ -923,8 +914,8 @@ body{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !impor
 
             {/* Preview Dialog */}
             <Dialog open={!!reportStudent} onOpenChange={(o) => (!o ? setReportStudent(null) : null)}>
-                <DialogContent className="w-full max-h-[95vh] overflow-y-auto p-0 bg-card outline-none rounded-3xl border-border/50 shadow-2xl [&::-webkit-scrollbar]:hidden [&>button]:hidden" style={{ msOverflowStyle: "none", scrollbarWidth: "none", maxWidth: "780px", width: "100%" }}>
-                    <div className="flex justify-between items-center px-6 py-4 sticky top-0 bg-card z-10 border-b border-border/50">
+                <DialogContent className="w-full max-h-[95vh] overflow-y-auto p-0 bg-card outline-none rounded-xl border-border shadow-xs [&::-webkit-scrollbar]:hidden [&>button]:hidden" style={{ msOverflowStyle: "none", scrollbarWidth: "none", maxWidth: "780px", width: "100%" }}>
+                    <div className="flex justify-between items-center px-6 py-4 sticky top-0 bg-card z-10 border-b border-border">
                         <DialogTitle className="text-lg font-bold text-foreground">Report Card Preview</DialogTitle>
                         <div className="flex items-center gap-3">
                             <Button variant="outline" size="sm" className="h-9 rounded-lg bg-muted border-0 hover:bg-muted/80 transition-colors text-foreground font-medium shadow-none px-4" onClick={() => reportStudent && handlePrint(reportStudent)}>

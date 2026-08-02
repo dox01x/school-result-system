@@ -1,45 +1,94 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { requireAuth } from "@/lib/api-auth";
 import type { GlobalSearchHit } from "@/lib/global-search-types";
 
 export const dynamic = "force-dynamic";
 
+interface StudentSearchRow {
+    id: string;
+    name: string;
+    roll: string | null;
+    student_id: string | null;
+}
+
+interface TeacherSearchRow {
+    id: string;
+    name: string;
+    email: string | null;
+    subject_specialty: string | null;
+}
+
+interface StaffSearchRow {
+    id: string;
+    name: string;
+    email: string | null;
+    designation: string | null;
+}
+
+interface NamedRow {
+    id: string;
+    name: string;
+}
+
+interface ExamRow {
+    id: string;
+    name: string;
+    exam_type: string | null;
+}
+
+interface NoticeRow {
+    id: string;
+    title: string;
+}
+
+function cleanQuery(q: string): string {
+    return q.replace(/,/g, " ").replace(/"/g, "").trim();
+}
+
 function likePattern(q: string): string {
-    const escaped = q.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_");
+    const cleaned = cleanQuery(q);
+    const escaped = cleaned.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_");
     return `%${escaped}%`;
 }
 
 export async function GET(request: NextRequest) {
-    const q = request.nextUrl.searchParams.get("q")?.trim() ?? "";
-    if (q.length < 1) {
+    const rawQ = request.nextUrl.searchParams.get("q")?.trim() ?? "";
+    if (rawQ.length < 1) {
         return NextResponse.json({ results: [] as GlobalSearchHit[] });
     }
-
-    const supabase = (await createServerSupabaseClient()) as any;
-    const {
-        data: { user },
-    } = await supabase.auth.getUser();
-    if (!user && process.env.AUTH_DISABLED !== "true") {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (rawQ.length > 200) {
+        return NextResponse.json({ error: "Query too long" }, { status: 400 });
     }
 
-    const pat = likePattern(q);
+    const auth = await requireAuth();
+    if (auth instanceof NextResponse) return auth;
+    const { supabase } = auth;
+
+    const pat = likePattern(rawQ);
     const limit = 8;
 
-    const [studentsName, studentsRoll, studentsId, teachers, teachersEmail, staffs, staffsEmail, classes, subjects, exams, notices] =
+    const [studentsRes, teachersRes, staffsRes, classesRes, subjectsRes, examsRes, noticesRes] =
         await Promise.all([
-        supabase.from("students").select("id, name, roll, student_id").ilike("name", pat).limit(limit),
-        supabase.from("students").select("id, name, roll, student_id").ilike("roll", pat).limit(limit),
-        supabase.from("students").select("id, name, roll, student_id").ilike("student_id", pat).limit(limit),
-        supabase.from("teachers").select("id, name, email, subject_specialty").ilike("name", pat).limit(6),
-        supabase.from("teachers").select("id, name, email, subject_specialty").ilike("email", pat).limit(6),
-        supabase.from("staffs").select("id, name, email, designation").ilike("name", pat).limit(6),
-        supabase.from("staffs").select("id, name, email, designation").ilike("email", pat).limit(6),
-        supabase.from("classes").select("id, name").ilike("name", pat).limit(6),
-        supabase.from("subjects").select("id, name").ilike("name", pat).limit(6),
-        supabase.from("exams").select("id, name, exam_type").ilike("name", pat).limit(6),
-        supabase.from("notices").select("id, title").ilike("title", pat).limit(6),
-    ]);
+            supabase
+                .from("students")
+                .select("id, name, roll, student_id")
+                .or(`name.ilike.${pat},roll.ilike.${pat},student_id.ilike.${pat}`)
+                .limit(limit),
+            supabase
+                .from("teachers")
+                .select("id, name, email, subject_specialty")
+                .or(`name.ilike.${pat},email.ilike.${pat}`)
+                .limit(6),
+            supabase
+                .from("staffs")
+                .select("id, name, email, designation")
+                .or(`name.ilike.${pat},email.ilike.${pat}`)
+                .limit(6),
+            supabase.from("classes").select("id, name").ilike("name", pat).limit(6),
+            supabase.from("subjects").select("id, name").ilike("name", pat).limit(6),
+            supabase.from("exams").select("id, name, exam_type").ilike("name", pat).limit(6),
+            supabase.from("notices").select("id, title").ilike("title", pat).limit(6),
+        ]);
 
     const byId = new Map<string, GlobalSearchHit>();
 
@@ -48,7 +97,7 @@ export async function GET(request: NextRequest) {
         if (!byId.has(key)) byId.set(key, item);
     };
 
-    const studentRows = [...(studentsName.data ?? []), ...(studentsRoll.data ?? []), ...(studentsId.data ?? [])];
+    const studentRows = (studentsRes.data || []) as unknown as StudentSearchRow[];
     for (const s of studentRows) {
         add({
             type: "student",
@@ -59,7 +108,7 @@ export async function GET(request: NextRequest) {
         });
     }
 
-    const teacherRows = [...(teachers.data ?? []), ...(teachersEmail.data ?? [])];
+    const teacherRows = (teachersRes.data || []) as unknown as TeacherSearchRow[];
     for (const t of teacherRows) {
         add({
             type: "teacher",
@@ -69,7 +118,8 @@ export async function GET(request: NextRequest) {
             href: "/dashboard/administration/teachers-rooms",
         });
     }
-    const staffRows = [...(staffs.data ?? []), ...(staffsEmail.data ?? [])];
+
+    const staffRows = (staffsRes.data || []) as unknown as StaffSearchRow[];
     for (const s of staffRows) {
         add({
             type: "staff",
@@ -80,7 +130,8 @@ export async function GET(request: NextRequest) {
         });
     }
 
-    for (const c of classes.data ?? []) {
+    const classRows = (classesRes.data || []) as unknown as NamedRow[];
+    for (const c of classRows) {
         add({
             type: "class",
             id: c.id,
@@ -90,7 +141,8 @@ export async function GET(request: NextRequest) {
         });
     }
 
-    for (const s of subjects.data ?? []) {
+    const subjectRows = (subjectsRes.data || []) as unknown as NamedRow[];
+    for (const s of subjectRows) {
         add({
             type: "subject",
             id: s.id,
@@ -100,7 +152,8 @@ export async function GET(request: NextRequest) {
         });
     }
 
-    for (const e of exams.data ?? []) {
+    const examRows = (examsRes.data || []) as unknown as ExamRow[];
+    for (const e of examRows) {
         add({
             type: "exam",
             id: e.id,
@@ -110,7 +163,8 @@ export async function GET(request: NextRequest) {
         });
     }
 
-    for (const n of notices.data ?? []) {
+    const noticeRows = (noticesRes.data || []) as unknown as NoticeRow[];
+    for (const n of noticeRows) {
         add({
             type: "notice",
             id: n.id,

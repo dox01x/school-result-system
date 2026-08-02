@@ -4,6 +4,14 @@ import { generateReceiptNumber, getMonthName } from '@/lib/finance-utils';
 import { sendPaymentConfirmationSms } from '@/lib/sms-gateway';
 import { ApiResponse, TuitionPayment } from '@/types/finance';
 
+interface FeeDetailItem {
+  type: string;
+  amount: number;
+  month?: number;
+  year?: number;
+  exam_name?: string;
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -13,19 +21,36 @@ export async function POST(request: Request) {
       fine: client_fine, payment_method, collected_by, note 
     } = body;
     
-    if (!student_id || fee_details.length === 0 || typeof amount_paid !== 'number') {
-      return NextResponse.json({ success: false, error: "Missing required fields or invalid amount" }, { status: 400 });
+    if (!student_id || !Array.isArray(fee_details) || fee_details.length === 0 || typeof amount_paid !== 'number' || amount_paid <= 0) {
+      return NextResponse.json({ success: false, error: "Missing required fields or invalid positive amount" }, { status: 400 });
     }
 
-    const supabase = (await createServerSupabaseClient()) as any;
+    if (typeof discount === 'number' && discount < 0) {
+      return NextResponse.json({ success: false, error: "Discount cannot be negative" }, { status: 400 });
+    }
+
+    const supabase = await createServerSupabaseClient();
+
+    // Fetch student details from database
+    const { data: studentData, error: studentError } = await supabase
+      .from('students')
+      .select('name, roll, phone')
+      .eq('id', student_id)
+      .single();
+
+    if (studentError || !studentData) {
+      return NextResponse.json({ success: false, error: "Student not found" }, { status: 404 });
+    }
 
     // ═══════════════════ SERVER-SIDE DUPLICATE CHECK ═══════════════════
     // Fetch ALL existing payments for this student in this year
-    const { data: existingPayments } = await supabase
+    const { data: rawExistingPayments } = await supabase
       .from('tuition_payments')
       .select('fee_details, receipt_number, payment_date')
       .eq('student_id', student_id)
       .eq('year', year);
+
+    const existingPayments = rawExistingPayments as unknown as { fee_details?: FeeDetailItem[]; receipt_number: string; payment_date: string }[] | null;
 
     // Build a set of already-paid {type, month} combinations
     const paidItems = new Set<string>();
@@ -35,7 +60,7 @@ export async function POST(request: Request) {
       for (const payment of existingPayments) {
         const details = payment.fee_details || [];
         for (const fd of details) {
-          if (fd.type === 'arrears') continue; // arrears can be paid multiple times
+          if (fd.type === 'arrears') continue;
           let key: string;
           if (fd.month) {
             key = `${fd.type}__${fd.month}__${fd.year || year}`;
@@ -56,7 +81,7 @@ export async function POST(request: Request) {
     // Check submitted fee_details against already-paid items
     const conflicts: string[] = [];
 
-    for (const item of fee_details) {
+    for (const item of fee_details as FeeDetailItem[]) {
       if (item.type === 'arrears') continue;
       let key: string;
       if (item.month) {
@@ -88,12 +113,12 @@ export async function POST(request: Request) {
     // ═══════════════════ END DUPLICATE CHECK ═══════════════════
 
     let total_amount_due = 0;
-    const total_fine = Number(client_fine) || 0;
-    let primary_month = null;
+    const total_fine = Math.max(0, Number(client_fine) || 0);
+    let primary_month: number | null = null;
 
-    for (const item of fee_details) {
-      if (!item.type || typeof item.amount !== 'number') {
-        return NextResponse.json({ success: false, error: "Invalid fee details structure" }, { status: 400 });
+    for (const item of fee_details as FeeDetailItem[]) {
+      if (!item.type || typeof item.amount !== 'number' || item.amount < 0) {
+        return NextResponse.json({ success: false, error: "Invalid fee details structure or negative amount" }, { status: 400 });
       }
       total_amount_due += item.amount;
 
@@ -104,7 +129,7 @@ export async function POST(request: Request) {
 
     const receipt_number = await generateReceiptNumber(supabase, year);
 
-    const feeTypes = [...new Set(fee_details.map((f: any) => f.type))];
+    const feeTypes = [...new Set((fee_details as FeeDetailItem[]).map((f) => f.type))];
     const fee_type = feeTypes.length > 1 ? 'multiple' : feeTypes[0];
 
     const { data: tuitionResult, error: insertError } = await supabase
@@ -112,6 +137,8 @@ export async function POST(request: Request) {
       .insert({
         receipt_number,
         student_id,
+        student_name: studentData.name,
+        roll: studentData.roll || null,
         class_name: class_name || 'N/A',
         section,
         fee_type,
@@ -133,7 +160,7 @@ export async function POST(request: Request) {
 
     // Auto income entry
     await supabase.from('income_entries').insert({
-      category: fee_type === 'arrears' ? 'arrears' : (fee_type === 'tuition' ? 'tuition' : (['mct_exam', 'semester_exam', 'exam'].includes(fee_type as string) ? 'exam_fee' : 'other')),
+      category: fee_type === 'arrears' ? 'arrears' : (fee_type === 'tuition' ? 'tuition' : (['mct_exam', 'semester_exam', 'exam'].includes(fee_type) ? 'exam_fee' : 'other')),
       amount: amount_paid,
       description: `Fees collected (${feeTypes.join(', ')}) - Receipt: ${receipt_number}`,
       received_from: student_id,
@@ -146,14 +173,7 @@ export async function POST(request: Request) {
     });
 
     // ═══════════════════ SMS CONFIRMATION (fire-and-forget) ═══════════════════
-    // Send SMS to guardian's phone. This must NEVER block payment completion.
     try {
-      // Fetch student phone and school name for SMS
-      const { data: studentData } = await supabase
-        .from('students')
-        .select('name, phone')
-        .eq('id', student_id)
-        .single();
       const { data: schoolData } = await supabase
         .from('school_info')
         .select('name')
@@ -161,22 +181,21 @@ export async function POST(request: Request) {
         .single();
 
       if (studentData?.phone) {
-        // Don't await — fire and forget so SMS failure never blocks the response
         sendPaymentConfirmationSms({
           phone: studentData.phone,
           studentName: studentData.name,
           amount: amount_paid,
           receiptNumber: receipt_number,
           schoolName: schoolData?.name
-        }).catch(() => {}); // silently ignore SMS errors
+        }).catch(() => {});
       }
     } catch {
       // SMS errors must never affect payment flow
     }
-    // ═══════════════════ END SMS ═══════════════════
 
     return NextResponse.json({ success: true, data: tuitionResult } as ApiResponse<TuitionPayment>);
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Internal server error";
+    return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }

@@ -11,7 +11,7 @@ export function AboutSection() {
           <span className="inline-flex items-center gap-1.5 bg-brand/5 text-brand text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-widest">
             📚 About Us
           </span>
-          <h2 className="text-3xl md:text-4xl font-heading font-bold tracking-tight text-[#0F172A]" style={{ textWrap: "balance" }}>
+          <h2 className="text-3xl md:text-4xl  font-bold tracking-tight text-[#0F172A]" style={{ textWrap: "balance" }}>
             Building a Foundation for{" "}
             <span className="text-brand-accent">Lifelong Learning</span>
           </h2>
@@ -51,7 +51,7 @@ export function AboutSection() {
                 { n: "99.9%", l: "Uptime", c: "bg-violet-50 text-violet-600" },
               ].map((b) => (
                 <div key={b.l} className={`${b.c} rounded-2xl p-5 text-center`}>
-                  <p className="text-2xl font-extrabold">{b.n}</p>
+                  <p className="text-2xl font-semibold">{b.n}</p>
                   <p className="text-xs font-medium mt-1 opacity-70">{b.l}</p>
                 </div>
               ))}

@@ -227,10 +227,10 @@ export function GlobalSearch() {
         <div ref={wrapRef} className="relative w-full md:max-w-sm lg:max-w-md min-w-0">
             <div
                 className={cn(
-                    "flex items-center gap-2 rounded-xl bg-muted/50 border px-3 py-2 text-sm transition-all duration-300 ease-out",
+                    "flex items-center gap-2 rounded-lg border px-3 h-9 text-sm transition-all duration-150",
                     focused
-                        ? "border-primary/35 shadow-[0_0_0_3px_hsl(var(--primary)/0.12)] w-full"
-                        : "border-border/80 w-full md:w-[min(100%,13.5rem)]"
+                        ? "border-primary/40 ring-2 ring-ring/20 w-full"
+                        : "border-border bg-transparent w-full md:w-[min(100%,13rem)]"
                 )}
             >
                 <Search className="h-4 w-4 text-muted-foreground shrink-0" aria-hidden />
@@ -256,7 +256,7 @@ export function GlobalSearch() {
                 <div
                     id="global-search-results"
                     role="listbox"
-                    className="absolute top-[calc(100%+6px)] left-0 right-0 z-[100] rounded-xl border border-border bg-popover text-popover-foreground shadow-lg max-h-[min(70vh,22rem)] overflow-y-auto py-1 thin-scrollbar"
+                    className="absolute top-[calc(100%+4px)] left-0 right-0 z-[100] rounded-xl border border-border bg-popover text-popover-foreground shadow-md max-h-[min(70vh,22rem)] overflow-y-auto py-1 thin-scrollbar"
                 >
                     {loading && (
                         <div className="flex items-center justify-center gap-2 py-8 text-muted-foreground text-sm">

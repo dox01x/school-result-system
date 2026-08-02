@@ -199,7 +199,7 @@ body{font-family:'Poppins',sans-serif;color:#1a202c;line-height:1.7}
                 }
             />
 
-            <div className="bg-card rounded-2xl border border-border/50 shadow-none p-4">
+            <div className="bg-card rounded-2xl border border-border shadow-none p-4">
                 <div className="flex items-center gap-3">
                     <div>
                         <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold px-1 mb-1.5">Audience</p>
@@ -207,7 +207,7 @@ body{font-family:'Poppins',sans-serif;color:#1a202c;line-height:1.7}
                             <SelectTrigger className="w-[160px] h-11 rounded-xl border-0 bg-muted shadow-none font-bold text-foreground focus:ring-1 focus:ring-ring/30">
                                 <SelectValue placeholder="Filter by audience" />
                             </SelectTrigger>
-                            <SelectContent className="border-border/50 rounded-xl shadow-md">
+                            <SelectContent className="border-border rounded-xl shadow-md">
                                 {AUDIENCES.map((a) => (<SelectItem key={a.value} value={a.value} className="rounded-lg font-medium">{a.label}</SelectItem>))}
                             </SelectContent>
                         </Select>
@@ -216,7 +216,7 @@ body{font-family:'Poppins',sans-serif;color:#1a202c;line-height:1.7}
             </div>
 
             {notices.length === 0 ? (
-                <Card className="border-dashed border-2 rounded-2xl border-border/50 shadow-none">
+                <Card className="border-dashed border-2 rounded-2xl border-border shadow-none">
                     <CardContent className="flex flex-col items-center justify-center py-16 text-center">
                         <Megaphone size={48} strokeWidth={1.5} className="text-muted-foreground/40 mb-4" />
                         <h3 className="font-bold text-foreground text-lg mb-1">No Notices</h3>
@@ -226,7 +226,7 @@ body{font-family:'Poppins',sans-serif;color:#1a202c;line-height:1.7}
             ) : (
                 <div className="space-y-3">
                     {notices.map((n) => (
-                        <Card key={n.id} className="group rounded-2xl border-border/50 shadow-none bg-card hover:bg-muted/30 transition-colors">
+                        <Card key={n.id} className="group rounded-2xl border-border shadow-none bg-card hover:bg-muted/30 transition-colors">
                             <CardHeader className="pb-2">
                                 <CardTitle className="text-sm flex items-center gap-2 flex-wrap">
                                     <span className="flex-1 min-w-0 truncate font-bold text-foreground">{n.title}</span>
@@ -257,7 +257,7 @@ body{font-family:'Poppins',sans-serif;color:#1a202c;line-height:1.7}
             )}
 
             <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (open) setTimeout(() => document.getElementById("notice-title")?.focus(), 100); }}>
-                <DialogContent className="sm:max-w-lg border-border/50 rounded-2xl shadow-xl">
+                <DialogContent className="sm:max-w-lg border-border rounded-xl shadow-xl">
                     <DialogHeader>
                         <DialogTitle className="font-bold text-xl">{formData.id ? "Edit" : "Create"} Notice</DialogTitle>
                     </DialogHeader>
@@ -275,14 +275,14 @@ body{font-family:'Poppins',sans-serif;color:#1a202c;line-height:1.7}
                                 <Label className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold px-1">Audience</Label>
                                 <Select value={formData.audience} onValueChange={(v) => setFormData((p) => ({ ...p, audience: v }))}>
                                     <SelectTrigger className="h-11 rounded-xl border-0 bg-muted font-bold text-foreground focus:ring-1 focus:ring-ring/30 shadow-none"><SelectValue /></SelectTrigger>
-                                    <SelectContent className="border-border/50 rounded-xl shadow-md">{AUDIENCES.map((a) => (<SelectItem key={a.value} value={a.value} className="rounded-lg font-medium">{a.label}</SelectItem>))}</SelectContent>
+                                    <SelectContent className="border-border rounded-xl shadow-md">{AUDIENCES.map((a) => (<SelectItem key={a.value} value={a.value} className="rounded-lg font-medium">{a.label}</SelectItem>))}</SelectContent>
                                 </Select>
                             </div>
                             <div className="grid gap-1.5">
                                 <Label className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold px-1">Priority</Label>
                                 <Select value={formData.priority} onValueChange={(v) => setFormData((p) => ({ ...p, priority: v }))}>
                                     <SelectTrigger className="h-11 rounded-xl border-0 bg-muted font-bold text-foreground focus:ring-1 focus:ring-ring/30 shadow-none"><SelectValue /></SelectTrigger>
-                                    <SelectContent className="border-border/50 rounded-xl shadow-md">{PRIORITIES.map((p) => (<SelectItem key={p.value} value={p.value} className="rounded-lg font-medium">{p.label}</SelectItem>))}</SelectContent>
+                                    <SelectContent className="border-border rounded-xl shadow-md">{PRIORITIES.map((p) => (<SelectItem key={p.value} value={p.value} className="rounded-lg font-medium">{p.label}</SelectItem>))}</SelectContent>
                                 </Select>
                             </div>
                         </div>

@@ -29,7 +29,7 @@ export default function FinanceDashboard() {
   useEffect(() => {
     const fetchAll = async () => {
       try {
-        const supabase = createClient() as any;
+        const supabase = createClient();
 
         // Fetch summary, today's collection, and recent payments in parallel
         const [summaryRes, todayRes, recentRes] = await Promise.all([
@@ -98,9 +98,9 @@ export default function FinanceDashboard() {
       />
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {/* Today's Collection */}
-        <Card className="group bg-card rounded-2xl p-6 border border-border hover:border-border hover:bg-muted/30 transition-all duration-300 cursor-pointer shadow-none">
+        <Card className="group bg-card rounded-xl p-6 border border-border hover:border-border hover:bg-muted/30 transition-all duration-300 cursor-pointer shadow-none">
           <CardContent className="p-0">
             <div className="flex items-start justify-between mb-4">
               <div className="bg-muted rounded-xl p-3">
@@ -114,7 +114,7 @@ export default function FinanceDashboard() {
         </Card>
 
         {/* Monthly Income */}
-        <Card className="group bg-card rounded-2xl p-6 border border-border hover:border-border hover:bg-muted/30 transition-all duration-300 cursor-pointer shadow-none">
+        <Card className="group bg-card rounded-xl p-6 border border-border hover:border-border hover:bg-muted/30 transition-all duration-300 cursor-pointer shadow-none">
           <CardContent className="p-0">
             <div className="flex items-start justify-between mb-4">
               <div className="bg-muted rounded-xl p-3">
@@ -128,7 +128,7 @@ export default function FinanceDashboard() {
         </Card>
 
         {/* Monthly Expense */}
-        <Card className="group bg-card rounded-2xl p-6 border border-border hover:border-border hover:bg-muted/30 transition-all duration-300 cursor-pointer shadow-none">
+        <Card className="group bg-card rounded-xl p-6 border border-border hover:border-border hover:bg-muted/30 transition-all duration-300 cursor-pointer shadow-none">
           <CardContent className="p-0">
             <div className="flex items-start justify-between mb-4">
               <div className="bg-muted rounded-xl p-3">
@@ -142,7 +142,7 @@ export default function FinanceDashboard() {
         </Card>
 
         {/* Net Balance */}
-        <Card className="group bg-card rounded-2xl p-6 border border-border hover:border-border hover:bg-muted/30 transition-all duration-300 cursor-pointer shadow-none">
+        <Card className="group bg-card rounded-xl p-6 border border-border hover:border-border hover:bg-muted/30 transition-all duration-300 cursor-pointer shadow-none">
           <CardContent className="p-0">
             <div className="flex items-start justify-between mb-4">
               <div className="bg-muted rounded-xl p-3">
@@ -156,7 +156,7 @@ export default function FinanceDashboard() {
         </Card>
 
         {/* Tuition Due */}
-        <Card className="group bg-card rounded-2xl p-6 border border-border hover:border-border hover:bg-muted/30 transition-all duration-300 cursor-pointer shadow-none">
+        <Card className="group bg-card rounded-xl p-6 border border-border hover:border-border hover:bg-muted/30 transition-all duration-300 cursor-pointer shadow-none">
           <CardContent className="p-0">
             <div className="flex items-start justify-between mb-4">
               <div className="bg-muted rounded-xl p-3">
@@ -175,12 +175,12 @@ export default function FinanceDashboard() {
         {/* Quick Actions */}
         <div className="lg:col-span-8">
           <div className="flex items-center justify-between mb-4 px-1">
-              <h3 className="text-base font-bold text-foreground font-heading tracking-tight">Quick Actions</h3>
+              <h3 className="text-base font-bold text-foreground  tracking-tight">Quick Actions</h3>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {quickLinks.map(link => (
               <Link key={link.href} href={link.href}>
-                <div className="group bg-card rounded-2xl p-6 border border-border hover:border-border hover:bg-muted/30 cursor-pointer text-center transition-all h-full flex flex-col justify-center">
+                <div className="group bg-card rounded-xl p-6 border border-border hover:border-border hover:bg-muted/30 cursor-pointer text-center transition-all h-full flex flex-col justify-center">
                   <div className="h-12 w-12 rounded-xl bg-muted flex items-center justify-center mx-auto mb-4 group-hover:bg-muted/80 transition-colors">
                     <link.icon size={24} strokeWidth={1.2} className="text-foreground group-hover:text-foreground transition-colors" />
                   </div>
@@ -193,9 +193,9 @@ export default function FinanceDashboard() {
 
         {/* Recent Payments */}
         <div className="lg:col-span-4">
-          <div className="bg-card rounded-2xl p-6 border border-border/50 h-full">
+          <div className="bg-card rounded-xl p-6 border border-border h-full">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-bold text-foreground font-heading tracking-tight">Recent Collections</h3>
+              <h3 className="text-base font-bold text-foreground  tracking-tight">Recent Collections</h3>
             </div>
             <div className="space-y-0">
               {recentPayments.length === 0 ? (

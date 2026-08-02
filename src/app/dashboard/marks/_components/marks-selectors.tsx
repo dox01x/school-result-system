@@ -57,7 +57,7 @@ const MarksSelectors = React.memo(function MarksSelectors({
                     <SelectTrigger className="w-full h-11 rounded-xl border-0 bg-muted hover:bg-muted/80 transition-colors text-foreground font-semibold shadow-none focus:ring-1 focus:ring-ring/30">
                         <SelectValue placeholder="Class" />
                     </SelectTrigger>
-                    <SelectContent className="rounded-xl border-border/50 shadow-md">
+                    <SelectContent className="rounded-xl border-border shadow-md">
                         {classes.map((c) => (
                             <SelectItem key={c.id} value={c.id} className="rounded-lg">{c.name}</SelectItem>
                         ))}
@@ -71,7 +71,7 @@ const MarksSelectors = React.memo(function MarksSelectors({
                     <SelectTrigger className="w-full h-11 rounded-xl border-0 bg-muted hover:bg-muted/80 transition-colors text-foreground font-semibold shadow-none focus:ring-1 focus:ring-ring/30">
                         <SelectValue placeholder="Section" />
                     </SelectTrigger>
-                    <SelectContent className="rounded-xl border-border/50 shadow-md">
+                    <SelectContent className="rounded-xl border-border shadow-md">
                         {sections.map((s) => (
                             <SelectItem key={s.id} value={s.id} className="rounded-lg">{s.name}</SelectItem>
                         ))}
@@ -85,7 +85,7 @@ const MarksSelectors = React.memo(function MarksSelectors({
                     <SelectTrigger className="w-full h-11 rounded-xl border-0 bg-muted hover:bg-muted/80 transition-colors text-foreground font-semibold shadow-none focus:ring-1 focus:ring-ring/30">
                         <SelectValue placeholder="Exam" />
                     </SelectTrigger>
-                    <SelectContent className="rounded-xl border-border/50 shadow-md">
+                    <SelectContent className="rounded-xl border-border shadow-md">
                         {exams.map((e) => (
                             <SelectItem key={e.id} value={e.id} className="rounded-lg">{e.name}</SelectItem>
                         ))}
@@ -99,7 +99,7 @@ const MarksSelectors = React.memo(function MarksSelectors({
                     <SelectTrigger className="w-full h-11 rounded-xl border-0 bg-muted hover:bg-muted/80 transition-colors text-foreground font-semibold shadow-none focus:ring-1 focus:ring-ring/30">
                         <SelectValue placeholder="Subject" />
                     </SelectTrigger>
-                    <SelectContent className="rounded-xl border-border/50 shadow-md">
+                    <SelectContent className="rounded-xl border-border shadow-md">
                         {subjects.map((s) => (
                             <SelectItem key={s.id} value={s.id} className="rounded-lg">{s.name}</SelectItem>
                         ))}
@@ -113,7 +113,7 @@ const MarksSelectors = React.memo(function MarksSelectors({
                     <SelectTrigger className="w-full h-11 rounded-xl border-0 bg-muted hover:bg-muted/80 transition-colors text-foreground font-semibold shadow-none focus:ring-1 focus:ring-ring/30">
                         <SelectValue placeholder="Year" />
                     </SelectTrigger>
-                    <SelectContent className="rounded-xl border-border/50 shadow-md">
+                    <SelectContent className="rounded-xl border-border shadow-md">
                         {academicYearOptions.map((y) => (
                             <SelectItem key={y} value={y} className="rounded-lg">{y}</SelectItem>
                         ))}

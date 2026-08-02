@@ -49,7 +49,7 @@ export function TeacherProfileSheet({
     onRequestEdit,
     onRequestDelete,
 }: TeacherProfileProps) {
-    const supabase = useMemo(() => createClient() as any, []);
+    const supabase = createClient();
     const [loading, setLoading] = useState(false);
     const [teacher, setTeacher] = useState<Teacher | null>(null);
     const [routineRows, setRoutineRows] = useState<any[]>([]);
@@ -121,7 +121,7 @@ export function TeacherProfileSheet({
         return () => {
             cancelled = true;
         };
-    }, [open, teacherId, supabase]);
+    }, [open, teacherId]);
 
     // Load student performance data
     useEffect(() => {
@@ -228,7 +228,7 @@ export function TeacherProfileSheet({
             setPerfLoading(false);
         })();
         return () => { cancelled = true; };
-    }, [open, teacherId, supabase, selectedExamId]);
+    }, [open, teacherId, selectedExamId]);
 
     const timetable = useMemo(() => {
         const table: Record<string, any[]> = {};
@@ -298,10 +298,10 @@ export function TeacherProfileSheet({
                 <DialogHeader className="border-b border-border/50 bg-muted/30 p-6">
                     <DialogTitle className="text-xl">Teacher Profile</DialogTitle>
                     <DialogDescription>
-                        Detailed profile, routine, student performance, payroll and actions.
+                        Teacher profile, class routine, student performance, leave & proxy history.
                     </DialogDescription>
                 </DialogHeader>
-                <ScrollArea className="max-h-[80vh] h-[800px]">
+                <ScrollArea className="max-h-[75vh]">
                     {loading || !teacher ? (
                         <div className="p-6 text-sm text-muted-foreground">Loading profile...</div>
                     ) : (
@@ -334,12 +334,12 @@ export function TeacherProfileSheet({
 
                             <Tabs defaultValue="overview" className="space-y-4">
                                 <TabsList className="w-full justify-start overflow-x-auto bg-muted border-0 rounded-xl p-1">
-                                    <TabsTrigger value="overview" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-none">Overview</TabsTrigger>
-                                    <TabsTrigger value="routine" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-none">Class Routine</TabsTrigger>
-                                    <TabsTrigger value="attendance" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-none">Attendance & Proxy</TabsTrigger>
-                                    <TabsTrigger value="performance" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-none">Student Performance</TabsTrigger>
-                                    <TabsTrigger value="payroll" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-none">Payroll</TabsTrigger>
-                                    <TabsTrigger value="actions" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-none">Actions</TabsTrigger>
+                                    <TabsTrigger value="overview" className="rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-none">Overview</TabsTrigger>
+                                    <TabsTrigger value="routine" className="rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-none">Class Routine</TabsTrigger>
+                                    <TabsTrigger value="attendance" className="rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-none">Attendance & Proxy</TabsTrigger>
+                                    <TabsTrigger value="performance" className="rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-none">Student Performance</TabsTrigger>
+                                    <TabsTrigger value="payroll" className="rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-none">Payroll</TabsTrigger>
+                                    <TabsTrigger value="actions" className="rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-none">Actions</TabsTrigger>
                                 </TabsList>
 
                                 <TabsContent value="overview" className="space-y-4">

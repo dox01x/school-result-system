@@ -26,7 +26,7 @@ export function Hero() {
           </span>
 
           {/* Headline */}
-          <h1 className="text-4xl sm:text-5xl md:text-7xl font-heading font-extrabold tracking-tight text-white leading-tight" style={{ textWrap: "balance" }}>
+          <h1 className="text-4xl sm:text-5xl md:text-7xl  font-semibold tracking-tight text-white leading-tight" style={{ textWrap: "balance" }}>
             Shaping Futures{" "}
             <span className="text-brand-accent">Through</span>{" "}
             Excellence
@@ -61,7 +61,7 @@ export function Hero() {
 
         {/* Right: Dashboard Preview Card */}
         <div className="hidden lg:block">
-          <div className="relative rounded-2xl bg-white/10 backdrop-blur-sm border border-white/10 shadow-2xl p-6 space-y-5">
+          <div className="relative rounded-2xl bg-white/10 backdrop-blur-sm border border-white/10 shadow-xs p-6 space-y-5">
             {/* Window dots */}
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full bg-red-400/80" />
@@ -78,7 +78,7 @@ export function Hero() {
                 { label: "Pass Rate", value: "94.2%", color: "bg-amber-500/20 text-amber-200" },
               ].map((s) => (
                 <div key={s.label} className={`${s.color} rounded-xl p-4 text-center`}>
-                  <p className="text-2xl font-extrabold text-white">{s.value}</p>
+                  <p className="text-2xl font-semibold text-white">{s.value}</p>
                   <p className="text-xs mt-1 opacity-70">{s.label}</p>
                 </div>
               ))}

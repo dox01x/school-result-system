@@ -123,7 +123,7 @@ export function RoomsTab() {
             </div>
 
             {filteredRooms.length === 0 ? (
-                <Card className="border-dashed border-2 border-border/50 bg-transparent shadow-none rounded-2xl">
+                <Card className="border-dashed border-2 border-border bg-transparent shadow-none rounded-xl">
                     <CardContent className="flex flex-col items-center justify-center py-16 text-center">
                         <Building2 size={48} strokeWidth={1.2} className=" text-muted-foreground/40 mb-4" />
                         <h3 className="font-semibold text-lg mb-1">No Rooms Added</h3>
@@ -131,7 +131,7 @@ export function RoomsTab() {
                     </CardContent>
                 </Card>
             ) : (
-                <Card className="rounded-2xl shadow-none border-border/50">
+                <Card className="rounded-xl shadow-none border-border">
                     <CardHeader className="pb-2">
                         <CardTitle className="text-sm flex items-center gap-2 text-foreground">
                             <Building2 size={16} strokeWidth={1.5} className=" text-muted-foreground" /> Exam Halls & Rooms
@@ -189,7 +189,7 @@ export function RoomsTab() {
             )}
 
             <Dialog open={roomDialogOpen} onOpenChange={setRoomDialogOpen}>
-                <DialogContent className="sm:max-w-md rounded-2xl">
+                <DialogContent className="sm:max-w-md rounded-xl">
                     <DialogHeader>
                         <DialogTitle>{roomForm.id ? "Edit Room" : "Add Room"}</DialogTitle>
                     </DialogHeader>

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { FEE_STRUCTURE_COLUMNS } from "@/lib/supabase/select-columns";
 import { ApiResponse, FeeStructure } from "@/types/finance";
+import { requireAuth } from "@/lib/api-auth";
 
 function errMessage(e: unknown): string {
     return e instanceof Error ? e.message : "Unknown error";
@@ -9,11 +9,13 @@ function errMessage(e: unknown): string {
 
 export async function GET(request: Request) {
     try {
+        const auth = await requireAuth();
+        if (auth instanceof NextResponse) return auth;
+        const { supabase } = auth;
+
         const { searchParams } = new URL(request.url);
         const className = searchParams.get("class_name");
         const academicYear = searchParams.get("academic_year");
-
-        const supabase = (await createServerSupabaseClient()) as any;
 
         let query = supabase.from("fee_structure").select(FEE_STRUCTURE_COLUMNS).eq("is_active", true);
 
@@ -33,14 +35,16 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
     try {
+        const auth = await requireAuth();
+        if (auth instanceof NextResponse) return auth;
+        const { supabase } = auth;
+
         const body = await request.json();
         const { class_name, fee_type, amount, description, academic_year } = body;
 
-        if (!class_name || !fee_type || typeof amount !== "number" || !academic_year) {
+        if (!class_name || !fee_type || typeof amount !== "number" || amount < 0 || !academic_year) {
             return NextResponse.json({ success: false, error: "Missing required fields or invalid amount" }, { status: 400 });
         }
-
-        const supabase = (await createServerSupabaseClient()) as any;
 
         const { data: existing } = await supabase
             .from("fee_structure")
@@ -70,14 +74,16 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
     try {
+        const auth = await requireAuth();
+        if (auth instanceof NextResponse) return auth;
+        const { supabase } = auth;
+
         const body = await request.json();
         const { id, amount, description } = body;
 
-        if (!id || typeof amount !== "number") {
+        if (!id || typeof amount !== "number" || amount < 0) {
             return NextResponse.json({ success: false, error: "Missing required fields or invalid amount" }, { status: 400 });
         }
-
-        const supabase = (await createServerSupabaseClient()) as any;
         const { data, error } = await supabase
             .from("fee_structure")
             .update({ amount, description })
@@ -94,14 +100,16 @@ export async function PUT(request: Request) {
 
 export async function DELETE(request: Request) {
     try {
+        const auth = await requireAuth();
+        if (auth instanceof NextResponse) return auth;
+        const { supabase } = auth;
+
         const { searchParams } = new URL(request.url);
         const id = searchParams.get("id");
 
         if (!id) {
             return NextResponse.json({ success: false, error: "ID is required" }, { status: 400 });
         }
-
-        const supabase = (await createServerSupabaseClient()) as any;
         const { error } = await supabase.from("fee_structure").delete().eq("id", id);
 
         if (error) throw error;

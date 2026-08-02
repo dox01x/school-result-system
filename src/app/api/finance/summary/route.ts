@@ -2,14 +2,24 @@ import { NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { ApiResponse, FinanceSummary } from '@/types/finance';
 
+interface FeeRow {
+  class_name: string;
+  amount: number;
+}
+
+interface StudentClassRow {
+  id: string;
+  classes?: { name: string } | null;
+}
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const monthStr = searchParams.get('month');
     const yearStr = searchParams.get('year');
 
-    if (!monthStr || !yearStr) {
-       return NextResponse.json({ success: false, error: "month and year are required" }, { status: 400 });
+    if (!monthStr || !yearStr || isNaN(parseInt(monthStr)) || isNaN(parseInt(yearStr))) {
+       return NextResponse.json({ success: false, error: "Valid month and year are required" }, { status: 400 });
     }
 
     const month = parseInt(monthStr);
@@ -26,31 +36,23 @@ export async function GET(request: Request) {
       staffSalaryResult,
       expectedTuitionResult
     ] = await Promise.all([
-      // @ts-ignore
       supabase.from('tuition_payments').select('amount_paid').match({ month, year }),
-      // @ts-ignore
       supabase.from('income_entries').select('amount').match({ month, year }),
-      // @ts-ignore
       supabase.from('expense_entries').select('amount').match({ month, year }),
-      // @ts-ignore
       supabase.from('salary_payments').select('net_salary').match({ month, year }),
-      // @ts-ignore
       supabase.from('staff_salary_payments').select('net_salary').match({ month, year }),
 
-      // Calculate expected tuition: students table has class_id, not class_name.
-      // We must join students → classes → fee_structure by class name.
       (async () => {
-         // @ts-ignore
-         const { data: fees } = await supabase.from('fee_structure').select('class_name, amount').match({ fee_type: 'tuition', academic_year: yearStr, is_active: true });
-         // Students table has class_id → join with classes to get name
-         // @ts-ignore
-         const { data: stds } = await supabase.from('students').select('id, classes!inner(name)');
+         const { data: rawFees } = await supabase.from('fee_structure').select('class_name, amount').match({ fee_type: 'tuition', academic_year: yearStr, is_active: true });
+         const { data: rawStds } = await supabase.from('students').select('id, classes!inner(name)');
          
-         if (!fees || !stds) return 0;
+         const fees = (rawFees || []) as unknown as FeeRow[];
+         const stds = (rawStds || []) as unknown as StudentClassRow[];
+         if (fees.length === 0 || stds.length === 0) return 0;
          
-         const feeMap = new Map(fees.map((f: any) => [f.class_name, f.amount]));
+         const feeMap = new Map(fees.map((f) => [f.class_name, f.amount]));
          let expected = 0;
-         stds.forEach((s: any) => {
+         stds.forEach((s) => {
              const className = s.classes?.name;
              if (className) {
                expected += feeMap.get(className) || 0;
@@ -60,7 +62,8 @@ export async function GET(request: Request) {
       })()
     ]);
 
-    const sumValues = (arr: any[] | null, key: string) => arr ? arr.reduce((sum, item) => sum + Number(item[key] || 0), 0) : 0;
+    const sumValues = (arr: unknown[] | null, key: string) => 
+      arr ? arr.reduce((sum: number, item: unknown) => sum + Number((item as Record<string, unknown>)?.[key] || 0), 0) : 0;
 
     const tuition_collected = sumValues(tuitionResult.data, 'amount_paid');
     const total_income = sumValues(incomeResult.data, 'amount');
@@ -82,7 +85,8 @@ export async function GET(request: Request) {
     };
 
     return NextResponse.json({ success: true, data: summary } as ApiResponse<FinanceSummary>);
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Internal server error";
+    return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }

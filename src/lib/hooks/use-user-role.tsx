@@ -53,7 +53,7 @@ export function RoleProvider({ children, initialRole, initialUserId, initialEmai
   const [fullName, setFullName] = useState<string | null>(initialFullName ?? null);
   const [loading, setLoading] = useState(!initialRole);
   const [assignments, setAssignments] = useState<ClassTeacherAssignment[]>(initialAssignments ?? []);
-  const supabase = useMemo(() => createClient() as any, []);
+  const supabase = useMemo(() => createClient(), []);
 
   const fetchRoleData = useCallback(async () => {
     try {
@@ -79,7 +79,8 @@ export function RoleProvider({ children, initialRole, initialUserId, initialEmai
 
       if (profile) {
         setRole(profile.role as UserRole);
-        setFullName(profile.full_name || user.user_metadata?.display_name as string || null);
+        const displayName = profile.full_name || (user.user_metadata?.display_name as string | undefined);
+        setFullName(displayName || null);
       }
 
       // Fetch class teacher assignments if applicable
@@ -95,9 +96,15 @@ export function RoleProvider({ children, initialRole, initialUserId, initialEmai
           .eq("user_id", user.id);
 
         if (assignmentData) {
-          setAssignments(assignmentData.map((a: any) => ({
-            class_id: a.class_id as string,
-            section_id: a.section_id as string,
+          interface AssignmentRow {
+            class_id: string;
+            section_id: string;
+            classes?: { name: string } | null;
+            sections?: { name: string } | null;
+          }
+          setAssignments((assignmentData as AssignmentRow[]).map((a) => ({
+            class_id: a.class_id,
+            section_id: a.section_id,
             class_name: a.classes?.name,
             section_name: a.sections?.name,
           })));

@@ -4,6 +4,13 @@ import { RoleProvider } from "@/lib/hooks/use-user-role";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import type { UserRole } from "@/lib/rbac";
 
+interface AssignmentQueryRow {
+    class_id: string;
+    section_id: string;
+    classes?: { name: string } | null;
+    sections?: { name: string } | null;
+}
+
 export default async function DashboardLayout({
     children,
 }: {
@@ -16,7 +23,7 @@ export default async function DashboardLayout({
     let assignments: { class_id: string; section_id: string; class_name?: string; section_name?: string }[] = [];
 
     try {
-        const supabase = (await createServerSupabaseClient()) as any;
+        const supabase = await createServerSupabaseClient();
         const { data: { user } } = await supabase.auth.getUser();
 
         if (user) {
@@ -35,15 +42,16 @@ export default async function DashboardLayout({
             }
 
             if (role === "class_teacher") {
-                const { data: assignmentData } = await (supabase as any)
+                const { data: rawAssignmentData } = await (supabase as any)
                     .from("class_teacher_assignments")
                     .select("class_id, section_id, classes ( name ), sections ( name )")
                     .eq("user_id", user.id);
 
-                if (assignmentData) {
-                    assignments = assignmentData.map((a: any) => ({
-                        class_id: a.class_id as string,
-                        section_id: a.section_id as string,
+                if (rawAssignmentData) {
+                    const assignmentData = rawAssignmentData as unknown as AssignmentQueryRow[];
+                    assignments = assignmentData.map((a) => ({
+                        class_id: a.class_id,
+                        section_id: a.section_id,
                         class_name: a.classes?.name,
                         section_name: a.sections?.name,
                     }));
@@ -66,9 +74,9 @@ export default async function DashboardLayout({
                 <Sidebar />
                 <div className="flex-1 flex flex-col min-w-0">
                     <Header />
-                    <main className="flex-1">
+                    <main id="main-content" className="flex-1">
                         <div className="pt-14 lg:pt-0">
-                            <div className="animate-fade-in p-5 lg:p-8 max-w-[1400px] mx-auto">{children}</div>
+                            <div className="animate-slide-up p-5 lg:p-8 max-w-[1280px] mx-auto">{children}</div>
                         </div>
                     </main>
                 </div>

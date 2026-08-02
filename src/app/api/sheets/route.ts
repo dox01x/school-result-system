@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireAuth } from "@/lib/api-auth";
 
 // Google Sheets API route
 // Usage: POST /api/sheets { sheetId: "...", range: "Sheet1!A1:D50" }
@@ -17,6 +18,9 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
     try {
+        const auth = await requireAuth();
+        if (auth instanceof NextResponse) return auth;
+
         const { sheetId, range } = await req.json();
 
         if (!sheetId || !range) {

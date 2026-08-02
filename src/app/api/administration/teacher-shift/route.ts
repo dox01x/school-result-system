@@ -1,12 +1,19 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { LEAVE_REQUEST_COLUMNS, TEACHER_SHIFT_COLUMNS } from "@/lib/supabase/select-columns";
+import { timeToMinutes } from "@/lib/conflict-detector";
 import { NextRequest, NextResponse } from "next/server";
+
+interface ProxyAssignmentInput {
+    routine_id: string;
+    date: string;
+    proxy_teacher_id: string;
+}
 
 export async function GET(request: NextRequest) {
     try {
         const { searchParams } = new URL(request.url);
         const type = searchParams.get("type");
-        const supabase = (await createServerSupabaseClient()) as any;
+        const supabase = await createServerSupabaseClient();
 
         if (type === "leave") {
             const { data, error } = await supabase
@@ -41,7 +48,7 @@ export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
         const { type } = body;
-        const supabase = (await createServerSupabaseClient()) as any;
+        const supabase = await createServerSupabaseClient();
 
         if (type === "leave") {
             const { teacher_id, start_date, end_date, reason, proxies } = body;
@@ -68,8 +75,8 @@ export async function POST(request: NextRequest) {
             }
 
             // Insert proxy assignments if any
-            if (proxies && proxies.length > 0) {
-                const proxyRecords = proxies.map((p: any) => ({
+            if (Array.isArray(proxies) && proxies.length > 0) {
+                const proxyRecords = (proxies as ProxyAssignmentInput[]).map((p) => ({
                     leave_request_id: data.id,
                     routine_id: p.routine_id,
                     assignment_date: p.date,
@@ -83,8 +90,10 @@ export async function POST(request: NextRequest) {
                 } else {
                     // Update proxy counts for the substitute teachers
                     const proxyCounts: Record<string, number> = {};
-                    for (const p of proxies) {
-                        proxyCounts[p.proxy_teacher_id] = (proxyCounts[p.proxy_teacher_id] || 0) + 1;
+                    for (const p of (proxies as ProxyAssignmentInput[])) {
+                        if (p.proxy_teacher_id) {
+                            proxyCounts[p.proxy_teacher_id] = (proxyCounts[p.proxy_teacher_id] || 0) + 1;
+                        }
                     }
                     for (const pid of Object.keys(proxyCounts)) {
                         const { data: t } = await supabase.from("teachers").select("proxy_count").eq("id", pid).single();
@@ -130,6 +139,10 @@ export async function POST(request: NextRequest) {
                 success: false,
                 error: "Missing required fields: teacher_id, shift_date, start_time, end_time",
             }, { status: 400 });
+        }
+
+        if (timeToMinutes(end_time) <= timeToMinutes(start_time)) {
+            return NextResponse.json({ success: false, error: "end_time must be after start_time" }, { status: 400 });
         }
 
         if (body.id) {
@@ -180,7 +193,7 @@ export async function DELETE(request: NextRequest) {
             return NextResponse.json({ success: false, error: "Missing id parameter" }, { status: 400 });
         }
 
-        const supabase = (await createServerSupabaseClient()) as any;
+        const supabase = await createServerSupabaseClient();
         const table = type === "leave" ? "leave_requests" : "teacher_shifts";
         const { error } = await supabase.from(table).delete().eq("id", id);
 

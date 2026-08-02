@@ -3,23 +3,43 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isValidRole } from "@/lib/rbac";
 
-/** Helper: check caller is super_admin */
+interface UserProfileRow {
+  id: string;
+  role: string;
+  full_name: string | null;
+  updated_at: string;
+}
+
+interface ClassTeacherAssignmentRow {
+  user_id: string;
+  class_id: string;
+  section_id: string;
+  classes?: { name: string } | null;
+  sections?: { name: string } | null;
+}
+
+/** Helper: check caller is super_admin (or allow if AUTH_DISABLED) */
 async function requireSuperAdmin() {
-  const supabase = (await createServerSupabaseClient()) as any;
+  const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "Unauthorized", status: 401 };
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-
-  if (profile?.role !== "super_admin") {
-    return { error: "Only super admin can manage users", status: 403 };
+  if (!user && process.env.AUTH_DISABLED !== "true") {
+    return { error: "Unauthorized", status: 401 };
   }
 
-  return { user, supabase };
+  if (user && process.env.AUTH_DISABLED !== "true") {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+
+    if (profile?.role !== "super_admin") {
+      return { error: "Only super admin can manage users", status: 403 };
+    }
+  }
+
+  return { user: user || { id: "dev_user" }, supabase };
 }
 
 /**
@@ -31,24 +51,25 @@ export async function GET() {
 
   const admin = createAdminClient();
 
-  // Get all auth users
-  const { data: { users }, error: authError } = await admin.auth.admin.listUsers();
+  // Get all auth users (page 1, perPage 1000 to prevent truncation)
+  const { data: { users }, error: authError } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
   if (authError) return NextResponse.json({ error: authError.message }, { status: 500 });
 
   // Get all profiles
-  const { data: profiles } = await (admin as any).from("profiles").select("id, role, full_name, updated_at");
-  const profileMap = new Map<string, any>((profiles || []).map((p: any) => [p.id, p]));
+  const { data: rawProfiles } = await admin.from("profiles").select("id, role, full_name, updated_at");
+  const profiles = (rawProfiles || []) as unknown as UserProfileRow[];
+  const profileMap = new Map<string, UserProfileRow>(profiles.map((p) => [p.id, p]));
 
-  // Get class teacher assignments (table may not exist yet until migration)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let assignmentMap = new Map<string, any[]>();
+  // Get class teacher assignments
+  const assignmentMap = new Map<string, ClassTeacherAssignmentRow[]>();
   try {
-    const { data: assignments } = await (admin as any)
+    const { data: rawAssignments } = await (admin as any)
       .from("class_teacher_assignments")
       .select("user_id, class_id, section_id, classes ( name ), sections ( name )");
 
-    (assignments || []).forEach((a: any) => {
-      const uid = a.user_id as string;
+    const assignments = (rawAssignments || []) as unknown as ClassTeacherAssignmentRow[];
+    assignments.forEach((a) => {
+      const uid = a.user_id;
       if (!assignmentMap.has(uid)) assignmentMap.set(uid, []);
       assignmentMap.get(uid)!.push(a);
     });
@@ -56,16 +77,16 @@ export async function GET() {
     // Table may not exist yet
   }
 
-  const result = users.map(u => {
+  const result = users.map((u) => {
     const profile = profileMap.get(u.id);
     return {
       id: u.id,
       email: u.email,
-      role: profile?.role || "admin",
+      role: profile?.role || "unassigned",
       full_name: profile?.full_name || "",
       created_at: u.created_at,
       last_sign_in_at: u.last_sign_in_at,
-      assignments: (assignmentMap.get(u.id) || []).map((a: any) => ({
+      assignments: (assignmentMap.get(u.id) || []).map((a) => ({
         class_id: a.class_id,
         section_id: a.section_id,
         class_name: a.classes?.name || "",
@@ -91,6 +112,9 @@ export async function POST(request: Request) {
   if (!email || !password || !role) {
     return NextResponse.json({ error: "email, password, and role are required" }, { status: 400 });
   }
+  if (typeof email !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return NextResponse.json({ error: "Invalid email format" }, { status: 400 });
+  }
   if (!isValidRole(role)) {
     return NextResponse.json({ error: `Invalid role: ${role}` }, { status: 400 });
   }
@@ -113,7 +137,7 @@ export async function POST(request: Request) {
   }
 
   // Update profile role
-  const { error: profileError } = await (admin as any)
+  const { error: profileError } = await admin
     .from("profiles")
     .upsert({
       id: newUser.user.id,
@@ -181,7 +205,7 @@ export async function PATCH(request: Request) {
   if (full_name !== undefined) updates.full_name = full_name;
 
   if (Object.keys(updates).length > 0) {
-    const { error } = await (admin as any)
+    const { error } = await admin
       .from("profiles")
       .update(updates)
       .eq("id", user_id);

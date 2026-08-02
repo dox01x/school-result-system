@@ -3,11 +3,12 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { GraduationCap, Menu, X } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 
 const navLinks = [
   { label: "About", href: "#about" },
   { label: "Programs", href: "#programs" },
-  { label: "Faculty", href: "#faculty" },
+  { label: "Why Us", href: "#why-us" },
   { label: "Testimonials", href: "#testimonials" },
   { label: "Contact", href: "#contact" },
 ];
@@ -15,11 +16,19 @@ const navLinks = [
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 10);
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setIsAuthenticated(!!session);
+    });
   }, []);
 
   const scrollTo = (href: string) => {
@@ -41,7 +50,7 @@ export function Navbar() {
           <div className="w-9 h-9 rounded-xl bg-brand flex items-center justify-center">
             <GraduationCap className="w-5 h-5 text-white" />
           </div>
-          <span className="text-lg font-heading font-bold text-brand">
+          <span className="text-lg  font-bold text-brand">
             School Management System
           </span>
         </Link>
@@ -62,10 +71,10 @@ export function Navbar() {
         {/* Desktop CTA */}
         <div className="hidden md:flex items-center gap-3">
           <Link
-            href="/dashboard"
+            href={isAuthenticated ? "/dashboard" : "/login"}
             className="px-5 py-2.5 text-sm font-semibold tracking-wide text-white bg-brand-accent hover:bg-brand-accent-dark rounded-xl shadow-lg transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl active:translate-y-0 active:scale-95"
           >
-            Go to Dashboard
+            {isAuthenticated ? "Go to Dashboard" : "Sign in"}
           </Link>
         </div>
 
@@ -95,10 +104,10 @@ export function Navbar() {
             </button>
           ))}
           <Link
-            href="/dashboard"
+            href={isAuthenticated ? "/dashboard" : "/login"}
             className="block w-full text-center mt-3 px-5 py-3 text-sm font-semibold text-white bg-brand-accent hover:bg-brand-accent-dark rounded-xl shadow-lg"
           >
-            Go to Dashboard
+            {isAuthenticated ? "Go to Dashboard" : "Sign in"}
           </Link>
         </div>
       </div>

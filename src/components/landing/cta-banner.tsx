@@ -5,9 +5,9 @@ import { ArrowRight, Sparkles } from "lucide-react";
 
 export function CTABanner() {
   return (
-    <section className="relative py-24 md:py-32">
+    <section id="contact" className="relative py-24 md:py-32">
       <div className="mx-auto max-w-7xl px-6">
-        <div className="relative rounded-3xl overflow-hidden">
+        <div className="relative rounded-xl overflow-hidden">
           {/* Background */}
           <div className="absolute inset-0 bg-gradient-to-br from-indigo-600 via-indigo-700 to-teal-600" />
           {/* Pattern overlay */}
@@ -25,7 +25,7 @@ export function CTABanner() {
               </span>
             </div>
 
-            <h2 className="text-3xl md:text-4xl lg:text-5xl font-extrabold text-white tracking-tight max-w-2xl mx-auto leading-tight">
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-semibold text-white tracking-tight max-w-2xl mx-auto leading-tight">
               Ready to Transform Your School?
             </h2>
             <p className="text-lg text-indigo-100 max-w-lg mx-auto">
@@ -43,7 +43,7 @@ export function CTABanner() {
               <button
                 onClick={() =>
                   document
-                    .querySelector("#features")
+                    .querySelector("#programs")
                     ?.scrollIntoView({ behavior: "smooth" })
                 }
                 className="inline-flex items-center gap-2 px-8 py-4 text-sm font-semibold text-white border-2 border-white/30 hover:border-white/50 hover:bg-white/10 rounded-2xl transition-all duration-300 hover:-translate-y-0.5"
@@ -57,3 +57,7 @@ export function CTABanner() {
     </section>
   );
 }
+
+// Alias for compatibility
+export const CtaBanner = CTABanner;
+
