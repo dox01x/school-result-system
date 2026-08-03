@@ -15,9 +15,12 @@ export async function createServerSupabaseClient() {
                 },
                 setAll(cookiesToSet) {
                     try {
-                        cookiesToSet.forEach(({ name, value, options }) =>
-                            cookieStore.set(name, value, options)
-                        );
+                        cookiesToSet.forEach(({ name, value, options }) => {
+                            const sessionOpts = { ...options };
+                            delete sessionOpts.maxAge;
+                            delete sessionOpts.expires;
+                            cookieStore.set(name, value, sessionOpts);
+                        });
                     } catch {
                         // The `setAll` method was called from a Server Component.
                         // This can be ignored if you have middleware refreshing user sessions.

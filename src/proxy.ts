@@ -64,8 +64,13 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  // Prevent caching of authenticated pages
-  supabaseResponse.headers.set("Cache-Control", "no-store, max-age=0");
+  // Prevent caching of authenticated pages & add security headers
+  supabaseResponse.headers.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0");
+  supabaseResponse.headers.set("Pragma", "no-cache");
+  supabaseResponse.headers.set("Expires", "0");
+  supabaseResponse.headers.set("X-Frame-Options", "DENY");
+  supabaseResponse.headers.set("X-Content-Type-Options", "nosniff");
+  supabaseResponse.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
 
   return supabaseResponse;
 }

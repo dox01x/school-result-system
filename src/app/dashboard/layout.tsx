@@ -1,6 +1,7 @@
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
 import { RoleProvider } from "@/lib/hooks/use-user-role";
+import { SessionGuard } from "@/components/layout/session-guard";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import type { UserRole } from "@/lib/rbac";
 
@@ -70,6 +71,7 @@ export default async function DashboardLayout({
             initialFullName={fullName}
             initialAssignments={assignments}
         >
+            <SessionGuard />
             <div className="flex min-h-screen bg-background">
                 <Sidebar />
                 <div className="flex-1 flex flex-col min-w-0">

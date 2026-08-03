@@ -7,7 +7,13 @@ export function createClient() {
     if (!client) {
         client = createBrowserClient<Database>(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+            {
+                cookieOptions: {
+                    maxAge: undefined,
+                    expires: undefined,
+                },
+            }
         );
     }
     return client;

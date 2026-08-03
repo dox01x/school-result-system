@@ -26,9 +26,12 @@ export async function updateSession(request: NextRequest): Promise<{
                     supabaseResponse = NextResponse.next({
                         request,
                     });
-                    cookiesToSet.forEach(({ name, value, options }) =>
-                        supabaseResponse.cookies.set(name, value, options)
-                    );
+                    cookiesToSet.forEach(({ name, value, options }) => {
+                        const sessionOpts = { ...options };
+                        delete sessionOpts.maxAge;
+                        delete sessionOpts.expires;
+                        supabaseResponse.cookies.set(name, value, sessionOpts);
+                    });
                 },
             },
         }

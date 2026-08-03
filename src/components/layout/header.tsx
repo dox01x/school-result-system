@@ -152,6 +152,7 @@ function UserDropdown() {
     const displayName = fullName || email?.split("@")[0] || "Account";
 
     const handleSignOut = useCallback(async () => {
+        sessionStorage.removeItem("edu_session_active");
         await supabase.auth.signOut();
         toast.success("Signed out");
         router.push("/login");
