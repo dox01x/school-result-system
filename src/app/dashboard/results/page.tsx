@@ -540,7 +540,6 @@ export default function ResultsPage() {
         const schoolAddress = escapeHtml(schoolInfo?.address);
         const schoolPhone = escapeHtml(schoolInfo?.phone);
         const schoolEmail = escapeHtml(schoolInfo?.email);
-        const principalName = escapeHtml(schoolInfo?.principal_name || "Principal");
 
         const grading100 = gradingRules.filter((g) => g.marks_category === 100);
         let gradingHtml = "";
@@ -642,7 +641,7 @@ ${hasOptional ? `<td style="width:20%"><div class="sl">Base GPA</div><div class=
 ${gradingHtml}
 <table class="sigs"><tr>
 <td><div class="sigb">Class Teacher</div></td>
-<td><div class="sigb">${principalName}</div></td>
+<td><div class="sigb">Principal</div></td>
 <td><div class="sigb">Guardian</div></td>
 </tr></table>
 <div class="bb"></div></div>`;
