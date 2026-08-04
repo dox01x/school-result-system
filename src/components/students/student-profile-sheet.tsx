@@ -22,7 +22,8 @@ const Tooltip = dynamic(() => import("recharts").then((mod) => mod.Tooltip), { s
 const ResponsiveContainer = dynamic(() => import("recharts").then((mod) => mod.ResponsiveContainer), { ssr: false });
 const CartesianGrid = dynamic(() => import("recharts").then((mod) => mod.CartesianGrid), { ssr: false });
 import { toast } from "sonner";
-import { Pencil, Printer, Trash2, MoveRight, TrendingUp, TrendingDown, Minus, ArrowUp, ArrowDown } from "lucide-react";
+import { Pencil, Printer, Trash2, MoveRight, TrendingUp, TrendingDown, Minus, ArrowUp, ArrowDown, FileText } from "lucide-react";
+import { printHtml } from "@/lib/print-utils";
 
 type Props = {
     open: boolean;
@@ -51,7 +52,32 @@ type SubjectTrendRow = {
     marksByExam: { examId: string; total: number; passMark: number; fullMark: number; change: number | null; passed: boolean }[];
 };
 
-const dayLabels = ["Sat", "Sun", "Mon", "Tue", "Wed", "Thu"];
+type ExamCategory = "mct" | "semester" | "standalone" | "semesterAndStandalone";
+
+type CategoryComparison = {
+    category: ExamCategory;
+    categoryLabel: string;
+    fromExam: string;
+    toExam: string;
+    fromPercentage: number;
+    toPercentage: number;
+    changePercentage: number;
+    fromTotalMarks: number;
+    toTotalMarks: number;
+    changeTotalMarks: number;
+    direction: "up" | "down" | "same";
+};
+
+const getExamCategory = (exam?: Exam | null): ExamCategory => {
+    if (!exam) return "standalone";
+    if (exam.exam_type === "mct") return "mct";
+    if (exam.exam_type === "semester") return "semester";
+    if (exam.exam_type === "standalone") return "standalone";
+    const nameLower = (exam.name || "").toLowerCase();
+    if (nameLower.includes("mct") || nameLower.includes("monthly")) return "mct";
+    if (nameLower.includes("semester")) return "semester";
+    return "standalone";
+};
 
 export function StudentProfileSheet({
     open,
@@ -72,6 +98,8 @@ export function StudentProfileSheet({
     const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
     const [fees, setFees] = useState<{ receipt_number: string; amount_due: number; amount_paid: number; payment_date: string | null; fee_type: string }[]>([]);
     const [subjectMarks, setSubjectMarks] = useState<SubjectMark[]>([]);
+    const [schoolInfo, setSchoolInfo] = useState<{ name?: string; address?: string; phone?: string; email?: string; logo_url?: string; principal_name?: string } | null>(null);
+    const [selectedCategoryTab, setSelectedCategoryTab] = useState<ExamCategory | "all">("all");
     const [actionForm, setActionForm] = useState({
         name: "",
         phone: "",
@@ -91,11 +119,12 @@ export function StudentProfileSheet({
         let cancelled = false;
         setLoading(true);
         void (async () => {
-            const [studentRes, classesRes, sectionsRes, examsRes] = await Promise.all([
+            const [studentRes, classesRes, sectionsRes, examsRes, schoolRes] = await Promise.all([
                 supabase.from("students").select("id,student_id,class_id,section_id,roll,name,gender,father_name,mother_name,date_of_birth,phone,address,blood_group,group_name,created_at").eq("id", studentId).maybeSingle(),
                 supabase.from("classes").select("id,name,numeric_value,created_at").order("numeric_value"),
                 supabase.from("sections").select("id,class_id,name,created_at").order("name"),
                 supabase.from("exams").select("id,name,exam_type,term,created_at").order("term").order("exam_type"),
+                supabase.from("school_info").select("*").limit(1).maybeSingle(),
             ]);
 
             if (cancelled) return;
@@ -109,6 +138,8 @@ export function StudentProfileSheet({
             setClasses(classesRes.data || []);
             setSections(sectionsRes.data || []);
             setExams(examsRes.data || []);
+            if (schoolRes.data) setSchoolInfo(schoolRes.data);
+
             setActionForm((prev) => ({
                 ...prev,
                 name: fetchedStudent.name || "",
@@ -126,7 +157,6 @@ export function StudentProfileSheet({
                 supabase.from("results").select("id,student_id,exam_id,academic_year,total_marks,total_full_marks,percentage,gpa,grade,created_at").eq("student_id", studentId).order("created_at"),
                 supabase.from("attendance_records").select("id,student_id,class_id,section_id,att_date,status,source,created_at,updated_at").eq("student_id", studentId).order("att_date", { ascending: false }),
                 supabase.from("tuition_payments").select("receipt_number,amount_due,amount_paid,payment_date,fee_type").eq("student_id", studentId).order("payment_date", { ascending: false }).limit(12),
-                // Fetch per-subject marks with subject details
                 supabase.from("marks")
                     .select("student_id,subject_id,exam_id,total,subjects(name,pass_marks,full_marks)")
                     .eq("student_id", studentId)
@@ -138,7 +168,6 @@ export function StudentProfileSheet({
             setAttendance(attendanceRes.data || []);
             setFees(feeRes.data || []);
 
-            // Process marks into SubjectMark array
             const processedMarks: SubjectMark[] = (marksRes.data || []).map((m: any) => ({
                 subjectId: m.subject_id,
                 subjectName: (m.subjects as any)?.name || "-",
@@ -190,39 +219,156 @@ export function StudentProfileSheet({
     }, [results]);
 
     const trendData: MarkTrend[] = useMemo(() => {
-        return results.map((r) => ({
+        const filteredResults = results.filter((r) => {
+            if (selectedCategoryTab === "all") return true;
+            const exam = exams.find((e) => e.id === r.exam_id);
+            const cat = getExamCategory(exam);
+            if (selectedCategoryTab === "semesterAndStandalone") {
+                return cat === "semester" || cat === "standalone";
+            }
+            return cat === selectedCategoryTab;
+        });
+
+        return filteredResults.map((r) => ({
             exam: exams.find((e) => e.id === r.exam_id)?.name || r.exam_id.slice(0, 6),
             percentage: Number(r.percentage || 0),
         }));
-    }, [results, exams]);
+    }, [results, exams, selectedCategoryTab]);
 
-    // Semester-over-semester progress comparison
-    const progressComparison = useMemo(() => {
-        if (results.length < 2) return [];
-        const comparisons: { fromExam: string; toExam: string; fromPercentage: number; toPercentage: number; change: number; direction: 'up' | 'down' | 'same' }[] = [];
-        for (let i = 1; i < results.length; i++) {
-            const prev = results[i - 1];
-            const curr = results[i];
-            const prevPct = Number(prev.percentage || 0);
-            const currPct = Number(curr.percentage || 0);
-            const change = Math.round((currPct - prevPct) * 100) / 100;
-            comparisons.push({
-                fromExam: exams.find((e) => e.id === prev.exam_id)?.name || prev.exam_id.slice(0, 6),
-                toExam: exams.find((e) => e.id === curr.exam_id)?.name || curr.exam_id.slice(0, 6),
-                fromPercentage: prevPct,
-                toPercentage: currPct,
-                change,
-                direction: change > 0 ? 'up' : change < 0 ? 'down' : 'same',
+    // Categorized progress comparisons (MCT, Semester, Standalone, and Semester vs Standalone)
+    const categorizedComparisons = useMemo(() => {
+        const categories: { key: ExamCategory; label: string }[] = [
+            { key: "mct", label: "MCT vs MCT Comparison" },
+            { key: "semester", label: "Semester vs Semester Comparison" },
+            { key: "standalone", label: "Standalone Exams Comparison" },
+            { key: "semesterAndStandalone", label: "Semester & Standalone Comparison" },
+        ];
+
+        const res: Record<ExamCategory, CategoryComparison[]> = {
+            mct: [],
+            semester: [],
+            standalone: [],
+            semesterAndStandalone: [],
+        };
+
+        for (const cat of categories) {
+            let catResults = results.filter((r) => {
+                const exam = exams.find((e) => e.id === r.exam_id);
+                const c = getExamCategory(exam);
+                if (cat.key === "semesterAndStandalone") {
+                    return c === "semester" || c === "standalone";
+                }
+                return c === cat.key;
             });
+
+            if (catResults.length < 2) continue;
+
+            for (let i = 1; i < catResults.length; i++) {
+                const prev = catResults[i - 1];
+                const curr = catResults[i];
+                const prevPct = Number(prev.percentage || 0);
+                const currPct = Number(curr.percentage || 0);
+                const changePct = Number((currPct - prevPct).toFixed(2));
+
+                const prevMarks = Number(prev.total_marks || 0);
+                const currMarks = Number(curr.total_marks || 0);
+                const changeMarks = Number((currMarks - prevMarks).toFixed(2));
+
+                const prevExam = exams.find((e) => e.id === prev.exam_id);
+                const currExam = exams.find((e) => e.id === curr.exam_id);
+
+                res[cat.key].push({
+                    category: cat.key,
+                    categoryLabel: cat.label,
+                    fromExam: prevExam?.name || prev.exam_id.slice(0, 6),
+                    toExam: currExam?.name || curr.exam_id.slice(0, 6),
+                    fromPercentage: prevPct,
+                    toPercentage: currPct,
+                    changePercentage: changePct,
+                    fromTotalMarks: prevMarks,
+                    toTotalMarks: currMarks,
+                    changeTotalMarks: changeMarks,
+                    direction: changePct > 0 ? "up" : changePct < 0 ? "down" : "same",
+                });
+            }
         }
-        return comparisons;
+
+        return res;
     }, [results, exams]);
 
-    // Subject-wise trend table data
+    // Categorized Subject Trends
+    const categorizedSubjectTrends = useMemo(() => {
+        const categories: { key: ExamCategory; label: string }[] = [
+            { key: "mct", label: "MCT Exams" },
+            { key: "semester", label: "Semester Exams" },
+            { key: "standalone", label: "Standalone Exams" },
+            { key: "semesterAndStandalone", label: "Semester & Standalone Exams" },
+        ];
+
+        const trendMap: Record<ExamCategory, { orderedExams: { id: string; name: string }[]; rows: SubjectTrendRow[] }> = {
+            mct: { orderedExams: [], rows: [] },
+            semester: { orderedExams: [], rows: [] },
+            standalone: { orderedExams: [], rows: [] },
+            semesterAndStandalone: { orderedExams: [], rows: [] },
+        };
+
+        if (subjectMarks.length === 0) return trendMap;
+
+        const subjectMap = new Map<string, string>();
+        for (const m of subjectMarks) {
+            if (!subjectMap.has(m.subjectId)) {
+                subjectMap.set(m.subjectId, m.subjectName);
+            }
+        }
+
+        for (const cat of categories) {
+            const catExams = exams.filter((e) => {
+                const c = getExamCategory(e);
+                if (cat.key === "semesterAndStandalone") {
+                    return c === "semester" || c === "standalone";
+                }
+                return c === cat.key;
+            });
+            const examIdsInMarks = [...new Set(subjectMarks.map((m) => m.examId))];
+            const orderedExams = catExams
+                .filter((e) => examIdsInMarks.includes(e.id))
+                .map((e) => ({ id: e.id, name: e.name }));
+
+            if (orderedExams.length === 0) continue;
+
+            const rows: SubjectTrendRow[] = [];
+            for (const [subjectId, subjectName] of subjectMap) {
+                const marksByExam = orderedExams.map((exam, examIdx) => {
+                    const mark = subjectMarks.find((m) => m.subjectId === subjectId && m.examId === exam.id);
+                    const total = mark?.total ?? 0;
+                    const passMark = mark?.passMark ?? 33;
+                    const fullMark = mark?.fullMark ?? 100;
+                    const passed = total >= passMark;
+
+                    let change: number | null = null;
+                    if (examIdx > 0) {
+                        const prevExam = orderedExams[examIdx - 1];
+                        const prevMark = subjectMarks.find((m) => m.subjectId === subjectId && m.examId === prevExam.id);
+                        if (prevMark) {
+                            change = Number((total - prevMark.total).toFixed(2));
+                        }
+                    }
+
+                    return { examId: exam.id, total, passMark, fullMark, change, passed };
+                });
+                rows.push({ subjectName, subjectId, marksByExam });
+            }
+
+            trendMap[cat.key] = { orderedExams, rows };
+        }
+
+        return trendMap;
+    }, [subjectMarks, exams]);
+
+    // Global Subject Trend (All Exams)
     const subjectTrend = useMemo((): { orderedExams: { id: string; name: string }[]; rows: SubjectTrendRow[] } => {
         if (subjectMarks.length === 0) return { orderedExams: [], rows: [] };
 
-        // Get ordered unique exams that have marks
         const examIdsInMarks = [...new Set(subjectMarks.map((m) => m.examId))];
         const orderedExams = exams
             .filter((e) => examIdsInMarks.includes(e.id))
@@ -230,7 +376,6 @@ export function StudentProfileSheet({
 
         if (orderedExams.length === 0) return { orderedExams: [], rows: [] };
 
-        // Get unique subjects
         const subjectMap = new Map<string, string>();
         for (const m of subjectMarks) {
             if (!subjectMap.has(m.subjectId)) {
@@ -247,13 +392,12 @@ export function StudentProfileSheet({
                 const fullMark = mark?.fullMark ?? 100;
                 const passed = total >= passMark;
 
-                // Calculate change from previous exam
                 let change: number | null = null;
                 if (examIdx > 0) {
                     const prevExam = orderedExams[examIdx - 1];
                     const prevMark = subjectMarks.find((m) => m.subjectId === subjectId && m.examId === prevExam.id);
                     if (prevMark) {
-                        change = total - prevMark.total;
+                        change = Number((total - prevMark.total).toFixed(2));
                     }
                 }
 
@@ -320,6 +464,263 @@ export function StudentProfileSheet({
         onStudentUpdated?.();
     };
 
+    // Elevated Print Academic Performance Report Generator (Dynamic based on selected mode)
+    const handlePrintReport = (mode?: ExamCategory | "all") => {
+        if (!student) return;
+        const printMode = mode || selectedCategoryTab;
+
+        const schoolName = schoolInfo?.name || "School Result System";
+        const schoolAddress = schoolInfo?.address || "";
+        const schoolPhone = schoolInfo?.phone || "";
+
+        let reportTitle = "STUDENT ACADEMIC PERFORMANCE REPORT";
+
+        const renderComparisonTableHTML = (title: string, list: CategoryComparison[]) => {
+            if (list.length === 0) return "";
+            const rowsHTML = list
+                .map((comp, i) => {
+                    const pctSign = comp.changePercentage > 0 ? "+" : "";
+                    const markSign = comp.changeTotalMarks > 0 ? "+" : "";
+                    const badgeClass = comp.direction === "up" ? "badge-up" : comp.direction === "down" ? "badge-down" : "badge-same";
+                    const arrow = comp.direction === "up" ? "▲" : comp.direction === "down" ? "▼" : "●";
+                    const rowClass = i % 2 === 0 ? "e" : "o";
+
+                    return `
+                        <tr class="${rowClass}">
+                            <td class="left"><strong>${comp.fromExam}</strong> → <strong>${comp.toExam}</strong></td>
+                            <td>${comp.fromPercentage.toFixed(2)}%</td>
+                            <td>${comp.toPercentage.toFixed(2)}%</td>
+                            <td><span class="${badgeClass}">${arrow} ${pctSign}${comp.changePercentage.toFixed(2)}%</span></td>
+                            <td><strong>${markSign}${comp.changeTotalMarks.toFixed(2)}</strong> Marks</td>
+                        </tr>
+                    `;
+                })
+                .join("");
+
+            return `
+                <div class="sec-hdr">${title}</div>
+                <table class="mtbl">
+                    <thead>
+                        <tr>
+                            <th class="left">Exam Transition</th>
+                            <th>Previous %</th>
+                            <th>Current %</th>
+                            <th>Percentage Difference</th>
+                            <th>Marks Difference</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rowsHTML}
+                    </tbody>
+                </table>
+            `;
+        };
+
+        const renderSubjectTrendHTML = (trendObj: { orderedExams: { id: string; name: string }[]; rows: SubjectTrendRow[] }) => {
+            if (trendObj.orderedExams.length === 0 || trendObj.rows.length === 0) return "";
+
+            const headerHTML = trendObj.orderedExams
+                .map((e) => `<th>${e.name}</th>`)
+                .join("");
+
+            const rowsHTML = trendObj.rows
+                .map((row, i) => {
+                    const rowClass = i % 2 === 0 ? "e" : "o";
+                    const cellsHTML = row.marksByExam
+                        .map((m) => {
+                            if (m.total <= 0) return `<td class="text-muted">—</td>`;
+                            let changeBadge = "";
+                            if (m.change !== null) {
+                                const sign = m.change > 0 ? "+" : "";
+                                const badgeClass = m.change > 0 ? "badge-up" : m.change < 0 ? "badge-down" : "badge-same";
+                                const arrow = m.change > 0 ? "▲" : m.change < 0 ? "▼" : "●";
+                                changeBadge = `<br/><span class="${badgeClass}">${arrow} ${sign}${m.change.toFixed(2)}</span>`;
+                            }
+                            return `<td><strong>${m.total}</strong>${changeBadge}</td>`;
+                        })
+                        .join("");
+
+                    return `
+                        <tr class="${rowClass}">
+                            <td class="left"><strong>${row.subjectName}</strong></td>
+                            ${cellsHTML}
+                        </tr>
+                    `;
+                })
+                .join("");
+
+            return `
+                <div class="sec-hdr">Subject-wise Marks & Mark Differences</div>
+                <table class="mtbl">
+                    <thead>
+                        <tr>
+                            <th class="left">Subject</th>
+                            ${headerHTML}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rowsHTML}
+                    </tbody>
+                </table>
+            `;
+        };
+
+        let comparisonHTML = "";
+        if (printMode === "all") {
+            comparisonHTML += renderComparisonTableHTML("Previous MCT Exams Performance Comparison", categorizedComparisons.mct);
+            comparisonHTML += renderComparisonTableHTML("Previous Exam Performance Comparison", categorizedComparisons.semesterAndStandalone);
+        } else if (printMode === "mct") {
+            comparisonHTML += renderComparisonTableHTML("Previous MCT Exams Performance Comparison", categorizedComparisons.mct);
+        } else if (printMode === "semesterAndStandalone") {
+            comparisonHTML += renderComparisonTableHTML("Previous Exam Performance Comparison", categorizedComparisons.semesterAndStandalone);
+        } else if (printMode === "semester") {
+            comparisonHTML += renderComparisonTableHTML("Previous Semester Exams Performance Comparison", categorizedComparisons.semester);
+        } else if (printMode === "standalone") {
+            comparisonHTML += renderComparisonTableHTML("Previous Standalone Exams Performance Comparison", categorizedComparisons.standalone);
+        }
+        const activeTrend = printMode === "all" ? subjectTrend : categorizedSubjectTrends[printMode];
+        const totalRowsCount = activeTrend.rows.length;
+        const subjectHTML = renderSubjectTrendHTML(activeTrend);
+
+        let tblFontSize = "12px";
+        let tblCellPadding = "4px 6px";
+        let sigsMarginTop = "20px";
+        let secHdrMargin = "10px 0 5px 0";
+        let stblPadding = "6px 5px";
+
+        if (totalRowsCount <= 8) {
+            tblFontSize = "12.5px";
+            tblCellPadding = "6.5px 7px";
+            sigsMarginTop = "32px";
+            secHdrMargin = "12px 0 6px 0";
+            stblPadding = "7.5px 6px";
+        } else if (totalRowsCount <= 12) {
+            tblFontSize = "12px";
+            tblCellPadding = "4.5px 6px";
+            sigsMarginTop = "24px";
+            secHdrMargin = "10px 0 5px 0";
+            stblPadding = "6px 5px";
+        } else {
+            // 13+ subjects (e.g. 14 subjects)
+            tblFontSize = "11.5px";
+            tblCellPadding = "3px 6px";
+            sigsMarginTop = "16px";
+            secHdrMargin = "8px 0 4px 0";
+            stblPadding = "5px 4px";
+        }
+
+        const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Academic Report - ${student.name}</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+@page { size: A4 portrait; margin: 3mm 5mm; }
+body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; font-family: 'Poppins', sans-serif; color: #1e293b; font-size: 12px; background: #fff; margin: 0; padding: 0; }
+.pg { max-width: 750px; margin: 0 auto; padding: 3mm 5mm; box-sizing: border-box; page-break-inside: avoid !important; break-inside: avoid !important; }
+.tb { border-top: 3px double #1a365d; border-bottom: 1.5px solid #1a365d; height: 3px; margin-bottom: 5px; }
+.bb { border-top: 1.5px solid #1a365d; border-bottom: 3px double #1a365d; height: 3px; margin-top: 10px; }
+
+.hdr { text-align: center; margin-bottom: 5px; }
+.hdr img { height: 38px; margin: 0 auto 2px; display: block; }
+.hdr h1 { font-size: 19px; font-weight: 700; color: #1e3a5f; letter-spacing: 0.5px; margin: 0; }
+.hdr .ad { font-size: 10px; color: #64748b; margin-top: 1px; }
+
+.tbar { background: #f0f5ff !important; color: #1e3a5f !important; border: 1px solid #cbd5e1; text-align: center; padding: 4px 8px; margin: 5px 0 7px 0; border-radius: 6px; }
+.tbar h2 { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; margin: 0; color: #1e3a5f !important; }
+.tbar .sub { font-size: 9.5px; color: #64748b !important; margin-top: 1px; }
+
+.itbl { width: 100%; border-collapse: collapse; margin-bottom: 7px; font-size: 11.5px; border: 1px solid #cbd5e1; border-radius: 4px; overflow: hidden; background: #f8fafc; }
+.itbl td { padding: 3.5px 7px; border: 1px solid #cbd5e1; }
+.itbl .lb { color: #64748b; font-weight: 600; width: 22%; text-transform: uppercase; font-size: 9.5px; letter-spacing: 0.5px; }
+.itbl .vl { font-weight: 700; width: 28%; color: #0f172a; font-size: 11.5px; }
+
+.stbl { width: 100%; border-collapse: collapse; border: 1px solid #cbd5e1; margin-bottom: 7px; font-size: 11.5px; border-radius: 4px; overflow: hidden; }
+.stbl td { padding: ${stblPadding}; text-align: center; background: #f0f5ff !important; border-right: 1px solid #cbd5e1; }
+.stbl td:last-child { border-right: none; }
+.stbl .sl { font-size: 9.5px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
+.stbl .sv { font-size: 15px; font-weight: 800; color: #1e3a5f; margin-top: 1px; }
+
+.sec-hdr { font-size: 11.5px; font-weight: 800; color: #1e3a5f; text-transform: uppercase; letter-spacing: 0.5px; margin: ${secHdrMargin}; border-left: 3px solid #2563eb; padding-left: 6px; }
+
+.mtbl { width: 100%; border-collapse: collapse; margin-bottom: 7px; font-size: ${tblFontSize}; border: 1px solid #cbd5e1; page-break-inside: avoid !important; break-inside: avoid !important; }
+.mtbl th { background: #e8edf5 !important; color: #1e3a5f !important; padding: ${tblCellPadding}; border: 1px solid #cbd5e1; text-align: center; font-weight: 700; font-size: ${tblFontSize}; text-transform: uppercase; }
+.mtbl th.left { text-align: left; }
+.mtbl td { padding: ${tblCellPadding}; border: 1px solid #cbd5e1; text-align: center; color: #334155; font-size: ${tblFontSize}; }
+.mtbl td.left { text-align: left; }
+.mtbl tr.e { background: #ffffff !important; }
+.mtbl tr.o { background: #f8fafc !important; }
+.mtbl .text-muted { color: #94a3b8; }
+
+.badge-up { background: #dcfce7 !important; color: #15803d !important; font-weight: 700; padding: 1px 4px; border-radius: 3px; display: inline-block; font-size: 9px; }
+.badge-down { background: #fee2e2 !important; color: #b91c1c !important; font-weight: 700; padding: 1px 4px; border-radius: 3px; display: inline-block; font-size: 9px; }
+.badge-same { background: #f1f5f9 !important; color: #475569 !important; font-weight: 700; padding: 1px 4px; border-radius: 3px; display: inline-block; font-size: 9px; }
+
+.sigs { width: 100%; table-layout: fixed; margin-top: ${sigsMarginTop}; border-collapse: collapse; page-break-inside: avoid !important; break-inside: avoid !important; }
+.sigs td { text-align: center; vertical-align: top; }
+.sigb { width: 140px; margin: 0 auto; border-top: 1.5px solid #334155; padding-top: 3px; font-size: 10.5px; font-weight: 700; color: #334155; text-transform: uppercase; }
+</style></head><body><div class="pg">
+<div class="tb"></div>
+<div class="hdr">
+${schoolInfo?.logo_url ? `<img src="${schoolInfo.logo_url}" alt="Logo">` : ""}
+<h1>${schoolName}</h1>
+${schoolAddress ? `<div class="ad">${schoolAddress} ${schoolPhone ? `| Phone: ${schoolPhone}` : ""}</div>` : ""}
+</div>
+
+<div class="tbar">
+<h2>${reportTitle}</h2>
+<div class="sub">Academic Year: ${new Date().getFullYear()} | Issued on: ${new Date().toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}</div>
+</div>
+
+<table class="itbl">
+<tr><td class="lb">Student Name</td><td class="vl">${student.name}</td><td class="lb">Class / Sec</td><td class="vl">${currentClass?.name || "-"} (${currentSection?.name || "-"})</td></tr>
+<tr><td class="lb">Roll Number</td><td class="vl">${student.roll}</td><td class="lb">Student ID</td><td class="vl">${student.student_id || "-"}</td></tr>
+</table>
+
+<table class="stbl">
+<tr>
+<td style="width:25%"><div class="sl">Current GPA</div><div class="sv">${currentGpa}</div></td>
+<td style="width:25%"><div class="sl">Attendance Rate</div><div class="sv">${attendanceSummary.percentage}%</div></td>
+<td style="width:25%"><div class="sl">Exams Evaluated</div><div class="sv">${results.length}</div></td>
+<td style="width:25%"><div class="sl">Status</div><div class="sv" style="color:#16a34a">ACTIVE</div></td>
+</tr>
+</table>
+
+${comparisonHTML}
+${subjectHTML}
+
+<table class="sigs">
+<tr>
+<td><div class="sigb">Class Teacher</div></td>
+<td><div class="sigb">Exam Controller</div></td>
+<td><div class="sigb">Principal</div></td>
+</tr>
+</table>
+<div class="bb"></div></div></body></html>`;
+
+        printHtml(html);
+    };
+
+    const formatDeltaBadge = (change: number, suffix: string = "%") => {
+        const isUp = change > 0;
+        const isDown = change < 0;
+        const sign = isUp ? "+" : "";
+        const formatted = `${sign}${change.toFixed(2)}${suffix}`;
+
+        return (
+            <Badge
+                variant="secondary"
+                className={`border-0 rounded-lg font-bold text-xs px-2.5 py-1 ${
+                    isUp
+                        ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
+                        : isDown
+                        ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300"
+                        : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
+                }`}
+            >
+                {isUp ? "▲ " : isDown ? "▼ " : "● "}
+                {formatted}
+            </Badge>
+        );
+    };
+
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="w-[96vw] sm:max-w-[900px] p-0 gap-0 overflow-hidden bg-background">
@@ -348,10 +749,16 @@ export function StudentProfileSheet({
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="flex gap-2">
-                                        <Button size="sm" variant="outline" className="border-0 bg-muted hover:bg-muted/80 text-foreground"><Printer className="h-4 w-4 mr-1" strokeWidth={1.2} />Print ID</Button>
-                                        <Button size="sm" variant="outline" className="border-0 bg-muted hover:bg-muted/80 text-foreground" onClick={() => onRequestTransfer?.(student)}><MoveRight className="h-4 w-4 mr-1" strokeWidth={1.2} />Transfer</Button>
-                                        <Button size="sm" onClick={() => onRequestEdit?.(student)}><Pencil className="h-4 w-4 mr-1" strokeWidth={1.2} />Edit</Button>
+                                    <div className="flex gap-2 flex-wrap">
+                                        <Button size="sm" variant="outline" className="border-0 bg-muted hover:bg-muted/80 text-foreground" onClick={() => handlePrintReport(selectedCategoryTab)}>
+                                            <Printer className="h-4 w-4 mr-1" strokeWidth={1.2} />Print Academic Report
+                                        </Button>
+                                        <Button size="sm" variant="outline" className="border-0 bg-muted hover:bg-muted/80 text-foreground" onClick={() => onRequestTransfer?.(student)}>
+                                            <MoveRight className="h-4 w-4 mr-1" strokeWidth={1.2} />Transfer
+                                        </Button>
+                                        <Button size="sm" onClick={() => onRequestEdit?.(student)}>
+                                            <Pencil className="h-4 w-4 mr-1" strokeWidth={1.2} />Edit
+                                        </Button>
                                     </div>
                                 </div>
                             </div>
@@ -387,9 +794,47 @@ export function StudentProfileSheet({
                                 </TabsContent>
 
                                 <TabsContent value="academic" className="space-y-4">
+                                    {/* Action & Filter Bar for Academic Tab */}
+                                    <div className="flex items-center justify-between flex-wrap gap-3 bg-muted/40 p-3.5 rounded-xl border border-border/40">
+                                        <div className="flex items-center gap-1.5 bg-background p-1 rounded-lg border border-border/60 flex-wrap">
+                                            <Button
+                                                size="sm"
+                                                variant={selectedCategoryTab === "all" ? "default" : "ghost"}
+                                                className="h-8 text-xs font-semibold px-3 rounded-md"
+                                                onClick={() => setSelectedCategoryTab("all")}
+                                            >
+                                                All Examinations
+                                            </Button>
+                                            <Button
+                                                size="sm"
+                                                variant={selectedCategoryTab === "mct" ? "default" : "ghost"}
+                                                className="h-8 text-xs font-semibold px-3 rounded-md"
+                                                onClick={() => setSelectedCategoryTab("mct")}
+                                            >
+                                                MCT vs MCT
+                                            </Button>
+                                            <Button
+                                                size="sm"
+                                                variant={selectedCategoryTab === "semesterAndStandalone" ? "default" : "ghost"}
+                                                className="h-8 text-xs font-semibold px-3 rounded-md"
+                                                onClick={() => setSelectedCategoryTab("semesterAndStandalone")}
+                                            >
+                                                Semester vs Semester vs Standalone
+                                            </Button>
+                                        </div>
+                                        <Button size="sm" onClick={() => handlePrintReport(selectedCategoryTab)} className="gap-1.5 shadow-sm font-semibold">
+                                            <Printer className="h-4 w-4" />
+                                            Print
+                                        </Button>
+                                    </div>
+
                                     {/* Performance Trend Chart */}
                                     <Card>
-                                        <CardHeader><CardTitle className="text-sm">Performance Trend</CardTitle></CardHeader>
+                                        <CardHeader>
+                                            <CardTitle className="text-sm">
+                                                Performance Trend ({selectedCategoryTab === "all" ? "All Exams" : selectedCategoryTab === "mct" ? "MCT Exams" : "Semester & Standalone Exams"})
+                                            </CardTitle>
+                                        </CardHeader>
                                         <CardContent className="h-64">
                                             {trendData.length === 0 ? (
                                                 <p className="text-sm text-muted-foreground">No results found.</p>
@@ -407,110 +852,167 @@ export function StudentProfileSheet({
                                         </CardContent>
                                     </Card>
 
-                                    {/* Semester Progress Comparison */}
-                                    {progressComparison.length > 0 && (
-                                        <Card>
-                                            <CardHeader>
+                                    {/* Categorized Exam Comparisons */}
+                                    <Card>
+                                        <CardHeader>
+                                            <div className="flex items-center justify-between flex-wrap gap-2">
                                                 <CardTitle className="text-sm flex items-center gap-2">
-                                                    <TrendingUp size={16} strokeWidth={1.5} className="text-muted-foreground" />
-                                                    Semester Progress Comparison
+                                                    <TrendingUp size={16} strokeWidth={1.5} className="text-primary" />
+                                                    Exam Performance Comparisons
                                                 </CardTitle>
-                                            </CardHeader>
-                                            <CardContent className="space-y-3">
-                                                {progressComparison.map((comp, idx) => (
-                                                    <div key={idx} className="rounded-xl border border-border/50 bg-muted/20 p-4">
-                                                        <div className="flex items-center justify-between flex-wrap gap-2">
-                                                            <div className="flex items-center gap-3">
-                                                                <div className="text-center">
-                                                                    <p className="text-xs text-muted-foreground font-medium mb-1">{comp.fromExam}</p>
-                                                                    <p className="text-lg font-bold text-foreground">{comp.fromPercentage.toFixed(1)}%</p>
+                                            </div>
+                                        </CardHeader>
+                                        <CardContent className="space-y-4">
+                                            {/* MCT vs MCT Comparison */}
+                                            {(selectedCategoryTab === "all" || selectedCategoryTab === "mct") && categorizedComparisons.mct.length > 0 && (
+                                                <div className="space-y-2">
+                                                    <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                                                        <span className="h-2 w-2 rounded-full bg-blue-500"></span>
+                                                        MCT vs MCT Comparison
+                                                    </h4>
+                                                    <div className="grid gap-2">
+                                                        {categorizedComparisons.mct.map((comp, idx) => (
+                                                            <div key={idx} className="rounded-xl border border-border/50 bg-muted/20 p-3.5 flex items-center justify-between flex-wrap gap-3">
+                                                                <div className="flex items-center gap-3">
+                                                                    <div className="text-center min-w-[80px]">
+                                                                        <p className="text-xs text-muted-foreground font-medium">{comp.fromExam}</p>
+                                                                        <p className="text-base font-bold">{comp.fromPercentage.toFixed(2)}%</p>
+                                                                        <p className="text-[10px] text-muted-foreground">({comp.fromTotalMarks} marks)</p>
+                                                                    </div>
+                                                                    <div className="flex items-center px-1">
+                                                                        {comp.direction === "up" && <ArrowUp size={18} className="text-emerald-600" />}
+                                                                        {comp.direction === "down" && <ArrowDown size={18} className="text-red-600" />}
+                                                                        {comp.direction === "same" && <Minus size={18} className="text-gray-400" />}
+                                                                    </div>
+                                                                    <div className="text-center min-w-[80px]">
+                                                                        <p className="text-xs text-muted-foreground font-medium">{comp.toExam}</p>
+                                                                        <p className="text-base font-bold">{comp.toPercentage.toFixed(2)}%</p>
+                                                                        <p className="text-[10px] text-muted-foreground">({comp.toTotalMarks} marks)</p>
+                                                                    </div>
                                                                 </div>
-                                                                <div className="flex items-center gap-1 px-3">
-                                                                    {comp.direction === 'up' && <ArrowUp size={20} className="text-emerald-600" />}
-                                                                    {comp.direction === 'down' && <ArrowDown size={20} className="text-red-600" />}
-                                                                    {comp.direction === 'same' && <Minus size={20} className="text-gray-400" />}
-                                                                </div>
-                                                                <div className="text-center">
-                                                                    <p className="text-xs text-muted-foreground font-medium mb-1">{comp.toExam}</p>
-                                                                    <p className="text-lg font-bold text-foreground">{comp.toPercentage.toFixed(1)}%</p>
+                                                                <div className="flex items-center gap-2">
+                                                                    {formatDeltaBadge(comp.changePercentage, "%")}
+                                                                    <Badge variant="outline" className="font-semibold text-xs border-border">
+                                                                        {comp.changeTotalMarks > 0 ? "+" : ""}{comp.changeTotalMarks.toFixed(2)} Marks
+                                                                    </Badge>
                                                                 </div>
                                                             </div>
-                                                            <Badge
-                                                                variant="secondary"
-                                                                className={`border-0 rounded-lg font-bold text-sm px-3 py-1.5 ${
-                                                                    comp.direction === 'up'
-                                                                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
-                                                                        : comp.direction === 'down'
-                                                                        ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
-                                                                        : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
-                                                                }`}
-                                                            >
-                                                                {comp.direction === 'up' ? '▲' : comp.direction === 'down' ? '▼' : '●'}{' '}
-                                                                {comp.change > 0 ? '+' : ''}{comp.change.toFixed(1)}%
-                                                            </Badge>
-                                                        </div>
+                                                        ))}
                                                     </div>
-                                                ))}
-                                            </CardContent>
-                                        </Card>
-                                    )}
+                                                </div>
+                                            )}
 
-                                    {/* Subject-wise Trend Table */}
+                                            {/* Semester vs Semester vs Standalone Comparison */}
+                                            {(selectedCategoryTab === "all" || selectedCategoryTab === "semesterAndStandalone") && categorizedComparisons.semesterAndStandalone.length > 0 && (
+                                                <div className="space-y-2 pt-1">
+                                                    <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                                                        <span className="h-2 w-2 rounded-full bg-indigo-500"></span>
+                                                        Semester vs Semester vs Standalone Comparison
+                                                    </h4>
+                                                    <div className="grid gap-2">
+                                                        {categorizedComparisons.semesterAndStandalone.map((comp, idx) => (
+                                                            <div key={idx} className="rounded-xl border border-border/50 bg-muted/20 p-3.5 flex items-center justify-between flex-wrap gap-3">
+                                                                <div className="flex items-center gap-3">
+                                                                    <div className="text-center min-w-[80px]">
+                                                                        <p className="text-xs text-muted-foreground font-medium">{comp.fromExam}</p>
+                                                                        <p className="text-base font-bold">{comp.fromPercentage.toFixed(2)}%</p>
+                                                                        <p className="text-[10px] text-muted-foreground">({comp.fromTotalMarks} marks)</p>
+                                                                    </div>
+                                                                    <div className="flex items-center px-1">
+                                                                        {comp.direction === "up" && <ArrowUp size={18} className="text-emerald-600" />}
+                                                                        {comp.direction === "down" && <ArrowDown size={18} className="text-red-600" />}
+                                                                        {comp.direction === "same" && <Minus size={18} className="text-gray-400" />}
+                                                                    </div>
+                                                                    <div className="text-center min-w-[80px]">
+                                                                        <p className="text-xs text-muted-foreground font-medium">{comp.toExam}</p>
+                                                                        <p className="text-base font-bold">{comp.toPercentage.toFixed(2)}%</p>
+                                                                        <p className="text-[10px] text-muted-foreground">({comp.toTotalMarks} marks)</p>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex items-center gap-2">
+                                                                    {formatDeltaBadge(comp.changePercentage, "%")}
+                                                                    <Badge variant="outline" className="font-semibold text-xs border-border">
+                                                                        {comp.changeTotalMarks > 0 ? "+" : ""}{comp.changeTotalMarks.toFixed(2)} Marks
+                                                                    </Badge>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {categorizedComparisons.mct.length === 0 &&
+                                                categorizedComparisons.semesterAndStandalone.length === 0 && (
+                                                    <p className="text-sm text-muted-foreground">Insufficient exam records for comparative analysis (at least 2 exams needed).</p>
+                                                )}
+                                        </CardContent>
+                                    </Card>
+
+                                    {/* Subject-wise Trend Table with 2 Decimal Mark Change */}
                                     {subjectTrend.orderedExams.length > 0 && subjectTrend.rows.length > 0 && (
                                         <Card>
                                             <CardHeader>
-                                                <CardTitle className="text-sm">Subject-wise Marks Across Exams</CardTitle>
+                                                <CardTitle className="text-sm">Subject-wise Marks & Differences Across Exams</CardTitle>
                                             </CardHeader>
                                             <CardContent>
-                                                <div className="overflow-x-auto">
-                                                    <Table>
-                                                        <TableHeader>
-                                                            <TableRow>
-                                                                <TableHead className="font-semibold min-w-[120px]">Subject</TableHead>
-                                                                {subjectTrend.orderedExams.map((exam) => (
-                                                                    <TableHead key={exam.id} className="text-center font-semibold min-w-[100px]">{exam.name}</TableHead>
-                                                                ))}
-                                                            </TableRow>
-                                                        </TableHeader>
-                                                        <TableBody>
-                                                            {subjectTrend.rows.map((row) => (
-                                                                <TableRow key={row.subjectId}>
-                                                                    <TableCell className="font-medium text-foreground">{row.subjectName}</TableCell>
-                                                                    {row.marksByExam.map((mark, idx) => (
-                                                                        <TableCell key={`${row.subjectId}-${idx}`} className="text-center">
-                                                                            {mark.total > 0 ? (
-                                                                                <div className="flex flex-col items-center gap-0.5">
-                                                                                    <span className={`font-bold text-sm ${mark.passed ? 'text-foreground' : 'text-red-600 dark:text-red-400'}`}>
-                                                                                        {mark.total}
-                                                                                    </span>
-                                                                                    {mark.change !== null && (
-                                                                                        <span className={`text-[10px] font-semibold flex items-center gap-0.5 ${
-                                                                                            mark.change > 0
-                                                                                                ? 'text-emerald-600 dark:text-emerald-400'
-                                                                                                : mark.change < 0
-                                                                                                ? 'text-red-600 dark:text-red-400'
-                                                                                                : 'text-gray-400'
-                                                                                        }`}>
-                                                                                            {mark.change > 0 ? (
-                                                                                                <><TrendingUp size={10} />+{mark.change}</>
-                                                                                            ) : mark.change < 0 ? (
-                                                                                                <><TrendingDown size={10} />{mark.change}</>
-                                                                                            ) : (
-                                                                                                <><Minus size={10} />0</>
+                                                {(() => {
+                                                    const activeTrend = selectedCategoryTab === "all" ? subjectTrend : categorizedSubjectTrends[selectedCategoryTab];
+                                                    if (!activeTrend.orderedExams.length || !activeTrend.rows.length) {
+                                                        return <p className="text-sm text-muted-foreground py-4 text-center">No subject mark records available for this exam category.</p>;
+                                                    }
+
+                                                    return (
+                                                        <div className="overflow-x-auto">
+                                                            <Table>
+                                                                <TableHeader>
+                                                                    <TableRow>
+                                                                        <TableHead className="font-semibold min-w-[140px]">Subject</TableHead>
+                                                                        {activeTrend.orderedExams.map((exam) => (
+                                                                            <TableHead key={exam.id} className="text-center font-semibold min-w-[110px]">{exam.name}</TableHead>
+                                                                        ))}
+                                                                    </TableRow>
+                                                                </TableHeader>
+                                                                <TableBody>
+                                                                    {activeTrend.rows.map((row) => (
+                                                                        <TableRow key={row.subjectId}>
+                                                                            <TableCell className="font-medium text-foreground">{row.subjectName}</TableCell>
+                                                                            {row.marksByExam.map((mark, idx) => (
+                                                                                <TableCell key={`${row.subjectId}-${idx}`} className="text-center">
+                                                                                    {mark.total > 0 ? (
+                                                                                        <div className="flex flex-col items-center gap-0.5">
+                                                                                            <span className={`font-bold text-sm ${mark.passed ? 'text-foreground' : 'text-red-600 dark:text-red-400'}`}>
+                                                                                                {mark.total}
+                                                                                            </span>
+                                                                                            {mark.change !== null && (
+                                                                                                <span className={`text-[11px] font-bold flex items-center gap-0.5 px-1.5 py-0.5 rounded ${
+                                                                                                    mark.change > 0
+                                                                                                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
+                                                                                                        : mark.change < 0
+                                                                                                        ? 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300'
+                                                                                                        : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
+                                                                                                }`}>
+                                                                                                    {mark.change > 0 ? (
+                                                                                                        <><TrendingUp size={11} />+{mark.change.toFixed(2)}</>
+                                                                                                    ) : mark.change < 0 ? (
+                                                                                                        <><TrendingDown size={11} />{mark.change.toFixed(2)}</>
+                                                                                                    ) : (
+                                                                                                        <><Minus size={11} />0.00</>
+                                                                                                    )}
+                                                                                                </span>
                                                                                             )}
-                                                                                        </span>
+                                                                                        </div>
+                                                                                    ) : (
+                                                                                        <span className="text-muted-foreground text-xs">—</span>
                                                                                     )}
-                                                                                </div>
-                                                                            ) : (
-                                                                                <span className="text-muted-foreground text-xs">—</span>
-                                                                            )}
-                                                                        </TableCell>
+                                                                                </TableCell>
+                                                                            ))}
+                                                                        </TableRow>
                                                                     ))}
-                                                                </TableRow>
-                                                            ))}
-                                                        </TableBody>
-                                                    </Table>
-                                                </div>
+                                                                </TableBody>
+                                                            </Table>
+                                                        </div>
+                                                    );
+                                                })()}
                                             </CardContent>
                                         </Card>
                                     )}
