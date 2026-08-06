@@ -218,8 +218,79 @@ export function StudentProfileSheet({
         return Math.max(...results.map((r) => r.gpa || 0)).toFixed(2);
     }, [results]);
 
+    const allExamResults = useMemo(() => {
+        const list: {
+            id: string;
+            student_id: string;
+            exam_id: string;
+            percentage: number;
+            total_marks: number;
+            total_full_marks: number;
+            created_at?: string;
+        }[] = [];
+
+        const processedExamIds = new Set<string>();
+
+        const sortedExams = [...exams].sort((a, b) => {
+            const termA = a.term ?? 99;
+            const termB = b.term ?? 99;
+            if (termA !== termB) return termA - termB;
+            const typeWeight = (type?: string) => (type === "mct" ? 1 : type === "semester" ? 2 : 3);
+            return typeWeight(a.exam_type) - typeWeight(b.exam_type);
+        });
+
+        for (const exam of sortedExams) {
+            const existingRes = results.find((r) => r.exam_id === exam.id);
+            if (existingRes) {
+                list.push({
+                    id: existingRes.id,
+                    student_id: existingRes.student_id,
+                    exam_id: existingRes.exam_id,
+                    percentage: Number(existingRes.percentage || 0),
+                    total_marks: Number(existingRes.total_marks || 0),
+                    total_full_marks: Number(existingRes.total_full_marks || 0),
+                    created_at: existingRes.created_at,
+                });
+                processedExamIds.add(exam.id);
+            } else {
+                const examMarks = subjectMarks.filter((m) => m.examId === exam.id);
+                if (examMarks.length > 0) {
+                    const total_marks = examMarks.reduce((s, m) => s + m.total, 0);
+                    const total_full_marks = examMarks.reduce((s, m) => s + m.fullMark, 0);
+                    const percentage = total_full_marks > 0 ? Number(((total_marks / total_full_marks) * 100).toFixed(2)) : 0;
+                    list.push({
+                        id: `marks-${exam.id}`,
+                        student_id: studentId || "",
+                        exam_id: exam.id,
+                        percentage,
+                        total_marks,
+                        total_full_marks,
+                    });
+                    processedExamIds.add(exam.id);
+                }
+            }
+        }
+
+        for (const r of results) {
+            if (!processedExamIds.has(r.exam_id)) {
+                list.push({
+                    id: r.id,
+                    student_id: r.student_id,
+                    exam_id: r.exam_id,
+                    percentage: Number(r.percentage || 0),
+                    total_marks: Number(r.total_marks || 0),
+                    total_full_marks: Number(r.total_full_marks || 0),
+                    created_at: r.created_at,
+                });
+                processedExamIds.add(r.exam_id);
+            }
+        }
+
+        return list;
+    }, [results, subjectMarks, exams, studentId]);
+
     const trendData: MarkTrend[] = useMemo(() => {
-        const filteredResults = results.filter((r) => {
+        const filteredResults = allExamResults.filter((r) => {
             if (selectedCategoryTab === "all") return true;
             const exam = exams.find((e) => e.id === r.exam_id);
             const cat = getExamCategory(exam);
@@ -233,7 +304,7 @@ export function StudentProfileSheet({
             exam: exams.find((e) => e.id === r.exam_id)?.name || r.exam_id.slice(0, 6),
             percentage: Number(r.percentage || 0),
         }));
-    }, [results, exams, selectedCategoryTab]);
+    }, [allExamResults, exams, selectedCategoryTab]);
 
     // Categorized progress comparisons (MCT, Semester, Standalone, and Semester vs Standalone)
     const categorizedComparisons = useMemo(() => {
@@ -252,7 +323,7 @@ export function StudentProfileSheet({
         };
 
         for (const cat of categories) {
-            let catResults = results.filter((r) => {
+            let catResults = allExamResults.filter((r) => {
                 const exam = exams.find((e) => e.id === r.exam_id);
                 const c = getExamCategory(exam);
                 if (cat.key === "semesterAndStandalone") {
@@ -294,7 +365,7 @@ export function StudentProfileSheet({
         }
 
         return res;
-    }, [results, exams]);
+    }, [allExamResults, exams]);
 
     // Categorized Subject Trends
     const categorizedSubjectTrends = useMemo(() => {

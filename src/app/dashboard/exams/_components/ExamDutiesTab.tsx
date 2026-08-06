@@ -204,17 +204,6 @@ export function ExamDutiesTab({ exams }: { exams: { id: string; name: string }[]
         fetchExamScheduleDetails();
     }, [selectedExam, selectedDate, selectedShift, supabase]);
 
-    // Reset date & shift when exam changes
-    useEffect(() => {
-        setSelectedDate("");
-        setSelectedShift("");
-    }, [selectedExam]);
-
-    // Reset shift when date changes
-    useEffect(() => {
-        setSelectedShift("");
-    }, [selectedDate]);
-
     // Derived Dates and Shifts
     const availableDates = useMemo(
         () => Array.from(new Set(schedules.map(s => s.exam_date))).sort(),
@@ -228,6 +217,37 @@ export function ExamDutiesTab({ exams }: { exams: { id: string; name: string }[]
             .map(s => `${s.start_time}||${s.end_time}`);
         return Array.from(new Set(shifts)).sort();
     }, [schedules, selectedDate]);
+
+    // Reset date & shift when exam changes
+    useEffect(() => {
+        setSelectedDate("");
+        setSelectedShift("");
+    }, [selectedExam]);
+
+    // Auto-select first date when exam schedules load if none selected
+    useEffect(() => {
+        if (!selectedDate && availableDates.length > 0) {
+            setSelectedDate(availableDates[0]);
+        }
+    }, [availableDates, selectedDate]);
+
+    // Maintain current shift if available on new date, or auto-select first available shift
+    useEffect(() => {
+        if (!selectedDate) {
+            setSelectedShift("");
+            return;
+        }
+        const shifts = schedules
+            .filter(s => s.exam_date === selectedDate)
+            .map(s => `${s.start_time}||${s.end_time}`);
+        const uniqueShifts = Array.from(new Set(shifts)).sort();
+
+        if (uniqueShifts.length > 0) {
+            setSelectedShift(prev => (prev && uniqueShifts.includes(prev) ? prev : uniqueShifts[0]));
+        } else {
+            setSelectedShift("");
+        }
+    }, [selectedDate, schedules]);
 
     // Build the enriched room duty details
     const roomDutyDetails: RoomDutyDetail[] = useMemo(() => {
@@ -287,7 +307,7 @@ export function ExamDutiesTab({ exams }: { exams: { id: string; name: string }[]
                     .eq("exam_date", selectedDate)
                     .eq("start_time", start_time)
                     .eq("end_time", end_time),
-                supabase.from("exam_duties").select("teacher_id")
+                supabase.from("exam_duties").select("teacher_id").eq("exam_id", selectedExam)
             ]);
 
             if (currentDutiesRes.error) throw currentDutiesRes.error;
