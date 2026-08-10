@@ -39,9 +39,6 @@ function LoginForm() {
         if (authError === "auth" && !showedAuthError.current) {
             showedAuthError.current = true;
             toast.error("Sign-in link expired or is invalid. Try again.");
-        } else if (reason === "inactivity" && !showedAuthError.current) {
-            showedAuthError.current = true;
-            toast.error("Logged out due to 15 minutes of inactivity for security.");
         } else if (reason === "session_expired" && !showedAuthError.current) {
             showedAuthError.current = true;
             toast.info("Security requirement: Please sign in to access the system.");
