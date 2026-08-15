@@ -1,7 +1,7 @@
 // Exam Schedule — Grid layout with Shift management, instructions, print
 "use client";
 
-import { useEffect, useState, useMemo, useCallback, type MouseEvent } from "react";
+import { useEffect, useState, useMemo, useCallback, useRef, type MouseEvent } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { printHtml } from "@/lib/print-utils";
 import {
@@ -138,6 +138,9 @@ export default function ExamSchedulePage() {
         })();
     }, [classes, supabase]);
 
+    const loadedExamRef = useRef<string>("");
+    const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
     // Load schedules when exam changes
     const loadSchedules = useCallback(async () => {
         if (!selectedExam) { setSchedules([]); return; }
@@ -151,35 +154,113 @@ export default function ExamSchedulePage() {
 
     useEffect(() => { loadSchedules(); }, [loadSchedules]);
 
-    // When exam changes, load saved config from localStorage
+    // When exam changes, load saved config from backend API (database), fallback to localStorage
     useEffect(() => {
-        if (!selectedExam) return;
-        try {
-            const saved = localStorage.getItem(`exam_config_${selectedExam}`);
-            if (saved) {
-                const config = JSON.parse(saved);
-                setShifts(config.shifts || []);
-                setExamDates(config.dates || []);
-                setInstructions(config.instructions || []);
-                if (config.shifts?.length > 0) {
-                    setSelectedShiftId(config.selectedShiftId || config.shifts[0].id);
-                }
-            } else {
-                setShifts([]);
-                setExamDates([]);
-                setInstructions([]);
-                setSelectedShiftId("");
-            }
-        } catch {
-            setShifts([]); setExamDates([]); setInstructions([]); setSelectedShiftId("");
+        if (!selectedExam) {
+            loadedExamRef.current = "";
+            setShifts([]);
+            setExamDates([]);
+            setInstructions([]);
+            setSelectedShiftId("");
+            return;
         }
+
+        let isCancelled = false;
+
+        (async () => {
+            try {
+                const res = await fetch(`/api/administration/exam-schedule/config?exam_id=${selectedExam}`);
+                const result = await res.json();
+
+                if (!isCancelled && result.success && result.data) {
+                    const data = result.data;
+                    const loadedShifts = Array.isArray(data.shifts) ? data.shifts : [];
+                    const loadedDates = Array.isArray(data.dates) ? data.dates : [];
+                    const loadedInstructions = Array.isArray(data.instructions) ? data.instructions : [];
+                    const initialShiftId = data.selectedShiftId || (loadedShifts.length > 0 ? loadedShifts[0].id : "");
+
+                    setShifts(loadedShifts);
+                    setExamDates(loadedDates);
+                    setInstructions(loadedInstructions);
+                    setSelectedShiftId(initialShiftId);
+
+                    try {
+                        localStorage.setItem(`exam_config_${selectedExam}`, JSON.stringify({
+                            shifts: loadedShifts,
+                            dates: loadedDates,
+                            instructions: loadedInstructions,
+                            selectedShiftId: initialShiftId,
+                        }));
+                    } catch {}
+
+                    loadedExamRef.current = selectedExam;
+                    return;
+                }
+            } catch (err) {
+                console.error("Failed to load exam config from API, trying localStorage fallback:", err);
+            }
+
+            // Fallback to localStorage if API failed
+            if (!isCancelled) {
+                try {
+                    const saved = localStorage.getItem(`exam_config_${selectedExam}`);
+                    if (saved) {
+                        const config = JSON.parse(saved);
+                        const loadedShifts = config.shifts || [];
+                        setShifts(loadedShifts);
+                        setExamDates(config.dates || []);
+                        setInstructions(config.instructions || []);
+                        setSelectedShiftId(config.selectedShiftId || (loadedShifts.length > 0 ? loadedShifts[0].id : ""));
+                    } else {
+                        setShifts([]);
+                        setExamDates([]);
+                        setInstructions([]);
+                        setSelectedShiftId("");
+                    }
+                } catch {
+                    setShifts([]); setExamDates([]); setInstructions([]); setSelectedShiftId("");
+                }
+                loadedExamRef.current = selectedExam;
+            }
+        })();
+
+        return () => {
+            isCancelled = true;
+        };
     }, [selectedExam]);
 
-    // Save config to localStorage when things change
+    // Save config to database and localStorage whenever shifts, dates, instructions, or active shift changes
     useEffect(() => {
-        if (!selectedExam) return;
+        if (!selectedExam || loadedExamRef.current !== selectedExam) return;
+
         const config = { shifts, dates: examDates, instructions, selectedShiftId };
-        localStorage.setItem(`exam_config_${selectedExam}`, JSON.stringify(config));
+
+        // Save immediately to localStorage
+        try {
+            localStorage.setItem(`exam_config_${selectedExam}`, JSON.stringify(config));
+        } catch {}
+
+        // Debounce sync to backend database
+        if (saveTimeoutRef.current) {
+            clearTimeout(saveTimeoutRef.current);
+        }
+        saveTimeoutRef.current = setTimeout(() => {
+            fetch("/api/administration/exam-schedule/config", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    exam_id: selectedExam,
+                    shifts,
+                    dates: examDates,
+                    instructions,
+                    selectedShiftId,
+                }),
+            }).catch((err) => console.error("Failed to save exam config to database:", err));
+        }, 400);
+
+        return () => {
+            if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+        };
     }, [shifts, examDates, instructions, selectedShiftId, selectedExam]);
 
     const getName = (list: { id: string; name: string }[], id: string) => list.find((x) => x.id === id)?.name || "";
@@ -447,8 +528,18 @@ ${instructionsHtml}
             await supabase.from("exam_seat_plans").delete().eq("exam_id", selectedExam);
             await supabase.from("exam_duties").delete().eq("exam_id", selectedExam);
             
-            // Clear local config for this exam
-            localStorage.removeItem(`exam_config_${selectedExam}`);
+            // Delete exam config from database and local storage
+            try {
+                await fetch(`/api/administration/exam-schedule/config?exam_id=${selectedExam}`, {
+                    method: "DELETE",
+                });
+            } catch (err) {
+                console.error("Failed to delete exam config from database:", err);
+            }
+            try {
+                localStorage.removeItem(`exam_config_${selectedExam}`);
+            } catch {}
+            
             setShifts([]);
             setExamDates([]);
             setInstructions([]);

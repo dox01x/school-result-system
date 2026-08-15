@@ -24,6 +24,7 @@ DROP TABLE IF EXISTS routine_settings CASCADE;
 DROP TABLE IF EXISTS notices CASCADE;
 DROP TABLE IF EXISTS leave_requests CASCADE;
 DROP TABLE IF EXISTS teacher_shifts CASCADE;
+DROP TABLE IF EXISTS exam_routine_configs CASCADE;
 DROP TABLE IF EXISTS exam_schedules CASCADE;
 DROP TABLE IF EXISTS class_routines CASCADE;
 DROP TABLE IF EXISTS rooms CASCADE;
@@ -304,6 +305,17 @@ CREATE TABLE exam_schedules (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+CREATE TABLE exam_routine_configs (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  exam_id UUID NOT NULL REFERENCES exams(id) ON DELETE CASCADE UNIQUE,
+  shifts JSONB DEFAULT '[]'::jsonb,
+  dates JSONB DEFAULT '[]'::jsonb,
+  instructions JSONB DEFAULT '[]'::jsonb,
+  selected_shift_id TEXT DEFAULT '',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 CREATE TABLE teacher_shifts (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   teacher_id UUID NOT NULL REFERENCES teachers(id) ON DELETE CASCADE,
@@ -566,6 +578,7 @@ CREATE INDEX idx_class_routines_class_day ON class_routines(class_id, day_of_wee
 CREATE INDEX idx_exam_schedules_exam ON exam_schedules(exam_id);
 CREATE INDEX idx_exam_schedules_class ON exam_schedules(class_id);
 CREATE INDEX idx_exam_schedules_exam_class ON exam_schedules(exam_id, class_id);
+CREATE INDEX idx_exam_routine_configs_exam ON exam_routine_configs(exam_id);
 CREATE INDEX idx_teacher_shifts_teacher ON teacher_shifts(teacher_id);
 CREATE INDEX idx_teacher_shifts_date ON teacher_shifts(shift_date);
 CREATE INDEX idx_leave_requests_teacher ON leave_requests(teacher_id);
@@ -822,6 +835,17 @@ CREATE POLICY "exam_schedules_update" ON exam_schedules FOR UPDATE TO authentica
   USING (public.profile_role() IN ('super_admin', 'admin', 'exam_controller'))
   WITH CHECK (public.profile_role() IN ('super_admin', 'admin', 'exam_controller'));
 CREATE POLICY "exam_schedules_delete" ON exam_schedules FOR DELETE TO authenticated
+  USING (public.profile_role() IN ('super_admin', 'admin', 'exam_controller'));
+
+-- Exam routine configs: everyone can read, admin + exam_controller can write
+ALTER TABLE exam_routine_configs ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "exam_routine_configs_select" ON exam_routine_configs FOR SELECT TO authenticated USING (true);
+CREATE POLICY "exam_routine_configs_modify" ON exam_routine_configs FOR INSERT TO authenticated
+  WITH CHECK (public.profile_role() IN ('super_admin', 'admin', 'exam_controller'));
+CREATE POLICY "exam_routine_configs_update" ON exam_routine_configs FOR UPDATE TO authenticated
+  USING (public.profile_role() IN ('super_admin', 'admin', 'exam_controller'))
+  WITH CHECK (public.profile_role() IN ('super_admin', 'admin', 'exam_controller'));
+CREATE POLICY "exam_routine_configs_delete" ON exam_routine_configs FOR DELETE TO authenticated
   USING (public.profile_role() IN ('super_admin', 'admin', 'exam_controller'));
 
 -- Teacher shifts: everyone can read, only admin+ can write

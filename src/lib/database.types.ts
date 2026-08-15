@@ -920,6 +920,47 @@ export type Database = {
                     }
                 ];
             };
+            exam_routine_configs: {
+                Row: {
+                    id: string;
+                    exam_id: string;
+                    shifts: any;
+                    dates: any;
+                    instructions: any;
+                    selected_shift_id: string | null;
+                    created_at: string;
+                    updated_at: string;
+                };
+                Insert: {
+                    id?: string;
+                    exam_id: string;
+                    shifts?: any;
+                    dates?: any;
+                    instructions?: any;
+                    selected_shift_id?: string | null;
+                    created_at?: string;
+                    updated_at?: string;
+                };
+                Update: {
+                    id?: string;
+                    exam_id?: string;
+                    shifts?: any;
+                    dates?: any;
+                    instructions?: any;
+                    selected_shift_id?: string | null;
+                    created_at?: string;
+                    updated_at?: string;
+                };
+                Relationships: [
+                    {
+                        foreignKeyName: "exam_routine_configs_exam_id_fkey";
+                        columns: ["exam_id"];
+                        isOneToOne: true;
+                        referencedRelation: "exams";
+                        referencedColumns: ["id"];
+                    }
+                ];
+            };
             exam_seat_plans: {
                 Row: {
                     id: string;
@@ -1984,6 +2025,7 @@ export type Teacher = Database["public"]["Tables"]["teachers"]["Row"];
 export type Room = Database["public"]["Tables"]["rooms"]["Row"];
 export type ClassRoutine = Database["public"]["Tables"]["class_routines"]["Row"];
 export type ExamSchedule = Database["public"]["Tables"]["exam_schedules"]["Row"];
+export type ExamRoutineConfig = Database["public"]["Tables"]["exam_routine_configs"]["Row"];
 export type TeacherShift = Database["public"]["Tables"]["teacher_shifts"]["Row"];
 export type LeaveRequest = Database["public"]["Tables"]["leave_requests"]["Row"];
 export type Notice = Database["public"]["Tables"]["notices"]["Row"];

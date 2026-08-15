@@ -246,22 +246,58 @@ export function SeatPlanTab({ exams }: { exams: { id: string; name: string }[] }
         fetchBaseData();
     }, [fetchBaseData]);
 
-    // Fetch schedules when exam selected
+    const [examConfig, setExamConfig] = useState<{
+        shifts?: Array<{ id: string; name: string; start_time: string; end_time: string; class_ids?: string[] }>;
+        dates?: string[];
+        instructions?: any[];
+    } | null>(null);
+
+    // Fetch schedules and config when exam selected
     useEffect(() => {
         if (!selectedExam) {
             setSchedules([]);
             setSelectedShift("");
+            setExamConfig(null);
             return;
         }
+
+        let isCancelled = false;
+
         const fetchSchedules = async () => {
             const { data } = await supabase
                 .from("exam_schedules")
                 .select("class_id, subject_id, start_time, end_time")
                 .eq("exam_id", selectedExam);
-            setSchedules(data || []);
-            setSelectedShift("");
+            if (!isCancelled) {
+                setSchedules(data || []);
+                setSelectedShift("");
+            }
         };
+
+        const fetchConfig = async () => {
+            try {
+                const res = await fetch(`/api/administration/exam-schedule/config?exam_id=${selectedExam}`);
+                const result = await res.json();
+                if (!isCancelled && result.success && result.data) {
+                    setExamConfig(result.data);
+                    return;
+                }
+            } catch {}
+
+            if (!isCancelled) {
+                try {
+                    const saved = localStorage.getItem(`exam_config_${selectedExam}`);
+                    if (saved) setExamConfig(JSON.parse(saved));
+                } catch {}
+            }
+        };
+
         fetchSchedules();
+        fetchConfig();
+
+        return () => {
+            isCancelled = true;
+        };
     }, [selectedExam, supabase]);
 
     // Derived Shifts
@@ -312,27 +348,39 @@ export function SeatPlanTab({ exams }: { exams: { id: string; name: string }[] }
         return new Set(activeSchedules.map(s => s.class_id));
     }, [activeSchedules]);
 
-    // Read shift configuration from localStorage
+    // Read shift configuration from examConfig (database API) with localStorage fallback
     const shiftClassIds = useMemo(() => {
         if (!selectedExam || !selectedShift) return new Set<string>();
         const [start, end] = selectedShift.split("||");
+        const normTime = (t: string) => (t || "").substring(0, 5); // Normalise to HH:MM format
+
+        // 1. Check in loaded examConfig from DB
+        if (examConfig?.shifts) {
+            const currentConfigShift = examConfig.shifts.find((s) => {
+                return normTime(s.start_time) === normTime(start) && normTime(s.end_time) === normTime(end);
+            });
+            if (currentConfigShift?.class_ids && currentConfigShift.class_ids.length > 0) {
+                return new Set<string>(currentConfigShift.class_ids);
+            }
+        }
+
+        // 2. Fallback to localStorage
         try {
             const saved = localStorage.getItem(`exam_config_${selectedExam}`);
             if (saved) {
                 const config = JSON.parse(saved);
                 const currentConfigShift = (config.shifts || []).find((s: { start_time: string; end_time: string; class_ids?: string[] }) => {
-                    const normTime = (t: string) => t.substring(0, 5); // Normalise to HH:MM format
                     return normTime(s.start_time) === normTime(start) && normTime(s.end_time) === normTime(end);
                 });
-                if (currentConfigShift) {
-                    return new Set<string>(currentConfigShift.class_ids || []);
+                if (currentConfigShift?.class_ids && currentConfigShift.class_ids.length > 0) {
+                    return new Set<string>(currentConfigShift.class_ids);
                 }
             }
         } catch (err) {
             console.error("Error reading shift config from localStorage", err);
         }
         return new Set<string>();
-    }, [selectedExam, selectedShift]);
+    }, [selectedExam, selectedShift, examConfig]);
 
     // Use shifts config class list if present, otherwise fallback to database schedules
     const allowedClassIds = useMemo(() => {
@@ -592,12 +640,22 @@ export function SeatPlanTab({ exams }: { exams: { id: string; name: string }[] }
         const timeText = startTime && endTime ? `${formatTime(startTime)} – ${formatTime(endTime)}` : "";
         
         let shiftName = "";
-        if (selectedExam) {
+        const normTime = (t: string) => (t || "").substring(0, 5);
+
+        if (examConfig?.shifts) {
+            const found = examConfig.shifts.find((s) => 
+                normTime(s.start_time) === normTime(startTime) && normTime(s.end_time) === normTime(endTime)
+            );
+            if (found?.name) {
+                shiftName = found.name;
+            }
+        }
+
+        if (!shiftName && selectedExam) {
             try {
                 const saved = localStorage.getItem(`exam_config_${selectedExam}`);
                 if (saved) {
                     const config = JSON.parse(saved);
-                    const normTime = (t: string) => (t || "").substring(0, 5);
                     const found = (config.shifts || []).find((s: any) => 
                         normTime(s.start_time) === normTime(startTime) && normTime(s.end_time) === normTime(endTime)
                     );
@@ -612,7 +670,7 @@ export function SeatPlanTab({ exams }: { exams: { id: string; name: string }[] }
             return `${shiftName} (${timeText})`;
         }
         return shiftName || timeText;
-    }, [selectedExam]);
+    }, [selectedExam, examConfig]);
 
     // Print Handler 1: Door Notice Cards
     const handlePrintDoorNoticeCards = () => {

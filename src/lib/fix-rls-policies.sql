@@ -221,6 +221,17 @@ CREATE POLICY "exam_schedules_update" ON exam_schedules FOR UPDATE TO authentica
 CREATE POLICY "exam_schedules_delete" ON exam_schedules FOR DELETE TO authenticated
   USING (public.profile_role() IN ('super_admin', 'admin', 'exam_controller'));
 
+-- exam_routine_configs
+ALTER TABLE exam_routine_configs ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "exam_routine_configs_select" ON exam_routine_configs FOR SELECT TO authenticated USING (true);
+CREATE POLICY "exam_routine_configs_modify" ON exam_routine_configs FOR INSERT TO authenticated
+  WITH CHECK (public.profile_role() IN ('super_admin', 'admin', 'exam_controller'));
+CREATE POLICY "exam_routine_configs_update" ON exam_routine_configs FOR UPDATE TO authenticated
+  USING (public.profile_role() IN ('super_admin', 'admin', 'exam_controller'))
+  WITH CHECK (public.profile_role() IN ('super_admin', 'admin', 'exam_controller'));
+CREATE POLICY "exam_routine_configs_delete" ON exam_routine_configs FOR DELETE TO authenticated
+  USING (public.profile_role() IN ('super_admin', 'admin', 'exam_controller'));
+
 -- teacher_shifts
 CREATE POLICY "teacher_shifts_select" ON teacher_shifts FOR SELECT TO authenticated USING (true);
 CREATE POLICY "teacher_shifts_modify" ON teacher_shifts FOR INSERT TO authenticated

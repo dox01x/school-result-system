@@ -31,6 +31,8 @@ export const CLASS_ROUTINE_COLUMNS =
     "id,class_id,section_id,subject_id,teacher_id,room_id,day_of_week,start_time,end_time,created_at";
 export const EXAM_SCHEDULE_COLUMNS =
     "id,exam_id,class_id,subject_id,exam_date,start_time,end_time,room_id,invigilator_id,created_at";
+export const EXAM_ROUTINE_CONFIG_COLUMNS =
+    "id,exam_id,shifts,dates,instructions,selected_shift_id,created_at,updated_at";
 export const NOTICE_COLUMNS = "id,title,content,audience,priority,is_published,created_at";
 export const ROUTINE_SETTINGS_COLUMNS =
     "id,working_days,periods_per_day,period_duration_minutes,period_durations,break_after_period,break_duration_minutes,class_start_time,created_at,updated_at";
