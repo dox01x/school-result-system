@@ -1,7 +1,8 @@
-export type FeeType = 'tuition' | 'admission' | 'sports' | 'library' | 'book' | 'exam' | 'mct_exam' | 'semester_exam' | 'hostel' | 'multiple' | 'other';
+export type FeeType = 'tuition' | 'admission' | 'sports' | 'library' | 'book' | 'exam' | 'mct_exam' | 'semester_exam' | 'hostel' | 'multiple' | 'arrears' | 'other';
 export type PaymentMethod = 'cash' | 'bank' | 'mobile_banking';
+export type PaymentStatus = 'completed' | 'void' | 'refunded';
 export type ExpenseCategory = 'electricity' | 'water' | 'maintenance' | 'stationery' | 'sports' | 'library' | 'exam' | 'cleaning' | 'salary' | 'other';
-export type IncomeCategory = 'tuition' | 'donation' | 'grant' | 'rent' | 'exam_fee' | 'other';
+export type IncomeCategory = 'tuition' | 'donation' | 'grant' | 'rent' | 'exam_fee' | 'arrears' | 'other';
 
 export interface FeeStructure {
   id: string;
@@ -27,6 +28,8 @@ export interface TuitionPayment {
   id: string;
   receipt_number: string;
   student_id: string;
+  student_name?: string;
+  roll?: string | null;
   class_name: string;
   section?: string;
   fee_type: FeeType;
@@ -42,6 +45,10 @@ export interface TuitionPayment {
   payment_date: string;
   note?: string;
   is_printed: boolean;
+  status: PaymentStatus;
+  void_reason?: string | null;
+  voided_at?: string | null;
+  voided_by?: string | null;
 }
 
 export interface SalaryPayment {
@@ -49,6 +56,25 @@ export interface SalaryPayment {
   slip_number: string;
   staff_id: string;
   staff_type: 'teacher' | 'staff';
+  month: number;
+  year: number;
+  basic_salary: number;
+  allowances: Record<string, number>;
+  deductions: Record<string, number>;
+  gross_salary: number;
+  net_salary: number;
+  payment_method: PaymentMethod;
+  paid_by: string;
+  payment_date: string;
+  note?: string;
+  is_printed: boolean;
+  status?: 'paid' | 'void';
+}
+
+export interface StaffSalaryPayment {
+  id: string;
+  slip_number: string;
+  staff_id: string;
   month: number;
   year: number;
   basic_salary: number;
@@ -75,6 +101,8 @@ export interface IncomeEntry {
   academic_year?: string;
   month?: number;
   year?: number;
+  reference_type?: 'tuition_payment' | 'manual' | string;
+  reference_id?: string;
   created_at: string;
 }
 
@@ -90,6 +118,8 @@ export interface ExpenseEntry {
   receipt_url?: string;
   month?: number;
   year?: number;
+  reference_type?: 'salary_payment' | 'staff_salary_payment' | 'manual' | string;
+  reference_id?: string;
   created_at: string;
 }
 
@@ -101,6 +131,17 @@ export interface StaffSalaryConfig {
   deductions: Record<string, number>;
   effective_from: string;
   is_active: boolean;
+  created_at: string;
+}
+
+export interface FinanceAuditLog {
+  id: string;
+  actor_id?: string;
+  actor_name?: string;
+  action: string;
+  target_table: string;
+  target_id: string;
+  details?: Record<string, unknown>;
   created_at: string;
 }
 
@@ -136,7 +177,7 @@ export interface MonthlyReport {
 
 export interface YearlyReport {
   year: number;
-  /** Opening balance for the year (placeholder until ledger backfill exists) */
+  /** Opening balance for the year */
   start_balance: number;
   monthly_summary: {
     month: number;
@@ -154,7 +195,7 @@ export interface YearlyReport {
 export interface TuitionReceiptData {
   school: { name: string; address: string; phone: string; logo_url?: string };
   receipt_number: string;
-  student: { name: string; class_name: string; section: string; roll?: string };
+  student: { name: string; class_name: string; section: string; roll?: string; student_id?: string };
   fee_type: string;
   fee_details?: FeeDetailItem[];
   month_name?: string;
@@ -167,6 +208,7 @@ export interface TuitionReceiptData {
   payment_date: string;
   collected_by: string;
   note?: string;
+  status?: PaymentStatus;
   is_computer_generated: true;
 }
 
@@ -186,8 +228,24 @@ export interface SalarySlipData {
   is_computer_generated: true;
 }
 
+export interface StudentFinancialLedger {
+  student_id: string;
+  student_name: string;
+  class_name: string;
+  section?: string;
+  roll?: string;
+  academic_year: number;
+  total_assigned_fees: number;
+  total_paid: number;
+  total_discount: number;
+  total_fine: number;
+  net_balance_due: number;
+  payments: TuitionPayment[];
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   data?: T;
   error?: string;
+  conflicts?: string[];
 }

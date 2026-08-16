@@ -14,7 +14,8 @@ type PageHeaderProps = {
 
 export function PageHeader({
     icon: Icon,
-    iconColor = "text-muted-foreground",
+    iconBg = "bg-primary/10 border-primary/20 text-primary",
+    iconColor,
     title,
     subtitle,
     badge,
@@ -22,25 +23,27 @@ export function PageHeader({
     className,
 }: PageHeaderProps) {
     return (
-        <div className={cn("flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6", className)}>
-            <div className="flex items-center gap-3 min-w-0">
-                <Icon className={cn("h-5 w-5 shrink-0", iconColor)} strokeWidth={1.5} />
-                <div className="min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                        <h1 className="text-xl font-semibold tracking-tight text-foreground truncate">
+        <div className={cn("flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-2 border-b border-border/40", className)}>
+            <div className="flex items-start sm:items-center gap-3.5 min-w-0">
+                <div className={cn("p-2 sm:p-2.5 rounded-xl border shrink-0 shadow-xs flex items-center justify-center", iconBg)}>
+                    <Icon className={cn("h-5 w-5", iconColor)} strokeWidth={2} />
+                </div>
+                <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2.5 flex-wrap">
+                        <h1 className="text-lg sm:text-xl font-bold tracking-tight text-foreground truncate">
                             {title}
                         </h1>
                         {badge}
                     </div>
                     {subtitle && (
-                        <p className="text-muted-foreground text-sm mt-0.5">
+                        <p className="text-muted-foreground text-xs sm:text-[13px] mt-0.5 leading-normal">
                             {subtitle}
                         </p>
                     )}
                 </div>
             </div>
             {actions && (
-                <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                <div className="flex items-center gap-2 shrink-0 flex-wrap pt-1 sm:pt-0">
                     {actions}
                 </div>
             )}

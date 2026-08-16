@@ -15,6 +15,8 @@ import { CLASS_COLUMNS } from '@/lib/supabase/select-columns';
 import { Settings as Gear, Plus, Loader2 as SpinnerGap, Trash, Pencil, Check, X, Calendar as CalendarBlank, ClipboardList as ClipboardText } from "lucide-react";
 import { formatTaka } from '@/lib/finance-utils';
 
+import { useUserRole } from '@/lib/hooks/use-user-role';
+
 const MONTHLY_TYPES = ['tuition', 'hostel', 'transport', 'boarding'];
 const PER_EXAM_TYPES = ['mct_exam', 'semester_exam'];
 
@@ -27,13 +29,13 @@ function isPerExam(type: string) {
 }
 
 export default function FeeStructurePage() {
+  const { role: userRole } = useUserRole();
   const [fees, setFees] = useState<FeeStructure[]>([]);
   const [classes, setClasses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editAmount, setEditAmount] = useState('');
-  const [userRole, setUserRole] = useState('');
 
   const [form, setForm] = useState({
     class_name: '',
@@ -60,15 +62,7 @@ export default function FeeStructurePage() {
     }
   };
 
-  const fetchRole = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      const { data } = await supabase.from('profiles').select('role').eq('id', user.id).single();
-      if (data) setUserRole(data.role);
-    }
-  };
-
-  useEffect(() => { fetchData(); fetchRole(); }, []);
+  useEffect(() => { fetchData(); }, [form.academic_year]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

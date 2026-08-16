@@ -1,6 +1,11 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback, useSyncExternalStore } from "react";
+
+function subscribeToStorage(callback: () => void) {
+    window.addEventListener("storage", callback);
+    return () => window.removeEventListener("storage", callback);
+}
 
 /**
  * usePromotionReminder — Encapsulates the promotion year reminder logic.
@@ -10,12 +15,17 @@ import { useState, useEffect, useCallback } from "react";
  */
 export function usePromotionReminder(academicYear: string | undefined) {
     const currentYear = new Date().getFullYear();
-    const [dismissed, setDismissed] = useState(true); // start hidden to avoid flash
+    const key = `promotion-reminder-dismissed-${currentYear}`;
 
-    useEffect(() => {
-        const key = `promotion-reminder-dismissed-${currentYear}`;
-        setDismissed(localStorage.getItem(key) === "1");
-    }, [currentYear]);
+    const [localDismissed, setLocalDismissed] = useState(false);
+
+    const isStoredDismissed = useSyncExternalStore(
+        subscribeToStorage,
+        () => (typeof window !== "undefined" ? localStorage.getItem(key) === "1" : true),
+        () => true
+    );
+
+    const dismissed = localDismissed || isStoredDismissed;
 
     const shouldShow =
         !!academicYear &&
@@ -23,10 +33,11 @@ export function usePromotionReminder(academicYear: string | undefined) {
         !dismissed;
 
     const dismiss = useCallback(() => {
-        const key = `promotion-reminder-dismissed-${currentYear}`;
-        localStorage.setItem(key, "1");
-        setDismissed(true);
-    }, [currentYear]);
+        if (typeof window !== "undefined") {
+            localStorage.setItem(key, "1");
+        }
+        setLocalDismissed(true);
+    }, [key]);
 
     return { shouldShow, currentYear, dismiss };
 }

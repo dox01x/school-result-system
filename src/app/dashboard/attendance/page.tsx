@@ -189,24 +189,30 @@ export default function AttendancePage() {
                         </TabsList>
 
                         <TabsContent value="report" className="mt-0">
-                            <AttendanceReportTab
-                                key={reportRefreshKey}
-                                filters={filters}
-                            />
+                            {activeTab === "report" && (
+                                <AttendanceReportTab
+                                    key={reportRefreshKey}
+                                    filters={filters}
+                                />
+                            )}
                         </TabsContent>
 
                         <TabsContent value="import" className="mt-0">
-                            <AttendanceImportTab
-                                filters={filters}
-                                onImportComplete={handleDataChange}
-                            />
+                            {activeTab === "import" && (
+                                <AttendanceImportTab
+                                    filters={filters}
+                                    onImportComplete={handleDataChange}
+                                />
+                            )}
                         </TabsContent>
 
                         <TabsContent value="manual" className="mt-0">
-                            <AttendanceManualTab
-                                filters={filters}
-                                onSaveComplete={handleDataChange}
-                            />
+                            {activeTab === "manual" && (
+                                <AttendanceManualTab
+                                    filters={filters}
+                                    onSaveComplete={handleDataChange}
+                                />
+                            )}
                         </TabsContent>
                     </Tabs>
                 </>

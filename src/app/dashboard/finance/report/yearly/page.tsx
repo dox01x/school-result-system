@@ -9,11 +9,16 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { toast } from "sonner";
 import { Loader2 as SpinnerGap, Search as MagnifyingGlass, Printer as DownloadSimple } from "lucide-react";
 import { formatTaka, getMonthName } from '@/lib/finance-utils';
+import { generateYearlyReportHtml } from '@/lib/finance-receipt-template';
+import { printHtml } from '@/lib/print-utils';
 import { YearlyReport } from '@/types/finance';
+import { createClient } from '@/lib/supabase/client';
+
 
 export default function YearlyReportPage() {
   const [report, setReport] = useState<YearlyReport | null>(null);
   const [loading, setLoading] = useState(false);
+  const [schoolInfo, setSchoolInfo] = useState<{name: string, address: string, phone: string, logo_url?: string} | null>(null);
 
   const currentYear = new Date().getFullYear();
 
@@ -42,8 +47,22 @@ export default function YearlyReportPage() {
 
   useEffect(() => {
     loadReport();
+    const fetchSchoolInfo = async () => {
+      const supabase = createClient();
+      const { data } = await supabase.from('school_info').select('name, address, phone, logo_url').limit(1).single();
+      if (data) setSchoolInfo(data);
+    };
+    fetchSchoolInfo();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const handlePrint = () => {
+    if (!report) return;
+    const html = generateYearlyReportHtml(report, {
+      school: schoolInfo || undefined
+    });
+    printHtml(html);
+  };
 
   return (
     <div className="space-y-6 print:m-0 print:p-0">
@@ -63,8 +82,8 @@ export default function YearlyReportPage() {
             {loading ? <SpinnerGap size={16} strokeWidth={2} className="mr-2 animate-spin" /> : <MagnifyingGlass size={16} strokeWidth={2} className="mr-2" />}
             Generate Report
           </Button>
-          <Button onClick={() => window.print()} variant="outline" className="w-full md:w-auto md:ml-auto h-11 rounded-xl border-border bg-white hover:bg-muted/50 text-muted-foreground font-bold shadow-none px-6" disabled={!report}>
-            <DownloadSimple size={16} strokeWidth={2} className="mr-2" /> Print
+          <Button onClick={handlePrint} variant="outline" className="w-full md:w-auto md:ml-auto h-11 rounded-xl border-border bg-white hover:bg-muted/50 text-muted-foreground font-bold shadow-none px-6" disabled={!report}>
+            <DownloadSimple size={16} strokeWidth={2} className="mr-2" /> Print Report
           </Button>
         </CardContent>
       </Card>

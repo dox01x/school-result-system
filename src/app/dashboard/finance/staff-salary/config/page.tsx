@@ -9,14 +9,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { createClient } from '@/lib/supabase/client';
 import { STAFF_COLUMNS } from '@/lib/supabase/select-columns';
+import { useUserRole } from "@/lib/hooks/use-user-role";
 import { Loader2 as SpinnerGap, Plus, Trash, CheckCircle } from "lucide-react";
 
 export default function StaffSalaryConfigPage() {
+  const { role: userRole } = useUserRole();
   const [staffList, setStaffList] = useState<any[]>([]);
   const [selectedStaffId, setSelectedStaffId] = useState("");
   const [loadingConfig, setLoadingConfig] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [userRole, setUserRole] = useState("");
 
   const [basicSalary, setBasicSalary] = useState("0");
   const [allowances, setAllowances] = useState<any[]>([]);
@@ -29,15 +30,7 @@ export default function StaffSalaryConfigPage() {
       const { data } = await supabase.from('staffs').select(STAFF_COLUMNS).order('name');
       if (data) setStaffList(data);
     };
-    const fetchRole = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data } = await supabase.from('profiles').select('role').eq('id', user.id).single();
-        if (data) setUserRole(data.role);
-      }
-    };
     fetchStaff();
-    fetchRole();
   }, [supabase]);
 
   useEffect(() => {

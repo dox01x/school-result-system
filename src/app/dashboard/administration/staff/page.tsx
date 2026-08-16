@@ -14,7 +14,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Briefcase, Plus, Search } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { toast } from "sonner";
-import { StaffProfileSheet } from "@/components/staff/staff-profile-sheet";
+import dynamic from "next/dynamic";
+const StaffProfileSheet = dynamic(
+    () => import("@/components/staff/staff-profile-sheet").then((m) => m.StaffProfileSheet),
+    { ssr: false }
+);
 
 export default function StaffPage() {
     const supabase = useMemo(() => createClient(), []);

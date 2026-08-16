@@ -14,7 +14,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Users, Plus, Search } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { toast } from "sonner";
-import { TeacherProfileSheet } from "@/components/teachers/teacher-profile-sheet";
+import dynamic from "next/dynamic";
+const TeacherProfileSheet = dynamic(
+    () => import("@/components/teachers/teacher-profile-sheet").then((m) => m.TeacherProfileSheet),
+    { ssr: false }
+);
 
 export default function TeachersPage() {
     const supabase = useMemo(() => createClient(), []);

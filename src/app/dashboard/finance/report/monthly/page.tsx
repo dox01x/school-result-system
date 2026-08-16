@@ -11,13 +11,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { Loader2 as SpinnerGap, Search as MagnifyingGlass, Printer, TrendingUp as TrendUp, TrendingDown as TrendDown, BarChart2 as ChartBar } from "lucide-react";
 import { formatTaka, getMonthName } from '@/lib/finance-utils';
+import { generateMonthlyReportHtml } from '@/lib/finance-receipt-template';
 import { MonthlyReport } from '@/types/finance';
 import { createClient } from '@/lib/supabase/client';
 
 export default function MonthlyReportPage() {
   const [report, setReport] = useState<MonthlyReport | null>(null);
   const [loading, setLoading] = useState(false);
-  const [schoolInfo, setSchoolInfo] = useState<{name: string, address: string, phone: string} | null>(null);
+  const [schoolInfo, setSchoolInfo] = useState<{name: string, address: string, phone: string, logo_url?: string} | null>(null);
 
   const currentYear = new Date().getFullYear();
   const currentMonth = new Date().getMonth() + 1;
@@ -44,7 +45,7 @@ export default function MonthlyReportPage() {
     loadReport();
     const fetchSchoolInfo = async () => {
       const supabase = createClient();
-      const { data } = await supabase.from('school_info').select('name, address, phone').limit(1).single();
+      const { data } = await supabase.from('school_info').select('name, address, phone, logo_url').limit(1).single();
       if (data) setSchoolInfo(data);
     };
     fetchSchoolInfo();
@@ -52,75 +53,9 @@ export default function MonthlyReportPage() {
 
   const handlePrint = () => {
     if (!report) return;
-    const r = report;
-
-    const incomeRows = r.income_breakdown.map(i =>
-      `<tr><td class="col-label">${i.category.replace('_', ' ')}</td><td class="col-amount">${i.amount.toLocaleString('en-IN')} TK</td></tr>`
-    ).join('');
-
-    const expenseRows = r.expense_breakdown.map(e =>
-      `<tr><td class="col-label">${e.category.replace('_', ' ')}</td><td class="col-amount">${e.amount.toLocaleString('en-IN')} TK</td></tr>`
-    ).join('');
-
-    const totalIncome = r.income_breakdown.reduce((s, i) => s + i.amount, 0);
-    const totalExpense = r.expense_breakdown.reduce((s, e) => s + e.amount, 0);
-
-    const html = `<!DOCTYPE html><html><head><title>Report - ${getMonthName(r.month)} ${r.year}</title>
-    <style>
-      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap');
-      * { margin:0; padding:0; box-sizing:border-box; }
-      body { font-family:'Inter', sans-serif; max-width:800px; margin:0 auto; padding:40px; color:#000; background:#fff; }
-      .header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 40px; padding-bottom: 20px; border-bottom: 1px solid #e5e5e5; }
-      .header-title h1 { font-size: 28px; font-weight: 900; letter-spacing: -1px; line-height: 1; text-transform: uppercase; }
-      .header-title p { font-size: 12px; font-weight: 600; color: #666; letter-spacing: 2px; text-transform: uppercase; margin-top: 6px; }
-      .header-date { text-align: right; }
-      .header-date .month { font-size: 24px; font-weight: 800; }
-      .header-date .year { font-size: 12px; font-weight: 600; color: #666; letter-spacing: 2px; text-transform: uppercase; }
-      .grid { display: grid; grid-template-columns: 1fr 1fr; margin-bottom: 40px; }
-      .grid > div:first-child { border-right: 1px solid #e5e5e5; padding-right: 40px; }
-      .grid > div:last-child { padding-left: 40px; }
-      .section h3 { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 16px; color: #000; padding-bottom: 0; }
-      table { width: 100%; border-collapse: collapse; }
-      td { padding: 12px 0; border-bottom: none; font-size: 13px; }
-      .col-label { font-weight: 600; text-transform: capitalize; color: #333; }
-      .col-amount { text-align: right; font-family: monospace; font-weight: 600; font-size: 14px; }
-      .total-row td { border-top: none; padding-top: 24px; font-weight: 800; color: #000; font-size: 14px; }
-      .total-row .col-amount { font-size: 16px; }
-      .summary { display: grid; grid-template-columns: 1fr 1fr; margin-bottom: 40px; }
-      .summary > div:first-child { border-right: 1px solid #e5e5e5; padding-right: 40px; }
-      .summary > div:last-child { padding-left: 40px; }
-      .summary-card { padding: 20px; background: #fafafa; border-radius: 12px; }
-      .summary-card h4 { font-size: 10px; text-transform: uppercase; letter-spacing: 2px; color: #666; margin-bottom: 8px; }
-      .summary-card .val { font-size: 24px; font-weight: 900; font-family: monospace; color: #000; letter-spacing: -0.5px; }
-      .summary-card .desc { font-size: 11px; color: #666; margin-top: 6px; font-weight: 600; }
-      .net-card { background: transparent; color: #000; padding: 30px 0; margin-top: 20px; text-align: center; }
-      .net-card h4 { font-size: 12px; text-transform: uppercase; letter-spacing: 3px; color: #666; margin-bottom: 12px; }
-      .net-card .val { font-size: 48px; font-weight: 900; font-family: monospace; letter-spacing: -2px; }
-      .footer { text-align: center; font-size: 10px; color: #999; margin-top: 40px; padding-top: 20px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
-      .school-info { text-align: center; margin-bottom: 40px; }
-      .school-info h2 { font-size: 24px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; }
-      .school-info p { font-size: 12px; color: #666; margin-top: 4px; }
-      @media print { body { padding: 20px; } }
-    </style></head><body>
-    <div class="school-info">
-      <h2>${schoolInfo?.name || 'School Name'}</h2>
-      <p>${schoolInfo?.address || ''} ${schoolInfo?.phone ? '• ' + schoolInfo.phone : ''}</p>
-    </div>
-    <div class="header">
-      <div class="header-title"><h1>Finance Report</h1><p>Monthly Statement</p></div>
-      <div class="header-date"><div class="month">${getMonthName(r.month)}</div><div class="year">${r.year}</div></div>
-    </div>
-    <div class="grid">
-      <div class="section"><h3>Income Breakdown</h3><table><tbody>${incomeRows}<tr class="total-row"><td class="col-label">Total Income</td><td class="col-amount">${totalIncome.toLocaleString('en-IN')} TK</td></tr></tbody></table></div>
-      <div class="section"><h3>Expense Breakdown</h3><table><tbody>${expenseRows}<tr class="total-row"><td class="col-label">Total Expense</td><td class="col-amount">${totalExpense.toLocaleString('en-IN')} TK</td></tr></tbody></table></div>
-    </div>
-    <div class="summary">
-      <div class="summary-card"><h4>Tuition Collected</h4><div class="val">${r.tuition_summary.total_collected.toLocaleString('en-IN')} TK</div><div class="desc">Expected: ${r.tuition_summary.total_due.toLocaleString('en-IN')} TK &bull; ${r.tuition_summary.collection_rate}% Collected</div></div>
-      <div class="summary-card"><h4>Salary Paid</h4><div class="val">${r.salary_summary.total_paid.toLocaleString('en-IN')} TK</div><div class="desc">${r.salary_summary.total_teachers} Teachers &bull; ${r.salary_summary.total_staff} Staff</div></div>
-    </div>
-    <div class="net-card"><h4>Net Balance</h4><div class="val">${r.net_balance >= 0 ? '+' : ''}${r.net_balance.toLocaleString('en-IN')} TK</div></div>
-    <div class="footer"><p>Generated on ${new Date().toLocaleDateString('en-GB')} &bull; School Management System</p></div>
-    </body></html>`;
+    const html = generateMonthlyReportHtml(report, {
+      school: schoolInfo || undefined
+    });
     printHtml(html);
   };
 

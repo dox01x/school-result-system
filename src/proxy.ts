@@ -16,7 +16,7 @@ function redirectWithCookies(
   return redirectResponse;
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { supabaseResponse, user, supabase } = await updateSession(request);
   const pathname = request.nextUrl.pathname;
 
@@ -48,16 +48,18 @@ export async function middleware(request: NextRequest) {
     return redirectWithCookies(request, supabaseResponse, user ? "/dashboard" : "/login");
   }
 
-
   // Role-based route guard for dashboard sub-routes
   if (user && pathname.startsWith("/dashboard") && pathname !== "/dashboard") {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single();
+    let role = (user.app_metadata?.role || user.user_metadata?.role) as UserRole | undefined;
 
-    const role = profile?.role as UserRole | undefined;
+    if (!role) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .single();
+      role = profile?.role as UserRole | undefined;
+    }
 
     if (!role || !canAccessRoute(role, pathname)) {
       return redirectWithCookies(request, supabaseResponse, "/dashboard?access=denied");
@@ -78,12 +80,13 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     /*
-     * Match all request paths except for the ones starting with:
+     * Match all request paths except for:
      * - _next/static (static files)
      * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
+     * - favicon.ico, robots.txt, sitemap.xml
      * - api (API routes — they handle their own auth)
+     * - static files with extensions (svg, png, jpg, jpeg, gif, webp, ico, css, js, woff, woff2, map, json, txt)
      */
-    "/((?!_next/static|_next/image|favicon.ico|api).*)",
+    "/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|api|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js|woff2?|map|json|txt)$).*)",
   ],
 };

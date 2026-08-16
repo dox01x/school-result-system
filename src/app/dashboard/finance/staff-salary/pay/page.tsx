@@ -13,6 +13,9 @@ import { createClient } from '@/lib/supabase/client';
 import { SCHOOL_INFO_COLUMNS, STAFF_COLUMNS } from '@/lib/supabase/select-columns';
 import { Loader2 as SpinnerGap, Printer, User, Wallet, CheckCircle } from "lucide-react";
 import { formatTaka, getMonthName } from '@/lib/finance-utils';
+import PrintSlip from '@/components/finance/PrintSlip';
+import { generateSalarySlipHtml } from '@/lib/finance-receipt-template';
+import { SalarySlipData } from '@/types/finance';
 
 export default function StaffPaySalaryPage() {
   const [staffList, setStaffList] = useState<any[]>([]);
@@ -94,19 +97,26 @@ export default function StaffPaySalaryPage() {
 
       if (data.success) {
         toast.success("Salary paid successfully!");
-        setLastSlip({
-          staff: selectedStaff,
-          config: salaryConfig,
+        const slipData: SalarySlipData = {
+          school: schoolInfo || { name: 'School Name', address: '', phone: '' },
           slip_number: data.data.slip_number,
-          school: schoolInfo,
-          month: parseInt(form.month),
+          staff: {
+            name: selectedStaff?.name || 'Staff',
+            designation: selectedStaff?.designation || selectedStaff?.role || 'Staff',
+            phone: selectedStaff?.phone || ''
+          },
+          month_name: getMonthName(parseInt(form.month)),
           year: parseInt(form.year),
-          gross,
-          deductions,
-          net,
+          basic_salary: salaryConfig.basic_salary,
+          allowances: Object.entries(salaryConfig.allowances || {}).map(([k, v]) => ({ label: k, amount: Number(v) })),
+          deductions: Object.entries(salaryConfig.deductions || {}).map(([k, v]) => ({ label: k, amount: Number(v) })),
+          gross_salary: gross,
+          net_salary: net,
           payment_method: form.payment_method,
-          date: new Date().toLocaleDateString('en-GB')
-        });
+          payment_date: new Date().toISOString(),
+          is_computer_generated: true
+        };
+        setLastSlip(slipData);
         setForm(prev => ({ ...prev, note: '' }));
       } else {
         toast.error(data.error || "Failed to pay salary");
@@ -120,137 +130,50 @@ export default function StaffPaySalaryPage() {
 
   const handlePrintSlip = () => {
     if (!lastSlip) return;
-    const s = lastSlip;
-
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Salary Slip ${s.slip_number}</title>
-    <style>
-      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap');
-      * { margin:0; padding:0; box-sizing:border-box; }
-      body { font-family:'Inter', sans-serif; max-width:800px; margin:0 auto; padding:40px; color:#000; background:#fff; }
-      .school-info { text-align: center; margin-bottom: 40px; }
-      .school-info h2 { font-size: 24px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; }
-      .school-info p { font-size: 12px; color: #666; margin-top: 4px; }
-      .header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 40px; padding-bottom: 20px; border-bottom: 1px solid #e5e5e5; }
-      .header-title h1 { font-size: 28px; font-weight: 900; letter-spacing: -1px; line-height: 1; text-transform: uppercase; }
-      .header-title p { font-size: 12px; font-weight: 600; color: #666; letter-spacing: 2px; text-transform: uppercase; margin-top: 6px; }
-      .header-date { text-align: right; }
-      .header-date .month { font-size: 24px; font-weight: 800; text-transform: capitalize; }
-      .header-date .year { font-size: 12px; font-weight: 600; color: #666; letter-spacing: 2px; text-transform: uppercase; }
-      .info-grid { display: grid; grid-template-columns: 1fr 1fr; margin-bottom: 40px; border-top: 1px solid #e5e5e5; }
-      .info-item { padding: 15px 0; border-bottom: 1px solid #e5e5e5; }
-      .info-item:nth-child(odd) { padding-right: 20px; }
-      .info-item:nth-child(even) { padding-left: 20px; }
-      .info-label { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; color: #666; margin-bottom: 4px; }
-      .info-value { font-size: 14px; font-weight: 600; color: #000; text-transform: capitalize; }
-      table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-      th { text-align: left; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; color: #666; padding: 12px 0; border-bottom: 1px solid #e5e5e5; }
-      td { padding: 12px 0; border-bottom: none; font-size: 13px; font-weight: 600; color: #333; text-transform: capitalize; }
-      .col-amount { text-align: right; font-family: monospace; font-weight: 600; font-size: 14px; color: #000; }
-      .deduction-amount { color: #dc2626; }
-      .net-pay { display: flex; justify-content: space-between; align-items: center; padding: 20px 0; margin-top: 10px; border-top: 2px solid #000; border-bottom: 2px solid #000; }
-      .net-pay .lbl { font-size: 16px; font-weight: 900; text-transform: uppercase; letter-spacing: 2px; color: #000; }
-      .net-pay .val { font-size: 28px; font-weight: 900; font-family: monospace; letter-spacing: -1px; }
-      .footer { text-align: center; font-size: 10px; color: #999; margin-top: 60px; padding-top: 20px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
-      @media print { body { padding: 20px; } }
-    </style></head><body>
-    <div class="school-info">
-      <h2>${s.school?.name || 'School Name'}</h2>
-      <p>${s.school?.address || ''} ${s.school?.phone ? '• ' + s.school.phone : ''}</p>
-    </div>
-    <div class="header">
-      <div class="header-title"><h1>Staff Salary Slip</h1><p>${s.slip_number}</p></div>
-      <div class="header-date">
-        <div class="month">${getMonthName(s.month)}</div>
-        <div class="year">${s.year}</div>
-      </div>
-    </div>
-    <div class="info-grid">
-      <div class="info-item"><div class="info-label">Staff Name</div><div class="info-value">${s.staff.name}</div></div>
-      <div class="info-item"><div class="info-label">Designation</div><div class="info-value">${s.staff.designation || 'Staff'}</div></div>
-      <div class="info-item" style="border-bottom:none"><div class="info-label">Payment Date</div><div class="info-value">${s.date}</div></div>
-      <div class="info-item" style="border-bottom:none"><div class="info-label">Payment Method</div><div class="info-value">${(s.payment_method || 'Cash').replace('_', ' ')}</div></div>
-    </div>
-    <table><thead><tr><th>Description</th><th style="text-align:right">Amount</th></tr></thead><tbody>
-      <tr><td>Basic Salary</td><td class="col-amount">${s.config.basic_salary.toLocaleString('en-IN')} TK</td></tr>
-      ${Object.entries(s.config.allowances || {}).map(([k, v]: [string, any]) => `<tr><td>${k}</td><td class="col-amount">+${Number(v).toLocaleString('en-IN')} TK</td></tr>`).join('')}
-      ${Object.entries(s.config.deductions || {}).map(([k, v]: [string, any]) => `<tr><td>${k}</td><td class="col-amount deduction-amount">-${Number(v).toLocaleString('en-IN')} TK</td></tr>`).join('')}
-    </tbody></table>
-    <div class="net-pay">
-      <span class="lbl">Net Pay</span>
-      <span class="val">${s.net.toLocaleString('en-IN')} TK</span>
-    </div>
-    <div class="footer">Computer Generated Salary Slip • No Signature Required</div>
-    </body></html>`;
+    const html = generateSalarySlipHtml(lastSlip, {
+      school: lastSlip.school || schoolInfo
+    });
     printHtml(html);
   };
 
   if (lastSlip) {
-    const s = lastSlip;
     return (
-      <div className="space-y-6 max-w-xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold tracking-tight text-foreground  mb-1">Staff Salary Slip</h1>
-          <div className="flex gap-3">
-            <Button variant="outline" onClick={() => setLastSlip(null)} className="h-11 rounded-xl border-border bg-white hover:bg-muted/50 text-muted-foreground font-bold shadow-none px-6">Pay Another</Button>
-            <Button onClick={handlePrintSlip} className="h-11 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold shadow-none px-6">
-              <Printer size={16} strokeWidth={2} className="mr-2" /> Print Slip
+      <div className="space-y-6 max-w-4xl mx-auto pb-12 animate-in fade-in slide-in-from-bottom-4 duration-300">
+        <div className="bg-card border border-border rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xs">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
+              <CheckCircle size={20} strokeWidth={2} />
+            </div>
+            <div>
+              <h1 className="text-base font-bold text-foreground tracking-tight">Staff Salary Paid Successfully</h1>
+              <p className="text-xs text-muted-foreground font-mono">Slip #{lastSlip.slip_number}</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              onClick={() => setLastSlip(null)}
+              className="h-10 rounded-xl border-border bg-background hover:bg-muted text-foreground font-bold shadow-none px-5"
+            >
+              Pay Another
+            </Button>
+            <Button
+              onClick={handlePrintSlip}
+              className="h-10 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 font-bold shadow-none px-5"
+            >
+              <Printer size={16} strokeWidth={2} className="mr-2" /> Print Payslip
             </Button>
           </div>
         </div>
 
-        <Card className="border-0 shadow-sm rounded-none max-w-2xl mx-auto font-sans bg-white p-8 text-black">
-          <div className="flex flex-col items-center justify-center pb-6 border-b border-border text-center mb-6">
-            <h2 className="text-xl font-bold tracking-tight text-black uppercase">{s.school?.name || "SCHOOL NAME"}</h2>
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mt-1">{s.school?.address ? s.school.address + ' • ' : ''}Phone: {s.school?.phone || ''}</p>
-          </div>
-          <div className="flex justify-between items-end border-b border-border pb-4 mb-6">
-            <div>
-              <h1 className="text-lg font-bold uppercase tracking-widest mb-1">Staff Salary Slip</h1>
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">{s.slip_number}</p>
-            </div>
-            <div className="text-right">
-              <p className="text-base font-bold capitalize">{getMonthName(s.month)}</p>
-              <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">{s.year}</p>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-y-4 gap-x-8 border-b border-border pb-6 mb-6">
-            <div><p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 mb-1">Staff Name</p><p className="font-semibold text-sm text-black capitalize">{s.staff.name}</p></div>
-            <div><p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 mb-1">Designation</p><p className="font-semibold text-sm text-black capitalize">{s.staff.designation || 'Staff'}</p></div>
-            <div><p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 mb-1">Payment Date</p><p className="font-semibold text-sm text-black">{s.date}</p></div>
-            <div><p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 mb-1">Payment Method</p><p className="font-semibold text-sm text-black capitalize">{(s.payment_method || 'Cash').replace('_', ' ')}</p></div>
-          </div>
-
-          <table className="w-full text-sm mb-6">
-            <thead><tr>
-              <th className="text-left text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 pb-3 border-b border-border">Description</th>
-              <th className="text-right text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 pb-3 border-b border-border">Amount</th>
-            </tr></thead>
-            <tbody className="divide-y divide-transparent">
-              <tr><td className="py-3 font-semibold text-black capitalize">Basic Salary</td><td className="text-right font-mono font-medium text-black py-3 text-sm">{formatTaka(s.config.basic_salary)}</td></tr>
-              {Object.entries(s.config.allowances || {}).map(([k, v]: [string, any]) => (
-                <tr key={k}><td className="py-1.5 font-semibold text-black capitalize">{k}</td><td className="text-right font-mono font-medium text-black py-1.5 text-sm">+{formatTaka(Number(v))}</td></tr>
-              ))}
-              {Object.entries(s.config.deductions || {}).map(([k, v]: [string, any]) => (
-                <tr key={k}><td className="py-1.5 font-semibold text-black capitalize">{k}</td><td className="text-right font-mono font-medium text-red-600 py-1.5 text-sm">-{formatTaka(Number(v))}</td></tr>
-              ))}
-            </tbody>
-          </table>
-
-          <div className="pt-4 border-t border-border mb-8">
-            <div className="w-full space-y-2">
-              <div className="flex justify-between items-center text-sm"><span className="font-semibold text-muted-foreground">Gross Earnings</span><span className="font-mono font-medium text-black text-sm">{formatTaka(s.gross)}</span></div>
-              <div className="flex justify-between items-center text-sm"><span className="font-semibold text-muted-foreground">Total Deductions</span><span className="font-mono font-medium text-red-600 text-sm">-{formatTaka(s.deductions)}</span></div>
-              <div className="flex justify-between items-center border-y border-border py-3 mt-4">
-                <span className="font-bold uppercase tracking-widest text-black text-sm">Net Pay</span>
-                <span className="font-bold font-mono text-black text-lg tracking-tight">{formatTaka(s.net)}</span>
-              </div>
-            </div>
-          </div>
-          <div className="text-center pt-4"><p className="text-[10px] font-medium text-muted-foreground/60 uppercase tracking-widest">Computer Generated Salary Slip • No Signature Required</p></div>
-        </Card>
+        <div className="bg-muted/40 p-4 sm:p-8 rounded-2xl border border-border flex justify-center">
+          <PrintSlip data={lastSlip} className="w-full max-w-2xl" />
+        </div>
       </div>
     );
   }
+
 
   return (
     <div className="space-y-6">

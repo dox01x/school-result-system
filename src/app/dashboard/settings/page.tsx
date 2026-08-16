@@ -69,16 +69,13 @@ export default function SettingsPage() {
     useEffect(() => {
         (async () => {
             try {
-                // Test connection
-                const { error: testError } = await supabase.from("school_info").select("id", { count: "exact", head: true });
-                if (testError) {
+                // Fetch school info & check connection
+                const { data: schoolData, error: fetchError } = await supabase.from("school_info").select(SCHOOL_INFO_COLUMNS).limit(1).maybeSingle();
+                if (fetchError) {
                     setDbConnected(false);
                     return;
                 }
                 setDbConnected(true);
-
-                // Fetch school info
-                const { data: schoolData } = await supabase.from("school_info").select(SCHOOL_INFO_COLUMNS).limit(1).maybeSingle();
                 if (schoolData) {
                     const resolvedAcademicYear =
                         schoolData.current_academic_year || schoolData.last_promotion_year || currentYearStr;

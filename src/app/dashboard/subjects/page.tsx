@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { CLASS_COLUMNS, SUBJECT_COLUMNS } from "@/lib/supabase/select-columns";
 import type { Class, Subject } from "@/lib/database.types";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,7 +33,7 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2 as Trash, BookOpen as BookOpenText } from "lucide-react";
+import { Plus, Pencil, Trash2 as Trash, BookOpen, Layers } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -77,7 +77,7 @@ export default function SubjectsPage() {
         } catch {
             toast.error("Failed to load classes");
         }
-    }, [supabase]);
+    }, [supabase, selectedClass]);
 
     const fetchSubjects = useCallback(async () => {
         if (!selectedClass) return;
@@ -95,7 +95,7 @@ export default function SubjectsPage() {
         } finally {
             setLoading(false);
         }
-    }, [selectedClass]);
+    }, [selectedClass, supabase]);
 
     useEffect(() => {
         fetchClasses();
@@ -116,7 +116,7 @@ export default function SubjectsPage() {
 
         if (totalParts !== form.full_marks) {
             toast.error(
-                `Mark breakdown (${totalParts}) must equal full marks (${form.full_marks})`
+                `Mark breakdown sum (${totalParts}) must equal full marks (${form.full_marks})`
             );
             return;
         }
@@ -149,7 +149,9 @@ export default function SubjectsPage() {
                 if (error) throw error;
                 toast.success(`Subject "${form.name.trim()}" created`);
             }
-            resetForm();
+
+            setForm(defaultSubject);
+            setEditingSubject(null);
             setDialogOpen(false);
             fetchSubjects();
         } catch (err: unknown) {
@@ -161,13 +163,10 @@ export default function SubjectsPage() {
         setConfirmState({
             open: true,
             title: `Delete "${subject.name}"?`,
-            description: "This subject and all linked marks will be permanently removed.",
+            description: "This will remove this subject and all associated student marks. This cannot be undone.",
             onConfirm: async () => {
                 try {
-                    const { error } = await supabase
-                        .from("subjects")
-                        .delete()
-                        .eq("id", subject.id);
+                    const { error } = await supabase.from("subjects").delete().eq("id", subject.id);
                     if (error) throw error;
                     toast.success(`Subject "${subject.name}" deleted`);
                     fetchSubjects();
@@ -179,250 +178,240 @@ export default function SubjectsPage() {
         });
     };
 
-    const resetForm = () => {
-        setForm(defaultSubject);
-        setEditingSubject(null);
-    };
-
-    const openEdit = (subject: Subject) => {
-        setEditingSubject(subject);
+    const openEdit = (s: Subject) => {
+        setEditingSubject(s);
         setForm({
-            name: subject.name,
-            full_marks: subject.full_marks,
-            pass_marks: subject.pass_marks,
-            has_theory: subject.has_theory,
-            has_mcq: subject.has_mcq,
-            has_practical: subject.has_practical,
-            theory_marks: subject.theory_marks,
-            mcq_marks: subject.mcq_marks,
-            practical_marks: subject.practical_marks,
-            is_optional: subject.is_optional || false,
-            group_name: subject.group_name || "Common",
+            name: s.name,
+            full_marks: s.full_marks,
+            pass_marks: s.pass_marks,
+            has_theory: s.has_theory,
+            has_mcq: s.has_mcq,
+            has_practical: s.has_practical,
+            theory_marks: s.theory_marks,
+            mcq_marks: s.mcq_marks,
+            practical_marks: s.practical_marks,
+            is_optional: s.is_optional || false,
+            group_name: s.group_name || "Common",
         });
         setDialogOpen(true);
     };
 
+    const totalCalculated =
+        (form.has_theory ? form.theory_marks : 0) +
+        (form.has_mcq ? form.mcq_marks : 0) +
+        (form.has_practical ? form.practical_marks : 0);
+
     return (<>
         <div className="space-y-6">
             <PageHeader
-                icon={BookOpenText}
+                icon={BookOpen}
                 title="Subjects"
-                subtitle="Manage subjects per class."
+                subtitle="Configure subject curriculum, full marks, pass marks, and evaluation components."
                 actions={
                     <Button
-                        onClick={() => { resetForm(); setDialogOpen(true); }}
+                        onClick={() => {
+                            setEditingSubject(null);
+                            setForm(defaultSubject);
+                            setDialogOpen(true);
+                        }}
                         disabled={!selectedClass}
-                        className="bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 font-semibold shadow-none transition-all duration-200 "
+                        className="gap-2 font-semibold shadow-xs"
                     >
-                        <Plus size={16} strokeWidth={1.5} className="mr-2" />
+                        <Plus size={16} strokeWidth={2} />
                         Add Subject
                     </Button>
                 }
             />
 
-            {/* Funnels Card */}
-            {classes.length > 0 && (
-                <div className="bg-card rounded-2xl border border-border p-5">
-                    <div className="flex items-center gap-4 flex-wrap">
-                        <div className="flex-1 min-w-[140px]">
-                            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-2">Class</p>
-                            <Select value={selectedClass} onValueChange={setSelectedClass}>
-                                <SelectTrigger className="w-full h-11 rounded-xl border-0 bg-muted hover:bg-muted/80 transition-colors text-foreground font-semibold shadow-none focus:ring-1 focus:ring-ring/30">
-                                    <SelectValue placeholder="Select class" />
-                                </SelectTrigger>
-                                <SelectContent className="rounded-xl border-border shadow-md">
-                                    {classes.map((cls) => (
-                                        <SelectItem key={cls.id} value={cls.id} className="rounded-lg">
-                                            {cls.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
+            {/* Class Funnel Selector */}
+            <div className="bg-card rounded-2xl border border-border/80 p-4 sm:p-5 shadow-xs flex items-center justify-between gap-4 flex-wrap">
+                <div className="flex items-center gap-3 min-w-[240px]">
+                    <div className="p-2 rounded-xl bg-primary/10 text-primary border border-primary/20 shrink-0">
+                        <Layers size={18} strokeWidth={2} />
+                    </div>
+                    <div>
+                        <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-bold">Select Class</p>
+                        <p className="text-sm font-semibold text-foreground">
+                            {classes.find(c => c.id === selectedClass)?.name || "Select a class"}
+                        </p>
                     </div>
                 </div>
-            )}
 
-            {/* Subject Dialog */}
+                <div className="w-full sm:w-64">
+                    <Select value={selectedClass} onValueChange={setSelectedClass}>
+                        <SelectTrigger className="w-full bg-background border-border">
+                            <SelectValue placeholder="Choose class" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {classes.map((c) => (
+                                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+            </div>
+
+            {/* Subject Modal Dialog */}
             <Dialog open={dialogOpen} onOpenChange={(open) => {
                 setDialogOpen(open);
-                if (!open) resetForm();
-                if (open) setTimeout(() => document.getElementById("subject-name-input")?.focus(), 100);
+                if (!open) { setEditingSubject(null); setForm(defaultSubject); }
+                if (open) setTimeout(() => document.getElementById("subject-name")?.focus(), 100);
             }}>
-                <DialogContent>
+                <DialogContent className="max-w-lg">
                     <DialogHeader>
-                        <DialogTitle>
-                            {editingSubject ? "Edit Subject" : "Add New Subject"}
-                        </DialogTitle>
+                        <DialogTitle>{editingSubject ? "Edit Subject" : "Create New Subject"}</DialogTitle>
                     </DialogHeader>
                     <form onSubmit={(e) => { e.preventDefault(); handleSave(); }}>
-                    <div className="space-y-6 py-4">
-                        <div className="space-y-2">
-                            <Label>Subject Name</Label>
-                            <Input
-                                id="subject-name-input"
-                                placeholder="e.g., Mathematics, English"
-                                value={form.name}
-                                onChange={(e) => setForm({ ...form, name: e.target.value })}
-                                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); document.getElementById("subject-full-marks")?.focus(); }}}
-                            />
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <Switch
-                                checked={form.is_optional}
-                                onCheckedChange={(checked) => setForm({ ...form, is_optional: checked })}
-                            />
-                            <Label className="cursor-pointer">Is Optional Subject?</Label>
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Group</Label>
-                            <div className="flex w-full gap-2 pt-1">
-                                {[{ value: "Common", label: "Common (All)" }, { value: "Science", label: "Science" }, { value: "Arts", label: "Arts" }, { value: "Commerce", label: "Commerce" }].map((opt) => (
-                                    <label key={opt.value} className={`flex-1 flex items-center justify-center px-3 py-2.5 rounded-xl border cursor-pointer transition-colors text-center ${form.group_name === opt.value ? "border-primary bg-primary text-primary-foreground font-medium shadow-none" : "border-border bg-muted/50 hover:bg-muted text-muted-foreground font-medium"}`}>
-                                        <input type="radio" name="subject-group" value={opt.value} checked={form.group_name === opt.value} onChange={() => setForm({ ...form, group_name: opt.value })} className="sr-only" />
-                                        <span className="text-xs sm:text-sm whitespace-nowrap">{opt.label}</span>
-                                    </label>
-                                ))}
-                            </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label>Full Marks</Label>
+                        <div className="space-y-4 py-2">
+                            <div className="space-y-1.5">
+                                <Label htmlFor="subject-name">Subject Name *</Label>
                                 <Input
-                                    id="subject-full-marks"
-                                    type="number"
-                                    value={form.full_marks}
-                                    onChange={(e) =>
-                                        setForm({ ...form, full_marks: parseInt(e.target.value) || 0 })
-                                    }
-                                    onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); document.getElementById("subject-pass-marks")?.focus(); }}}
+                                    id="subject-name"
+                                    placeholder="e.g., Mathematics, General Science"
+                                    value={form.name}
+                                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                                    required
                                 />
                             </div>
-                            <div className="space-y-2">
-                                <Label>Pass Marks</Label>
-                                <Input
-                                    id="subject-pass-marks"
-                                    type="number"
-                                    value={form.pass_marks}
-                                    onChange={(e) =>
-                                        setForm({ ...form, pass_marks: parseInt(e.target.value) || 0 })
-                                    }
-                                    onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleSave(); }}}
-                                />
+
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="space-y-1.5">
+                                    <Label>Group / Stream</Label>
+                                    <Select value={form.group_name} onValueChange={(v) => setForm({ ...form, group_name: v })}>
+                                        <SelectTrigger><SelectValue /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="Common">Common (All Groups)</SelectItem>
+                                            <SelectItem value="Science">Science</SelectItem>
+                                            <SelectItem value="Arts">Arts</SelectItem>
+                                            <SelectItem value="Commerce">Commerce</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-1.5 flex flex-col justify-end">
+                                    <div className="flex items-center justify-between p-2.5 rounded-lg border border-border bg-muted/30">
+                                        <Label htmlFor="optional-switch" className="text-xs font-medium cursor-pointer">Optional Subject</Label>
+                                        <Switch
+                                            id="optional-switch"
+                                            checked={form.is_optional}
+                                            onCheckedChange={(c) => setForm({ ...form, is_optional: c })}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="full-marks">Full Marks *</Label>
+                                    <Input
+                                        id="full-marks"
+                                        type="number"
+                                        value={form.full_marks}
+                                        onChange={(e) => setForm({ ...form, full_marks: parseInt(e.target.value) || 0 })}
+                                        required
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="pass-marks">Pass Marks *</Label>
+                                    <Input
+                                        id="pass-marks"
+                                        type="number"
+                                        value={form.pass_marks}
+                                        onChange={(e) => setForm({ ...form, pass_marks: parseInt(e.target.value) || 0 })}
+                                        required
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Mark Breakdown */}
+                            <div className="space-y-3 pt-2">
+                                <div className="flex items-center justify-between">
+                                    <Label className="font-semibold text-xs text-foreground uppercase tracking-wider">Evaluation Breakdown</Label>
+                                    <Badge
+                                        variant={totalCalculated === form.full_marks ? "success" : "destructive"}
+                                        className="tabular-nums text-[10.5px]"
+                                    >
+                                        Total: {totalCalculated} / {form.full_marks}
+                                    </Badge>
+                                </div>
+
+                                <div className="space-y-2 rounded-xl border border-border/80 p-3 bg-muted/20">
+                                    <div className="flex items-center justify-between p-2 rounded-lg bg-card border border-border/60">
+                                        <div className="flex items-center gap-2.5">
+                                            <Switch
+                                                checked={form.has_theory}
+                                                onCheckedChange={(c) => setForm({ ...form, has_theory: c })}
+                                            />
+                                            <span className="text-xs font-medium text-foreground">Theory Written</span>
+                                        </div>
+                                        {form.has_theory && (
+                                            <Input
+                                                type="number"
+                                                className="w-20 h-8 text-center text-xs font-bold"
+                                                value={form.theory_marks}
+                                                onChange={(e) => setForm({ ...form, theory_marks: parseInt(e.target.value) || 0 })}
+                                            />
+                                        )}
+                                    </div>
+
+                                    <div className="flex items-center justify-between p-2 rounded-lg bg-card border border-border/60">
+                                        <div className="flex items-center gap-2.5">
+                                            <Switch
+                                                checked={form.has_mcq}
+                                                onCheckedChange={(c) => setForm({ ...form, has_mcq: c })}
+                                            />
+                                            <span className="text-xs font-medium text-foreground">MCQ (Objective)</span>
+                                        </div>
+                                        {form.has_mcq && (
+                                            <Input
+                                                type="number"
+                                                className="w-20 h-8 text-center text-xs font-bold"
+                                                value={form.mcq_marks}
+                                                onChange={(e) => setForm({ ...form, mcq_marks: parseInt(e.target.value) || 0 })}
+                                            />
+                                        )}
+                                    </div>
+
+                                    <div className="flex items-center justify-between p-2 rounded-lg bg-card border border-border/60">
+                                        <div className="flex items-center gap-2.5">
+                                            <Switch
+                                                checked={form.has_practical}
+                                                onCheckedChange={(c) => setForm({ ...form, has_practical: c })}
+                                            />
+                                            <span className="text-xs font-medium text-foreground">Practical / Lab</span>
+                                        </div>
+                                        {form.has_practical && (
+                                            <Input
+                                                type="number"
+                                                className="w-20 h-8 text-center text-xs font-bold"
+                                                value={form.practical_marks}
+                                                onChange={(e) => setForm({ ...form, practical_marks: parseInt(e.target.value) || 0 })}
+                                            />
+                                        )}
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
-                        <div className="space-y-4 pt-2">
-                            <p className="text-sm font-medium text-foreground">Mark Distribution</p>
-                            <div className="space-y-3 rounded-xl border border-border/60 bg-muted/50/50 p-4">
-                                <div className="flex items-center justify-between rounded-lg border border-border bg-card p-4">
-                                    <div className="flex items-center gap-3">
-                                        <Switch
-                                            checked={form.has_theory}
-                                            onCheckedChange={(checked) =>
-                                                setForm({ ...form, has_theory: checked })
-                                            }
-                                        />
-                                        <Label className="cursor-pointer font-medium">Theory</Label>
-                                    </div>
-                                    {form.has_theory && (
-                                        <Input
-                                            type="number"
-                                            className="w-24 text-center transition-all focus:w-28"
-                                            value={form.theory_marks}
-                                            onChange={(e) =>
-                                                setForm({
-                                                    ...form,
-                                                    theory_marks: parseInt(e.target.value) || 0,
-                                                })
-                                            }
-                                        />
-                                    )}
-                                </div>
-                                <div className="flex items-center justify-between rounded-lg border border-border bg-card p-4">
-                                    <div className="flex items-center gap-3">
-                                        <Switch
-                                            checked={form.has_mcq}
-                                            onCheckedChange={(checked) =>
-                                                setForm({ ...form, has_mcq: checked })
-                                            }
-                                        />
-                                        <Label className="cursor-pointer font-medium">MCQ</Label>
-                                    </div>
-                                    {form.has_mcq && (
-                                        <Input
-                                            type="number"
-                                            className="w-24 text-center transition-all focus:w-28"
-                                            value={form.mcq_marks}
-                                            onChange={(e) =>
-                                                setForm({
-                                                    ...form,
-                                                    mcq_marks: parseInt(e.target.value) || 0,
-                                                })
-                                            }
-                                        />
-                                    )}
-                                </div>
-                                <div className="flex items-center justify-between rounded-lg border border-border bg-card p-4">
-                                    <div className="flex items-center gap-3">
-                                        <Switch
-                                            checked={form.has_practical}
-                                            onCheckedChange={(checked) =>
-                                                setForm({ ...form, has_practical: checked })
-                                            }
-                                        />
-                                        <Label className="cursor-pointer font-medium">Practical</Label>
-                                    </div>
-                                    {form.has_practical && (
-                                        <Input
-                                            type="number"
-                                            className="w-24 text-center transition-all focus:w-28"
-                                            value={form.practical_marks}
-                                            onChange={(e) =>
-                                                setForm({
-                                                    ...form,
-                                                    practical_marks: parseInt(e.target.value) || 0,
-                                                })
-                                            }
-                                        />
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <DialogFooter>
-                        <DialogClose asChild>
-                            <Button type="button" variant="outline" className="border-border text-foreground font-semibold rounded-xl hover:bg-muted transition-all duration-200">Cancel</Button>
-                        </DialogClose>
-                        <Button type="submit" className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl font-semibold shadow-none transition-all duration-200">
-                            {editingSubject ? "Update" : "Create"}
-                        </Button>
-                    </DialogFooter>
+                        <DialogFooter>
+                            <DialogClose asChild>
+                                <Button type="button" variant="outline">Cancel</Button>
+                            </DialogClose>
+                            <Button type="submit">
+                                {editingSubject ? "Update Subject" : "Create Subject"}
+                            </Button>
+                        </DialogFooter>
                     </form>
                 </DialogContent>
             </Dialog>
 
-            {/* No class selected */}
-            {classes.length === 0 && !loading && (
-                <div className="bg-transparent rounded-2xl border-2 border-dashed border-border p-12 text-center shadow-none">
-                    <div className="h-12 w-12 rounded-xl flex items-center justify-center mb-4 mx-auto text-muted-foreground/40">
-                        <BookOpenText size={32} strokeWidth={1.2} />
-                    </div>
-                    <h3 className="font-semibold text-lg text-foreground mb-1">No classes found</h3>
-                    <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-                        Create a class first before adding subjects.
-                    </p>
-                </div>
-            )}
-
-            {/* Subject Table */}
+            {/* Subject List Table */}
             {selectedClass && subjects.length > 0 && (
-                <Card className="bg-card rounded-2xl border-border shadow-none">
+                <Card className="rounded-2xl overflow-hidden">
                     <CardContent className="p-0">
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>Subject</TableHead>
+                                    <TableHead>Subject Name</TableHead>
                                     <TableHead className="text-center">Full Marks</TableHead>
                                     <TableHead className="text-center">Pass Marks</TableHead>
                                     <TableHead className="text-center">Theory</TableHead>
@@ -434,59 +423,72 @@ export default function SubjectsPage() {
                             <TableBody>
                                 {subjects.map((subject) => (
                                     <TableRow key={subject.id}>
-                                        <TableCell className="font-medium text-foreground">
-                                            {subject.name}
-                                            {subject.group_name && (
-                                                <Badge variant="secondary" className="ml-2 text-[10px] bg-muted text-muted-foreground border-0 rounded-md font-medium uppercase tracking-wider">
-                                                    {subject.group_name}
-                                                </Badge>
-                                            )}
-                                            {subject.is_optional && (
-                                                <Badge variant="outline" className="ml-2 text-[10px] bg-muted/50 text-muted-foreground border border-border rounded-md font-medium uppercase tracking-wider">
-                                                    Optional
-                                                </Badge>
-                                            )}
+                                        <TableCell className="font-semibold text-foreground">
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                                <span>{subject.name}</span>
+                                                {subject.group_name && (
+                                                    <Badge variant="secondary" className="text-[10px] uppercase font-semibold">
+                                                        {subject.group_name}
+                                                    </Badge>
+                                                )}
+                                                {subject.is_optional && (
+                                                    <Badge variant="outline" className="text-[10px] font-semibold bg-muted/40">
+                                                        Optional
+                                                    </Badge>
+                                                )}
+                                            </div>
                                         </TableCell>
-                                        <TableCell className="text-center font-medium text-foreground">{subject.full_marks}</TableCell>
-                                        <TableCell className="text-center font-medium text-foreground">{subject.pass_marks}</TableCell>
+                                        <TableCell className="text-center font-bold text-foreground tabular-nums">
+                                            {subject.full_marks}
+                                        </TableCell>
+                                        <TableCell className="text-center font-medium text-muted-foreground tabular-nums">
+                                            {subject.pass_marks}
+                                        </TableCell>
                                         <TableCell className="text-center">
                                             {subject.has_theory ? (
-                                                <Badge variant="secondary" className="bg-muted text-muted-foreground border-0 rounded-md font-medium">{subject.theory_marks}</Badge>
+                                                <Badge variant="outline" className="font-mono text-xs">
+                                                    {subject.theory_marks}
+                                                </Badge>
                                             ) : (
-                                                <span className="text-muted-foreground">-</span>
+                                                <span className="text-muted-foreground/50">-</span>
                                             )}
                                         </TableCell>
                                         <TableCell className="text-center">
                                             {subject.has_mcq ? (
-                                                <Badge variant="secondary" className="bg-muted text-muted-foreground border-0 rounded-md font-medium">{subject.mcq_marks}</Badge>
+                                                <Badge variant="outline" className="font-mono text-xs">
+                                                    {subject.mcq_marks}
+                                                </Badge>
                                             ) : (
-                                                <span className="text-muted-foreground">-</span>
+                                                <span className="text-muted-foreground/50">-</span>
                                             )}
                                         </TableCell>
                                         <TableCell className="text-center">
                                             {subject.has_practical ? (
-                                                <Badge variant="secondary" className="bg-muted text-muted-foreground border-0 rounded-md font-medium">{subject.practical_marks}</Badge>
+                                                <Badge variant="outline" className="font-mono text-xs">
+                                                    {subject.practical_marks}
+                                                </Badge>
                                             ) : (
-                                                <span className="text-muted-foreground">-</span>
+                                                <span className="text-muted-foreground/50">-</span>
                                             )}
                                         </TableCell>
                                         <TableCell className="text-right">
                                             <div className="flex justify-end gap-1">
                                                 <Button
                                                     variant="ghost"
-                                                    size="icon"
-                                                    className="h-8 w-8"
+                                                    size="icon-xs"
                                                     onClick={() => openEdit(subject)}
+                                                    aria-label={`Edit ${subject.name}`}
                                                 >
-                                                    <Pencil className="h-3.5 w-3.5" strokeWidth={1.5} />
+                                                    <Pencil className="h-3.5 w-3.5" strokeWidth={1.8} />
                                                 </Button>
                                                 <Button
                                                     variant="ghost"
-                                                    size="icon"
-                                                    className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive active:bg-destructive/20"
+                                                    size="icon-xs"
+                                                    className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                                                     onClick={() => handleDelete(subject)}
+                                                    aria-label={`Delete ${subject.name}`}
                                                 >
-                                                    <Trash size={14} strokeWidth={1.5} />
+                                                    <Trash size={14} strokeWidth={1.8} />
                                                 </Button>
                                             </div>
                                         </TableCell>
@@ -498,16 +500,19 @@ export default function SubjectsPage() {
                 </Card>
             )}
 
-            {/* Empty subjects */}
-            {selectedClass && subjects.length === 0 && !loading && classes.length > 0 && (
-                <div className="bg-transparent rounded-2xl border-2 border-dashed border-border p-12 text-center shadow-none">
-                    <div className="h-12 w-12 rounded-xl flex items-center justify-center mb-4 mx-auto text-muted-foreground/40">
-                        <BookOpenText size={32} strokeWidth={1.2} />
+            {/* Empty State */}
+            {selectedClass && subjects.length === 0 && !loading && (
+                <div className="rounded-2xl border border-dashed border-border p-12 text-center bg-card shadow-xs">
+                    <div className="h-14 w-14 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center mb-4 mx-auto">
+                        <BookOpen size={28} strokeWidth={1.8} />
                     </div>
-                    <h3 className="font-semibold text-lg text-foreground mb-1">No subjects yet</h3>
-                    <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-                        Add subjects to this class with mark distribution settings.
+                    <h3 className="font-bold text-lg text-foreground mb-1">No subjects found</h3>
+                    <p className="text-sm text-muted-foreground max-w-sm mx-auto mb-6">
+                        Add subjects for this class along with their marks and grading configuration.
                     </p>
+                    <Button onClick={() => setDialogOpen(true)} className="gap-2">
+                        <Plus size={16} /> Add First Subject
+                    </Button>
                 </div>
             )}
         </div>

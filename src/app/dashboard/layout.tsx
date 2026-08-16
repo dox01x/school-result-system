@@ -1,5 +1,6 @@
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
+import { MobileBottomNav } from "@/components/layout/mobile-bottom-nav";
 import { RoleProvider } from "@/lib/hooks/use-user-role";
 import { SessionGuard } from "@/components/layout/session-guard";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
@@ -72,15 +73,18 @@ export default async function DashboardLayout({
             initialAssignments={assignments}
         >
             <SessionGuard />
-            <div className="flex min-h-screen bg-background">
+            <div className="flex min-h-screen bg-background text-foreground antialiased selection:bg-primary/20 selection:text-primary">
                 <Sidebar />
                 <div className="flex-1 flex flex-col min-w-0">
                     <Header />
-                    <main id="main-content" className="flex-1">
-                        <div className="pt-14 lg:pt-0">
-                            <div className="animate-slide-up p-5 lg:p-8 max-w-[1280px] mx-auto">{children}</div>
+                    <main id="main-content" className="flex-1 flex flex-col">
+                        <div className="pt-14 lg:pt-0 flex-1 flex flex-col pb-20 lg:pb-8">
+                            <div className="animate-slide-up p-4 sm:p-6 lg:p-8 max-w-[1360px] w-full mx-auto flex-1">
+                                {children}
+                            </div>
                         </div>
                     </main>
+                    <MobileBottomNav />
                 </div>
             </div>
         </RoleProvider>

@@ -1,61 +1,76 @@
 import { NextResponse } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
-import {
-  SCHOOL_INFO_COLUMNS,
-} from '@/lib/supabase/select-columns';
-import { generateSlipNumber, getMonthName } from '@/lib/finance-utils';
+import { requireRole } from '@/lib/api-auth';
+import { SCHOOL_INFO_COLUMNS } from '@/lib/supabase/select-columns';
+import { generateSlipNumber, getMonthName, roundCurrency } from '@/lib/finance-utils';
 import { sendSalaryConfirmationSms } from '@/lib/sms-gateway';
 
 export async function POST(request: Request) {
   try {
+    const auth = await requireRole(['super_admin', 'admin', 'accountant']);
+    if (auth instanceof NextResponse) return auth;
+    const { user, supabase } = auth;
+
     const body = await request.json();
-    const { staff_id, month, year, payment_method, paid_by, note } = body;
+    const { staff_id, month, year, payment_method = 'cash', note } = body;
     
-    if (!staff_id || !month || !year || !payment_method) {
-      return NextResponse.json({ success: false, error: "Missing required fields" }, { status: 400 });
+    const parsedMonth = parseInt(String(month), 10);
+    const parsedYear = parseInt(String(year), 10);
+
+    if (!staff_id || !parsedMonth || !parsedYear || parsedMonth < 1 || parsedMonth > 12) {
+      return NextResponse.json({ success: false, error: "Missing or invalid required fields (staff_id, month, year)" }, { status: 400 });
     }
 
-    const supabase = await createServerSupabaseClient();
-    
     // 1. Fetch Staff Salary Config from staff_salary_configs
     const { data: config, error: configError } = await supabase
       .from('staff_salary_configs')
       .select('id,staff_id,basic_salary,allowances,deductions,effective_from,is_active,created_at')
       .eq('staff_id', staff_id)
       .eq('is_active', true)
-      .single();
+      .maybeSingle();
       
     if (configError || !config) {
-      return NextResponse.json({ success: false, error: "Salary configuration not found or inactive for this staff" }, { status: 404 });
+      return NextResponse.json({ success: false, error: "Active salary configuration not found for this staff member" }, { status: 404 });
     }
 
     // 2. Check if already paid
     const { data: existing } = await supabase
       .from('staff_salary_payments')
-      .select('id')
-      .match({ staff_id, month, year })
-      .single();
+      .select('id, slip_number')
+      .match({ staff_id, month: parsedMonth, year: parsedYear })
+      .maybeSingle();
       
     if (existing) {
-      return NextResponse.json({ success: false, error: "Salary for this month is already paid" }, { status: 409 });
+      return NextResponse.json({ 
+        success: false, 
+        error: `Salary for ${getMonthName(parsedMonth)} ${parsedYear} is already paid (Slip: ${existing.slip_number})` 
+      }, { status: 409 });
     }
 
     // 3. Calculate gross and net
     const sumValues = (obj: Record<string, unknown>) => Object.values(obj || {}).reduce((sum: number, val: unknown) => sum + Number(val || 0), 0);
-    const totalAllowances = sumValues(config.allowances as Record<string, unknown>);
-    const totalDeductions = sumValues(config.deductions as Record<string, unknown>);
+    const totalAllowances = roundCurrency(sumValues(config.allowances as Record<string, unknown>));
+    const totalDeductions = roundCurrency(sumValues(config.deductions as Record<string, unknown>));
     
-    const gross_salary = config.basic_salary + totalAllowances;
-    const net_salary = gross_salary - totalDeductions;
+    const gross_salary = roundCurrency(Number(config.basic_salary) + totalAllowances);
+    const net_salary = roundCurrency(gross_salary - totalDeductions);
+
+    if (net_salary < 0) {
+      return NextResponse.json({ success: false, error: "Net salary cannot be negative" }, { status: 400 });
+    }
 
     // Fetch staff info
-    const { data: staff } = await supabase.from('staffs').select('name, designation, phone').eq('id', staff_id).single();
+    const { data: staff } = await supabase
+      .from('staffs')
+      .select('name, designation, phone')
+      .eq('id', staff_id)
+      .single();
+
     if (!staff) {
-        return NextResponse.json({ success: false, error: "Staff not found" }, { status: 404 });
+      return NextResponse.json({ success: false, error: "Staff record not found" }, { status: 404 });
     }
 
     // 4. Generate Slip Number
-    const slip_number = await generateSlipNumber(supabase, year);
+    const slip_number = await generateSlipNumber(supabase, parsedYear, true);
 
     // 5. Insert into staff_salary_payments
     const { data: salaryResult, error: insertError } = await supabase
@@ -63,52 +78,88 @@ export async function POST(request: Request) {
       .insert({
         slip_number,
         staff_id,
-        month,
-        year,
-        basic_salary: config.basic_salary,
+        month: parsedMonth,
+        year: parsedYear,
+        basic_salary: Number(config.basic_salary),
         allowances: config.allowances,
         deductions: config.deductions,
         gross_salary,
         net_salary,
         payment_method,
-        paid_by,
-        note
+        paid_by: user.id,
+        payment_date: new Date().toISOString(),
+        note: note || null
       })
       .select('*')
       .single();
       
     if (insertError) throw insertError;
 
-    // 6. Automatically add to expense_entries
-    await supabase.from('expense_entries').insert({
+    // 6. Automatically add synchronized expense entry (with fallback)
+    const expensePayload: Record<string, any> = {
       category: 'salary',
       amount: net_salary,
-      description: `Staff salary paid to ${staff.name} for ${month}/${year} (Slip: ${slip_number})`,
+      description: `Staff salary paid to ${staff.name} for ${getMonthName(parsedMonth)} ${parsedYear} (Slip: ${slip_number})`,
       payment_method,
-      paid_by,
+      paid_by: user?.id || null,
       expense_date: new Date().toISOString().split('T')[0],
-      month,
-      year
-    });
+      month: parsedMonth,
+      year: parsedYear,
+    };
 
-    // 7. Fetch School Info
-    const { data: school } = await supabase.from('school_info').select(SCHOOL_INFO_COLUMNS).single();
+    try {
+      const { error: expErr } = await (supabase as any).from('expense_entries').insert({
+        ...expensePayload,
+        reference_type: 'staff_salary_payment',
+        reference_id: salaryResult.id
+      });
+      if (expErr) {
+        await (supabase as any).from('expense_entries').insert(expensePayload);
+      }
+    } catch {
+      await (supabase as any).from('expense_entries').insert(expensePayload);
+    }
 
-    // SMS confirmation (fire-and-forget)
+    // 7. Audit Log
+    try {
+      await (supabase as any).from('finance_audit_logs').insert({
+        actor_id: user?.id && user.id !== '00000000-0000-0000-0000-000000000000' ? user.id : null,
+        actor_name: user?.email || 'Staff',
+        action: 'PAY_STAFF_SALARY',
+        target_table: 'staff_salary_payments',
+        target_id: salaryResult.id,
+        details: {
+          slip_number,
+          staff_id,
+          staff_name: staff.name,
+          month: parsedMonth,
+          year: parsedYear,
+          net_salary,
+          payment_method
+        }
+      });
+    } catch {
+      // Non-blocking
+    }
+
+    // 8. Fetch School Info
+    const { data: school } = await supabase.from('school_info').select(SCHOOL_INFO_COLUMNS).maybeSingle();
+
+    // 9. SMS Confirmation (Fire-and-forget)
     try {
       if (staff.phone) {
         sendSalaryConfirmationSms({
           phone: staff.phone,
           staffName: staff.name,
           netSalary: net_salary,
-          month: getMonthName(month),
-          year,
+          month: getMonthName(parsedMonth),
+          year: parsedYear,
           slipNumber: slip_number,
           schoolName: school?.name
         }).catch(() => {});
       }
     } catch {
-      // SMS errors must never affect salary flow
+      // Non-blocking
     }
 
     return NextResponse.json({ success: true, data: { ...salaryResult, staff, school } });

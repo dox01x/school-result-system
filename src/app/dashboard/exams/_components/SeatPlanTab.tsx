@@ -666,10 +666,13 @@ export function SeatPlanTab({ exams }: { exams: { id: string; name: string }[] }
             } catch {}
         }
 
-        if (shiftName && timeText) {
-            return `${shiftName} (${timeText})`;
+        // Clean any existing time portion in parentheses from shiftName, e.g. "Shift 1 (8:00 AM - 10:00 AM)" -> "Shift 1"
+        const cleanName = shiftName ? shiftName.replace(/\s*\([\d:APMapm\s\-–—to]+\)\s*$/i, "").trim() : "";
+
+        if (cleanName && timeText) {
+            return `${cleanName} (${timeText})`;
         }
-        return shiftName || timeText;
+        return cleanName || shiftName || timeText;
     }, [selectedExam, examConfig]);
 
     // Print Handler 1: Door Notice Cards

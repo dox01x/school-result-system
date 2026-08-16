@@ -5,21 +5,22 @@ import { Slot } from "radix-ui"
 import { cn } from "@/lib/utils"
 
 const badgeVariants = cva(
-  "inline-flex items-center justify-center rounded-md border border-transparent px-2 py-0.5 text-[11px] font-medium w-fit whitespace-nowrap shrink-0 [&>svg]:size-3 gap-1 [&>svg]:pointer-events-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] transition-colors overflow-hidden",
+  "inline-flex items-center justify-center rounded-md border px-2 py-0.5 text-[11px] font-semibold w-fit whitespace-nowrap shrink-0 [&>svg]:size-3 gap-1 [&>svg]:pointer-events-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] transition-colors overflow-hidden leading-tight",
   {
     variants: {
       variant: {
-        default: "bg-primary/10 text-primary",
+        default: "bg-primary/10 text-primary border-primary/20",
         secondary:
-          "bg-muted text-muted-foreground",
+          "bg-secondary text-secondary-foreground border-border/80",
         destructive:
-          "bg-destructive/10 text-destructive",
+          "bg-destructive/10 text-destructive border-destructive/20",
         outline:
-          "border-border text-foreground",
-        ghost: "text-muted-foreground",
-        link: "text-primary underline-offset-4 [a&]:hover:underline",
-        success: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-        warning: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+          "border-border text-foreground bg-background",
+        ghost: "text-muted-foreground border-transparent",
+        link: "text-primary underline-offset-4 [a&]:hover:underline border-transparent",
+        success: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20",
+        warning: "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20",
+        info: "bg-sky-500/10 text-sky-700 dark:text-sky-400 border-sky-500/20",
       },
     },
     defaultVariants: {

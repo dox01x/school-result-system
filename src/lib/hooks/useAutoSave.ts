@@ -32,7 +32,9 @@ export function useAutoSave({ delay = 600, onSave }: UseAutoSaveOptions) {
     const latestValueRef = useRef<string>("");
     const savedValueRef = useRef<string>("");
     const onSaveRef = useRef(onSave);
-    onSaveRef.current = onSave;
+    useEffect(() => {
+        onSaveRef.current = onSave;
+    });
 
     const clearTimer = useCallback(() => {
         if (timerRef.current) {

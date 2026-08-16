@@ -5,10 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import {
     CLASS_COLUMNS,
-    EXAM_COLUMNS,
-    RESULT_COLUMNS,
     SECTION_COLUMNS,
-    SHEET_CONFIG_COLUMNS,
     STUDENT_COLUMNS,
 } from "@/lib/supabase/select-columns";
 import type { Class, Section, Student } from "@/lib/database.types";
@@ -40,13 +37,17 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash, GraduationCap, Upload, RefreshCw, ArrowRight } from "lucide-react";
+import { Plus, GraduationCap, Upload, RefreshCw, Search, Phone, User } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import Papa from "papaparse";
+import dynamic from "next/dynamic";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { StudentProfileSheet } from "@/components/students/student-profile-sheet";
+const StudentProfileSheet = dynamic(
+    () => import("@/components/students/student-profile-sheet").then((m) => m.StudentProfileSheet),
+    { ssr: false }
+);
 
 function StudentsPageContent() {
     const [classes, setClasses] = useState<Class[]>([]);
@@ -54,6 +55,7 @@ function StudentsPageContent() {
     const [students, setStudents] = useState<Student[]>([]);
     const [selectedClass, setSelectedClass] = useState("");
     const [selectedSection, setSelectedSection] = useState("");
+    const [searchQuery, setSearchQuery] = useState("");
     const [loading, setLoading] = useState(true);
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editingStudent, setEditingStudent] = useState<Student | null>(null);
@@ -114,7 +116,7 @@ function StudentsPageContent() {
         if (data && data.length > 0 && !selectedClass) {
             setSelectedClass(data[0].id);
         }
-    }, []);
+    }, [supabase, selectedClass]);
 
     const fetchSections = useCallback(async () => {
         if (!selectedClass) return;
@@ -129,7 +131,7 @@ function StudentsPageContent() {
         } else {
             setSelectedSection("");
         }
-    }, [selectedClass]);
+    }, [selectedClass, supabase]);
 
     const fetchStudents = useCallback(async () => {
         if (!selectedClass || !selectedSection) {
@@ -158,7 +160,7 @@ function StudentsPageContent() {
         } finally {
             setLoading(false);
         }
-    }, [selectedClass, selectedSection]);
+    }, [selectedClass, selectedSection, supabase]);
 
     useEffect(() => { fetchClasses(); }, [fetchClasses]);
     useEffect(() => { fetchSections(); }, [fetchSections]);
@@ -193,7 +195,6 @@ function StudentsPageContent() {
         }
         setTransferring(true);
         try {
-            // Check if roll already exists in target class/section
             const { data: existing } = await supabase
                 .from("students")
                 .select("id")
@@ -220,7 +221,7 @@ function StudentsPageContent() {
 
             toast.success("Student transferred successfully");
             setTransferDialogOpen(false);
-            fetchStudents(); // Refresh current list
+            fetchStudents();
         } catch (err: unknown) {
             toast.error(err instanceof Error ? err.message : "Failed to transfer student");
         } finally {
@@ -228,7 +229,6 @@ function StudentsPageContent() {
         }
     };
 
-    // Shared fetch logic
     const fetchSheetData = useCallback(async (sheetId: string, range: string, silent = false): Promise<number> => {
         const res = await fetch("/api/sheets", {
             method: "POST",
@@ -284,9 +284,8 @@ function StudentsPageContent() {
             }
         }
         return toUpsert.length;
-    }, [selectedClass, selectedSection, fetchStudents]);
+    }, [selectedClass, selectedSection, fetchStudents, supabase]);
 
-    // Auto-sync interval management
     useEffect(() => {
         if (autoSyncRef.current) {
             clearInterval(autoSyncRef.current);
@@ -298,19 +297,19 @@ function StudentsPageContent() {
             return;
         }
 
-        const doSync = async () => {
-            setSyncStatus("syncing");
+        setSyncStatus("syncing");
+        autoSyncRef.current = setInterval(async () => {
             try {
+                setBgSyncing(true);
                 await fetchSheetData(sheetsForm.sheetId, sheetsForm.range, true);
                 setLastSyncTime(new Date());
                 setSyncStatus("idle");
             } catch {
                 setSyncStatus("error");
+            } finally {
+                setBgSyncing(false);
             }
-        };
-
-        doSync();
-        autoSyncRef.current = setInterval(doSync, syncIntervalSec * 1000);
+        }, syncIntervalSec * 1000);
 
         return () => {
             if (autoSyncRef.current) {
@@ -318,42 +317,11 @@ function StudentsPageContent() {
                 autoSyncRef.current = null;
             }
         };
-    }, [autoSyncEnabled, syncIntervalSec, sheetsForm.sheetId, sheetsForm.range, fetchSheetData]);
-
-    // Stop auto-sync and reset sheets form if selections change
-    useEffect(() => {
-        setAutoSyncEnabled(false);
-        setSheetsForm({ sheetId: "", range: "" });
-    }, [selectedClass, selectedSection]);
-
-    // Pre-fill sheets form from saved config (NO auto-sync — only fills the UI fields)
-    useEffect(() => {
-        if (!selectedClass || !selectedSection) return;
-
-        (async () => {
-            try {
-                const { data: config } = await supabase
-                    .from("sheet_configs")
-                    .select(SHEET_CONFIG_COLUMNS)
-                    .eq("type", "students")
-                    .eq("class_id", selectedClass)
-                    .eq("section_id", selectedSection)
-                    .maybeSingle();
-
-                if (config) {
-                    setSheetsForm({ sheetId: config.sheet_id, range: config.sheet_range });
-                }
-            } catch (err) {
-                console.error("Sheet config load error:", err);
-            }
-        })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedClass, selectedSection]);
+    }, [autoSyncEnabled, sheetsForm.sheetId, sheetsForm.range, syncIntervalSec, fetchSheetData]);
 
     const handleSave = async () => {
         if (!form.roll.trim() || !form.name.trim() || !selectedClass || !selectedSection) return;
         try {
-            // Auto-generate student_id if left blank on new student creation
             let finalStudentId = form.student_id.trim() || null;
             if (!finalStudentId) {
                 finalStudentId = `STU-${Math.floor(100000 + Math.random() * 900000)}`;
@@ -364,7 +332,6 @@ function StudentsPageContent() {
                 roll: form.roll.trim(),
                 name: form.name.trim(),
                 group_name: form.group_name === "None" ? null : form.group_name,
-                // Only include student_id if it has a value (avoid UNIQUE constraint on null)
                 ...(finalStudentId ? { student_id: finalStudentId } : {}),
                 gender: form.gender || '',
                 father_name: form.father_name.trim(),
@@ -385,14 +352,13 @@ function StudentsPageContent() {
             } else {
                 const { error } = await supabase.from("students").insert(payload);
                 if (error) throw new Error(error.message);
-                toast.success("Student added");
+                toast.success("Student registered successfully");
             }
             setForm({ roll: "", name: "", group_name: "None", student_id: "", gender: "", father_name: "", mother_name: "", date_of_birth: "", phone: "", address: "", blood_group: "" });
             setEditingStudent(null);
             setDialogOpen(false);
             fetchStudents();
         } catch (err: unknown) {
-            console.error("Save student error:", err);
             toast.error(err instanceof Error ? err.message : "Failed to save student");
         }
     };
@@ -401,12 +367,12 @@ function StudentsPageContent() {
         setConfirmState({
             open: true,
             title: `Delete "${student.name}"?`,
-            description: `Roll: ${student.roll}. This student and all their marks will be permanently removed.`,
+            description: `Roll: ${student.roll}. This student and all associated marks will be permanently removed.`,
             onConfirm: async () => {
                 try {
                     const { error } = await supabase.from("students").delete().eq("id", student.id);
                     if (error) throw error;
-                    toast.success("Student deleted");
+                    toast.success("Student record deleted");
                     fetchStudents();
                 } catch (err: unknown) {
                     toast.error(err instanceof Error ? err.message : "Failed to delete");
@@ -440,24 +406,23 @@ function StudentsPageContent() {
                     .filter((r) => r.roll && r.name);
 
                 if (toInsert.length === 0) {
-                    toast.error("No valid rows found. CSV must have 'roll' and 'name' columns.");
+                    toast.error("No valid rows found. CSV must contain 'roll' and 'name' columns.");
                     return;
                 }
 
                 try {
                     const { error } = await supabase.from("students").insert(toInsert);
                     if (error) throw error;
-                    toast.success(`${toInsert.length} students imported`);
+                    toast.success(`${toInsert.length} students imported successfully`);
                     fetchStudents();
                 } catch (err: unknown) {
-            toast.error(err instanceof Error ? err.message : "Import failed");
+                    toast.error(err instanceof Error ? err.message : "Import failed");
                 }
             },
         });
         e.target.value = "";
     };
 
-    // Google Sheets import manually
     const handleGoogleSheetsFetch = async () => {
         if (!sheetsForm.sheetId || !sheetsForm.range) { toast.error("Sheet ID and Range are required"); return; }
         if (!selectedClass || !selectedSection) { toast.error("Select class and section first"); return; }
@@ -489,176 +454,240 @@ function StudentsPageContent() {
         }
     };
 
-    // Promotion moved to Settings > Yearly Promotion
+    // Filtered students by search query
+    const filteredStudents = useMemo(() => {
+        if (!searchQuery.trim()) return students;
+        const q = searchQuery.toLowerCase();
+        return students.filter(
+            (s) =>
+                s.name.toLowerCase().includes(q) ||
+                s.roll.toLowerCase().includes(q) ||
+                (s.student_id && s.student_id.toLowerCase().includes(q)) ||
+                (s.phone && s.phone.includes(q))
+        );
+    }, [students, searchQuery]);
 
     return (<>
         <div className="space-y-6">
             <PageHeader
                 icon={GraduationCap}
-                title="Students"
-                subtitle="Manage student enrollment and records."
+                title="Student Directory"
+                subtitle="Manage student enrollments, profiles, records, and transfers."
                 actions={
                     <div className="flex items-center gap-2 flex-wrap">
-                        {bgSyncing && <span className="text-xs text-foreground flex items-center font-medium"><RefreshCw className="h-3 w-3 mr-1 animate-spin" strokeWidth={1.2} /> Syncing...</span>}
-                        {lastSyncTime && !bgSyncing && <span className="text-xs text-muted-foreground font-medium hidden sm:inline">Synced: {lastSyncTime.toLocaleTimeString()}</span>}
-                        {bgSyncing && <span className="text-xs text-foreground flex items-center font-medium"><RefreshCw className="h-3 w-3 mr-1 animate-spin" strokeWidth={1.2} /> Syncing...</span>}
-                        {lastSyncTime && !bgSyncing && <span className="text-xs text-muted-foreground font-medium">Synced: {lastSyncTime.toLocaleTimeString()}</span>}
-                        <Button variant="outline" onClick={() => setImportDialogOpen(true)} disabled={!selectedSection} className="rounded-xl border-border hover:bg-muted/50">
-                            <Upload className="h-4 w-4 mr-2" strokeWidth={1.2} />Import
+                        {bgSyncing && (
+                            <span className="text-xs text-primary flex items-center font-medium bg-primary/10 px-2.5 py-1 rounded-lg">
+                                <RefreshCw className="h-3 w-3 mr-1.5 animate-spin" strokeWidth={2} /> Syncing
+                            </span>
+                        )}
+                        <Button
+                            variant="outline"
+                            onClick={() => setImportDialogOpen(true)}
+                            disabled={!selectedSection}
+                            className="gap-2"
+                        >
+                            <Upload className="h-4 w-4" strokeWidth={1.8} /> Import
                         </Button>
                         <Button
-                            onClick={() => { setForm({ roll: "", name: "", group_name: "None", student_id: "", gender: "", father_name: "", mother_name: "", date_of_birth: "", phone: "", address: "", blood_group: "" }); setEditingStudent(null); setDialogOpen(true); }}
+                            onClick={() => {
+                                setForm({ roll: "", name: "", group_name: "None", student_id: "", gender: "", father_name: "", mother_name: "", date_of_birth: "", phone: "", address: "", blood_group: "" });
+                                setEditingStudent(null);
+                                setDialogOpen(true);
+                            }}
                             disabled={!selectedSection}
-                            className="bg-primary text-primary-foreground font-semibold rounded-xl hover:bg-primary/90 transition-all duration-200 "
+                            className="gap-2 font-semibold shadow-xs"
                         >
-                            <Plus size={16} strokeWidth={1.2} className=" mr-2" />Add Student
+                            <Plus size={16} strokeWidth={2} /> Add Student
                         </Button>
                     </div>
                 }
             />
 
-            {/* Funnels Card */}
-            <div className="bg-card rounded-2xl border border-border p-5">
-                <div className="flex items-center gap-4 flex-wrap">
+            {/* Filter Funnel & Search Card */}
+            <div className="bg-card rounded-2xl border border-border/80 p-4 sm:p-5 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+                <div className="flex items-center gap-3 flex-1 flex-wrap sm:flex-nowrap">
                     <div className="flex-1 min-w-[140px]">
-                        <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-2">Class</p>
+                        <Label className="text-[10.5px] uppercase tracking-wider text-muted-foreground font-bold mb-1.5 block">Class</Label>
                         <Select value={selectedClass} onValueChange={setSelectedClass}>
-                            <SelectTrigger className="w-full h-11 rounded-xl border-0 bg-muted hover:bg-muted/80 transition-colors text-foreground font-semibold shadow-none focus:ring-1 focus:ring-ring/30">
+                            <SelectTrigger className="w-full bg-background border-border">
                                 <SelectValue placeholder="Select class" />
                             </SelectTrigger>
-                            <SelectContent className="rounded-xl border-border shadow-md">
+                            <SelectContent>
                                 {classes.map((c) => (
-                                    <SelectItem key={c.id} value={c.id} className="rounded-lg">{c.name}</SelectItem>
+                                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
                     </div>
+
                     <div className="flex-1 min-w-[140px]">
-                        <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-2">Section</p>
+                        <Label className="text-[10.5px] uppercase tracking-wider text-muted-foreground font-bold mb-1.5 block">Section</Label>
                         <Select value={selectedSection} onValueChange={setSelectedSection}>
-                            <SelectTrigger className="w-full h-11 rounded-xl border-0 bg-muted hover:bg-muted/80 transition-colors text-foreground font-semibold shadow-none focus:ring-1 focus:ring-ring/30">
+                            <SelectTrigger className="w-full bg-background border-border">
                                 <SelectValue placeholder="Select section" />
                             </SelectTrigger>
-                            <SelectContent className="rounded-xl border-border shadow-md">
+                            <SelectContent>
                                 {sections.map((s) => (
-                                    <SelectItem key={s.id} value={s.id} className="rounded-lg">{s.name}</SelectItem>
+                                    <SelectItem key={s.id} value={s.id}>Section {s.name}</SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
                     </div>
                 </div>
+
+                <div className="flex items-center gap-3 w-full md:w-auto">
+                    <div className="relative flex-1 md:w-64">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                        <Input
+                            placeholder="Filter by name, roll, or ID..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="pl-9 h-9 bg-background border-border text-xs"
+                        />
+                    </div>
+                    {students.length > 0 && (
+                        <Badge variant="outline" className="h-9 px-3 bg-muted/40 font-semibold shrink-0 text-xs">
+                            {filteredStudents.length} / {students.length} Students
+                        </Badge>
+                    )}
+                </div>
             </div>
 
             {/* Auto-sync indicator bar */}
             {autoSyncEnabled && (
-                <Card className="border-border bg-muted/50">
-                    <CardContent className="flex items-center justify-between py-3">
-                        <div className="flex items-center gap-2">
-                            <span className="relative flex h-3 w-3">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success/40 opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-3 w-3 bg-success"></span>
+                <Card className="border-emerald-500/20 bg-emerald-500/5">
+                    <CardContent className="flex items-center justify-between py-3 px-4">
+                        <div className="flex items-center gap-2.5">
+                            <span className="relative flex h-2.5 w-2.5">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
                             </span>
-                            <p className="text-sm text-foreground font-medium">
-                                Auto-Sync ON â€” every {syncIntervalSec}s
-                                {syncStatus === "syncing" && " (syncing...)"}
-                                {syncStatus === "error" && " (error, retrying...)"}
-                                {lastSyncTime && syncStatus === "idle" && ` â€” last: ${lastSyncTime.toLocaleTimeString()}`}
+                            <p className="text-xs sm:text-sm text-foreground font-medium">
+                                Auto-Sync Active (every {syncIntervalSec}s)
+                                {syncStatus === "syncing" && " — Syncing…"}
+                                {lastSyncTime && syncStatus === "idle" && ` — Last sync: ${lastSyncTime.toLocaleTimeString()}`}
                             </p>
                         </div>
-                        <Button variant="outline" size="sm" onClick={() => setAutoSyncEnabled(false)} className="h-7 text-xs">
+                        <Button variant="outline" size="xs" onClick={() => setAutoSyncEnabled(false)}>
                             Stop Sync
                         </Button>
                     </CardContent>
                 </Card>
             )}
 
+            {/* Add / Edit Student Modal Dialog */}
             <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) setEditingStudent(null); if (open) setTimeout(() => rollInputRef.current?.focus(), 100); }}>
-                <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto w-[95vw] sm:w-full">
+                <DialogContent className="max-w-lg">
                     <DialogHeader>
-                        <DialogTitle>{editingStudent ? "Edit Student" : "Add Student"}</DialogTitle>
+                        <DialogTitle>{editingStudent ? "Edit Student Profile" : "Register New Student"}</DialogTitle>
                     </DialogHeader>
                     <form onSubmit={(e) => { e.preventDefault(); handleSave(); }}>
-                    <div className="space-y-5 py-4">
-                        {/* Core Info */}
-                        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
-                            <div className="space-y-2">
-                                <Label>Roll Number *</Label>
-                                <Input ref={rollInputRef} placeholder="e.g., 01" value={form.roll} onChange={(e) => setForm({ ...form, roll: e.target.value })} id="student-roll" data-field-index={0} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); document.getElementById("student-name")?.focus(); }}} />
+                        <div className="space-y-4 py-2">
+                            <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="student-roll">Roll Number *</Label>
+                                    <Input
+                                        ref={rollInputRef}
+                                        id="student-roll"
+                                        placeholder="e.g., 01"
+                                        value={form.roll}
+                                        onChange={(e) => setForm({ ...form, roll: e.target.value })}
+                                        required
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="student-id">Student ID</Label>
+                                    <Input
+                                        id="student-id"
+                                        placeholder="Auto-generated if empty"
+                                        value={form.student_id}
+                                        onChange={(e) => setForm({ ...form, student_id: e.target.value })}
+                                    />
+                                </div>
                             </div>
-                            <div className="space-y-2">
-                                <Label>Student ID</Label>
-                                <Input placeholder="Auto-generated if empty" value={form.student_id} onChange={(e) => setForm({ ...form, student_id: e.target.value })} />
+
+                            <div className="space-y-1.5">
+                                <Label htmlFor="student-name">Student Full Name *</Label>
+                                <Input
+                                    id="student-name"
+                                    placeholder="Enter full legal name"
+                                    value={form.name}
+                                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                                    required
+                                />
                             </div>
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Student Name *</Label>
-                            <Input placeholder="Full name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} id="student-name" />
+
+                            <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
+                                <div className="space-y-1.5">
+                                    <Label>Gender</Label>
+                                    <Select value={form.gender || "_none"} onValueChange={(v) => setForm({ ...form, gender: v === "_none" ? "" : v })}>
+                                        <SelectTrigger><SelectValue placeholder="Select gender" /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="_none">Not specified</SelectItem>
+                                            <SelectItem value="Male">Male</SelectItem>
+                                            <SelectItem value="Female">Female</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label>Date of Birth</Label>
+                                    <Input type="date" value={form.date_of_birth} onChange={(e) => setForm({ ...form, date_of_birth: e.target.value })} />
+                                </div>
+                            </div>
+
+                            <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
+                                <div className="space-y-1.5">
+                                    <Label>Father&apos;s Name</Label>
+                                    <Input placeholder="Father's full name" value={form.father_name} onChange={(e) => setForm({ ...form, father_name: e.target.value })} />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label>Mother&apos;s Name</Label>
+                                    <Input placeholder="Mother's full name" value={form.mother_name} onChange={(e) => setForm({ ...form, mother_name: e.target.value })} />
+                                </div>
+                            </div>
+
+                            <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
+                                <div className="space-y-1.5">
+                                    <Label>Contact Phone</Label>
+                                    <Input placeholder="+880 1XXX XXXXXX" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label>Blood Group</Label>
+                                    <Input placeholder="e.g., A+, B+, O+" value={form.blood_group} onChange={(e) => setForm({ ...form, blood_group: e.target.value })} />
+                                </div>
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <Label>Residential Address</Label>
+                                <Input placeholder="Full home address" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <Label>Academic Stream / Group</Label>
+                                <div className="grid grid-cols-4 gap-2 pt-1">
+                                    {[{ value: "None", label: "General" }, { value: "Science", label: "Science" }, { value: "Arts", label: "Arts" }, { value: "Commerce", label: "Commerce" }].map((opt) => (
+                                        <button
+                                            key={opt.value}
+                                            type="button"
+                                            onClick={() => setForm({ ...form, group_name: opt.value })}
+                                            className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-all text-center ${form.group_name === opt.value ? "bg-primary text-primary-foreground border-primary shadow-xs" : "bg-muted/40 hover:bg-muted text-muted-foreground border-border"}`}
+                                        >
+                                            {opt.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
                         </div>
 
-                        {/* Personal Info */}
-                        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
-                            <div className="space-y-2">
-                                <Label>Gender</Label>
-                                <Select value={form.gender || "_none"} onValueChange={(v) => setForm({ ...form, gender: v === "_none" ? "" : v })}>
-                                    <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="_none">Not specified</SelectItem>
-                                        <SelectItem value="Male">Male</SelectItem>
-                                        <SelectItem value="Female">Female</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Date of Birth</Label>
-                                <Input type="date" value={form.date_of_birth} onChange={(e) => setForm({ ...form, date_of_birth: e.target.value })} />
-                            </div>
-                        </div>
-                        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
-                            <div className="space-y-2">
-                                <Label>Father&apos;s Name</Label>
-                                <Input placeholder="Father's full name" value={form.father_name} onChange={(e) => setForm({ ...form, father_name: e.target.value })} />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Mother&apos;s Name</Label>
-                                <Input placeholder="Mother's full name" value={form.mother_name} onChange={(e) => setForm({ ...form, mother_name: e.target.value })} />
-                            </div>
-                        </div>
-                        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
-                            <div className="space-y-2">
-                                <Label>Phone</Label>
-                                <Input placeholder="+880 1XXX XXXXXX" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Blood Group</Label>
-                                <Input placeholder="e.g., A+, B-, O+" value={form.blood_group} onChange={(e) => setForm({ ...form, blood_group: e.target.value })} />
-                            </div>
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Address</Label>
-                            <Input placeholder="Full address" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
-                        </div>
-
-                        {/* Group */}
-                        <div className="space-y-2">
-                            <Label>Group</Label>
-                            <div className="flex w-full gap-2 pt-1 flex-wrap">
-                                {[{ value: "None", label: "None (General)" }, { value: "Science", label: "Science" }, { value: "Arts", label: "Arts" }, { value: "Commerce", label: "Commerce" }].map((opt) => (
-                                    <label key={opt.value} className={`flex-1 flex items-center justify-center px-3 py-2.5 rounded-xl border-0 cursor-pointer transition-all text-center ${form.group_name === opt.value ? "bg-primary text-primary-foreground shadow-sm font-semibold" : "bg-muted hover:bg-muted/80 text-muted-foreground font-medium"}`}>
-                                        <input type="radio" name="student-group" value={opt.value} checked={form.group_name === opt.value} onChange={() => setForm({ ...form, group_name: opt.value })} className="sr-only" />
-                                        <span className="text-xs sm:text-sm whitespace-nowrap">{opt.label}</span>
-                                    </label>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                    <DialogFooter>
-                        <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
-                        <Button type="submit">{editingStudent ? "Update" : "Add"}</Button>
-                    </DialogFooter>
+                        <DialogFooter>
+                            <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
+                            <Button type="submit">{editingStudent ? "Update Record" : "Save Student"}</Button>
+                        </DialogFooter>
                     </form>
                 </DialogContent>
             </Dialog>
 
+            {/* Student Profile Sheet */}
             <StudentProfileSheet
                 open={profileDialogOpen}
                 onOpenChange={setProfileDialogOpen}
@@ -692,15 +721,15 @@ function StudentsPageContent() {
 
             {/* Transfer Dialog */}
             <Dialog open={transferDialogOpen} onOpenChange={setTransferDialogOpen}>
-                <DialogContent className="w-[95vw] sm:w-full max-w-lg">
+                <DialogContent className="max-w-md">
                     <DialogHeader><DialogTitle>Transfer Student</DialogTitle></DialogHeader>
-                    <div className="space-y-4 py-4">
-                        <div className="text-sm border-b pb-4 mb-2">
-                            <p className="text-muted-foreground">Transferring</p>
-                            <p className="font-semibold text-lg">{transferStudent?.name}</p>
-                            <p className="text-xs text-muted-foreground">Current: {classes.find(c => c.id === transferStudent?.class_id)?.name} - {sections.find(s => s.id === transferStudent?.section_id)?.name} (Roll: {transferStudent?.roll})</p>
+                    <div className="space-y-4 py-2">
+                        <div className="p-3 rounded-xl bg-muted/40 border border-border">
+                            <p className="text-xs text-muted-foreground">Transferring</p>
+                            <p className="font-bold text-base text-foreground mt-0.5">{transferStudent?.name}</p>
+                            <p className="text-xs text-muted-foreground mt-1">Roll: {transferStudent?.roll}</p>
                         </div>
-                        <div className="space-y-2">
+                        <div className="space-y-1.5">
                             <Label>Target Class</Label>
                             <Select value={transferTargetClass} onValueChange={setTransferTargetClass}>
                                 <SelectTrigger><SelectValue placeholder="Select class" /></SelectTrigger>
@@ -711,32 +740,34 @@ function StudentsPageContent() {
                                 </SelectContent>
                             </Select>
                         </div>
-                        <div className="space-y-2">
+                        <div className="space-y-1.5">
                             <Label>Target Section</Label>
                             <Select value={transferTargetSection} onValueChange={setTransferTargetSection} disabled={transferTargetSections.length === 0}>
                                 <SelectTrigger><SelectValue placeholder="Select section" /></SelectTrigger>
                                 <SelectContent>
                                     {transferTargetSections.map((s) => (
-                                        <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                        <SelectItem key={s.id} value={s.id}>Section {s.name}</SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
                         </div>
-                        <div className="space-y-2">
+                        <div className="space-y-1.5">
                             <Label>New Roll Number</Label>
-                            <Input value={transferRoll} onChange={(e) => setTransferRoll(e.target.value)} placeholder="Enter roll number" />
+                            <Input value={transferRoll} onChange={(e) => setTransferRoll(e.target.value)} placeholder="e.g., 01" />
                         </div>
                     </div>
                     <DialogFooter>
                         <DialogClose asChild><Button variant="outline">Cancel</Button></DialogClose>
-                        <Button onClick={handleTransfer} disabled={transferring || !transferTargetClass || !transferTargetSection || !transferRoll.trim()}>{transferring ? "Transferring..." : "Transfer"}</Button>
+                        <Button onClick={handleTransfer} disabled={transferring || !transferTargetClass || !transferTargetSection || !transferRoll.trim()}>
+                            {transferring ? "Transferring..." : "Confirm Transfer"}
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
 
             {/* Import Dialog */}
             <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
-                <DialogContent>
+                <DialogContent className="max-w-md">
                     <DialogHeader><DialogTitle>Import Students</DialogTitle></DialogHeader>
                     <Tabs defaultValue="csv" className="w-full">
                         <TabsList className="grid w-full grid-cols-2">
@@ -744,14 +775,15 @@ function StudentsPageContent() {
                             <TabsTrigger value="sheets">Google Sheets</TabsTrigger>
                         </TabsList>
                         
-                        <TabsContent value="csv" className="space-y-6 pt-4 pb-2 min-h-[280px] flex flex-col">
-                            <p className="text-sm text-muted-foreground">
-                                Upload a CSV file with student data. Required headers: <strong className="font-mono bg-muted px-1 py-0.5 rounded">roll</strong>, <strong className="font-mono bg-muted px-1 py-0.5 rounded">name</strong>.
+                        <TabsContent value="csv" className="space-y-4 pt-4 min-h-[220px] flex flex-col justify-between">
+                            <p className="text-xs text-muted-foreground">
+                                Upload a CSV file with student data. Required headers: <strong className="font-mono bg-muted px-1.5 py-0.5 rounded text-foreground">roll</strong>, <strong className="font-mono bg-muted px-1.5 py-0.5 rounded text-foreground">name</strong>.
                             </p>
-                            <div className="flex-1 flex justify-center items-center border-2 border-dashed rounded-lg p-8 hover:bg-muted/50 transition-colors">
-                                <label className="flex flex-col items-center cursor-pointer w-full text-center">
-                                    <Upload className="h-10 w-10 text-muted-foreground mb-4 mx-auto" />
-                                    <span className="font-medium text-sm">Click to select CSV file</span>
+                            <div className="border-2 border-dashed border-border rounded-xl p-6 hover:bg-muted/40 transition-colors text-center cursor-pointer">
+                                <label className="flex flex-col items-center cursor-pointer w-full">
+                                    <Upload className="h-8 w-8 text-muted-foreground mb-2" />
+                                    <span className="font-semibold text-sm text-foreground">Click to upload CSV</span>
+                                    <span className="text-xs text-muted-foreground mt-1">.csv spreadsheet files only</span>
                                     <input type="file" accept=".csv" className="hidden" onChange={(e) => {
                                         handleCSVImport(e);
                                         setImportDialogOpen(false);
@@ -760,126 +792,122 @@ function StudentsPageContent() {
                             </div>
                         </TabsContent>
 
-                        <TabsContent value="sheets" className="space-y-4 pt-4 min-h-[280px] flex flex-col">
-                            <div className="space-y-3 flex-1">
-                                <Input placeholder="Sheet ID or Link (e.g. docs.google.com/...)" value={sheetsForm.sheetId} onChange={(e) => {
+                        <TabsContent value="sheets" className="space-y-3 pt-4 min-h-[220px]">
+                            <div className="space-y-2">
+                                <Input placeholder="Sheet ID or URL (docs.google.com/...)" value={sheetsForm.sheetId} onChange={(e) => {
                                     let val = e.target.value;
                                     const match = val.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
                                     if (match) val = match[1];
                                     setSheetsForm({ ...sheetsForm, sheetId: val });
                                 }} className="h-9" />
-                                <Input placeholder="Range (e.g. A1:B50)" value={sheetsForm.range} onChange={(e) => setSheetsForm({ ...sheetsForm, range: e.target.value })} className="h-9" />
-                                
-                                <div className="flex items-center justify-between bg-muted/30 border rounded-md p-2 mt-4">
-                                    <div className="flex flex-col">
-                                        <span className="text-xs font-medium">Auto-Sync</span>
-                                        {autoSyncEnabled && (
-                                            <div className="flex items-center gap-2 mt-1">
-                                                <input
-                                                    type="range" min={5} max={10} value={syncIntervalSec}
-                                                    onChange={(e) => setSyncIntervalSec(parseInt(e.target.value))}
-                                                    className="w-20 h-1 bg-muted rounded-full appearance-none cursor-pointer accent-primary"
-                                                />
-                                                <span className="text-[10px] text-muted-foreground">{syncIntervalSec}s</span>
-                                            </div>
-                                        )}
-                                    </div>
-                                    <Button
-                                        variant={autoSyncEnabled ? "secondary" : "outline"}
-                                        size="sm"
-                                        className={`h-7 px-2 text-xs ${autoSyncEnabled ? "bg-muted text-foreground hover:bg-muted/80 border-border" : ""}`}
-                                        onClick={async () => {
-                                            if (!autoSyncEnabled) {
-                                                if (!sheetsForm.sheetId || !sheetsForm.range) { toast.error("Required for sync"); return; }
-                                                await supabase.from("sheet_configs").delete().eq("type", "students").eq("class_id", selectedClass).eq("section_id", selectedSection);
-                                                await supabase.from("sheet_configs").insert({
-                                                    type: "students", class_id: selectedClass, section_id: selectedSection,
-                                                    sheet_id: sheetsForm.sheetId, sheet_range: sheetsForm.range
-                                                });
-                                                setAutoSyncEnabled(true);
-                                                setImportDialogOpen(false);
-                                                toast.success(`Sync Started`);
-                                            } else {
-                                                setAutoSyncEnabled(false);
-                                                toast.info("Sync Stopped");
-                                            }
-                                        }}
-                                    >
-                                        <RefreshCw className={`h-3 w-3 mr-1 ${autoSyncEnabled ? "animate-spin text-foreground" : "text-muted-foreground"}`} strokeWidth={1.2} />
-                                        {autoSyncEnabled ? "ON" : "OFF"}
-                                    </Button>
-                                </div>
+                                <Input placeholder="Range (e.g., Sheet1!A1:C50)" value={sheetsForm.range} onChange={(e) => setSheetsForm({ ...sheetsForm, range: e.target.value })} className="h-9" />
                             </div>
-
-                            <div className="flex items-center justify-between pt-2 border-t border-dashed mt-auto">
-                                <div className="text-xs text-muted-foreground flex gap-1 items-center">
-                                    <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground"></span> need: roll, name
-                                </div>
-                                <div className="flex gap-2">
-                                    <DialogClose asChild><Button variant="ghost" size="sm">Cancel</Button></DialogClose>
-                                    <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90" onClick={handleGoogleSheetsFetch} disabled={sheetsLoading}>{sheetsLoading ? "..." : "Import"}</Button>
-                                </div>
+                            <div className="flex justify-end gap-2 pt-3">
+                                <DialogClose asChild><Button variant="outline" size="sm">Cancel</Button></DialogClose>
+                                <Button size="sm" onClick={handleGoogleSheetsFetch} disabled={sheetsLoading}>
+                                    {sheetsLoading ? "Importing..." : "Fetch & Import"}
+                                </Button>
                             </div>
                         </TabsContent>
                     </Tabs>
                 </DialogContent>
             </Dialog>
 
+            {/* Empty State */}
             {!loading && students.length === 0 && selectedSection && (
-                <div className="bg-transparent rounded-2xl border-2 border-dashed border-border p-12 text-center shadow-none">
-                    <div className="h-12 w-12 rounded-xl flex items-center justify-center mb-4 mx-auto text-muted-foreground/40">
-                        <GraduationCap size={32} strokeWidth={1.2} />
+                <div className="rounded-2xl border border-dashed border-border p-12 text-center bg-card shadow-xs">
+                    <div className="h-14 w-14 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center mb-4 mx-auto">
+                        <GraduationCap size={28} strokeWidth={1.8} />
                     </div>
-                    <h3 className="font-semibold text-lg text-foreground mb-4">No students found</h3>
+                    <h3 className="font-bold text-lg text-foreground mb-1">No students found in this section</h3>
+                    <p className="text-sm text-muted-foreground max-w-sm mx-auto mb-6">
+                        Add students manually using the quick-add bar or import via CSV/Google Sheets.
+                    </p>
+                    <Button onClick={() => setDialogOpen(true)} className="gap-2">
+                        <Plus size={16} /> Add First Student
+                    </Button>
                 </div>
             )}
 
+            {/* Student Records Table */}
             {students.length > 0 && (
-                <Card>
+                <Card className="rounded-2xl overflow-hidden shadow-xs">
                     <CardContent className="p-0">
-                        <div className="overflow-x-auto">
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead className="w-20 whitespace-nowrap">Roll</TableHead>
-                                    <TableHead className="w-28 text-muted-foreground whitespace-nowrap">ID</TableHead>
-                                    <TableHead className="whitespace-nowrap">Name</TableHead>
-                                    <TableHead className="text-muted-foreground whitespace-nowrap hidden sm:table-cell">Gender</TableHead>
-                                    <TableHead className="text-muted-foreground whitespace-nowrap hidden md:table-cell">Phone</TableHead>
-                                    <TableHead className="text-muted-foreground whitespace-nowrap hidden lg:table-cell">Father&apos;s Name</TableHead>
-                                    <TableHead className="whitespace-nowrap">Group</TableHead>
+                                    <TableHead className="w-16 text-center">Roll</TableHead>
+                                    <TableHead>Student Name</TableHead>
+                                    <TableHead className="hidden sm:table-cell">Student ID</TableHead>
+                                    <TableHead className="hidden md:table-cell">Gender</TableHead>
+                                    <TableHead className="hidden lg:table-cell">Contact Phone</TableHead>
+                                    <TableHead>Stream / Group</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {students.map((student) => (
-                                    <TableRow key={student.id} className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => { setProfileStudent(student); setProfileDialogOpen(true); }}>
-                                        <TableCell className="font-mono">{student.roll}</TableCell>
-                                        <TableCell className="font-mono text-xs text-muted-foreground">{student.student_id || '-'}</TableCell>
-                                        <TableCell className="font-medium">{student.name}</TableCell>
-                                        <TableCell className="text-muted-foreground text-sm hidden sm:table-cell">{student.gender || '-'}</TableCell>
-                                        <TableCell className="font-mono text-sm hidden md:table-cell">{student.phone || '-'}</TableCell>
-                                        <TableCell className="text-muted-foreground text-sm hidden lg:table-cell">{student.father_name || '-'}</TableCell>
+                                {filteredStudents.map((student) => (
+                                    <TableRow
+                                        key={student.id}
+                                        className="cursor-pointer hover:bg-muted/50 transition-colors group"
+                                        onClick={() => { setProfileStudent(student); setProfileDialogOpen(true); }}
+                                    >
+                                        <TableCell className="text-center">
+                                            <Badge variant="outline" className="font-mono font-bold text-xs bg-background">
+                                                {student.roll}
+                                            </Badge>
+                                        </TableCell>
                                         <TableCell>
-                                            {student.group_name ? (
-                                                <Badge variant="secondary" className="font-normal bg-muted text-muted-foreground hover:bg-muted/80 border-0">{student.group_name}</Badge>
+                                            <div className="flex items-center gap-2.5">
+                                                <div className="h-8 w-8 rounded-full bg-primary/10 text-primary border border-primary/20 flex items-center justify-center font-bold text-xs shrink-0 group-hover:scale-105 transition-transform">
+                                                    {student.name.charAt(0).toUpperCase()}
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <p className="font-semibold text-sm text-foreground truncate group-hover:text-primary transition-colors">
+                                                        {student.name}
+                                                    </p>
+                                                    {student.father_name && (
+                                                        <p className="text-[11px] text-muted-foreground truncate">
+                                                            S/D of {student.father_name}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="font-mono text-xs text-muted-foreground hidden sm:table-cell">
+                                            {student.student_id || "-"}
+                                        </TableCell>
+                                        <TableCell className="text-muted-foreground text-xs hidden md:table-cell">
+                                            {student.gender || "-"}
+                                        </TableCell>
+                                        <TableCell className="font-mono text-xs text-muted-foreground hidden lg:table-cell">
+                                            {student.phone ? (
+                                                <span className="flex items-center gap-1">
+                                                    <Phone size={11} /> {student.phone}
+                                                </span>
+                                            ) : "-"}
+                                        </TableCell>
+                                        <TableCell>
+                                            {student.group_name && student.group_name !== "None" ? (
+                                                <Badge variant="secondary" className="text-[10.5px] font-semibold uppercase">
+                                                    {student.group_name}
+                                                </Badge>
                                             ) : (
-                                                <span className="text-muted-foreground">-</span>
+                                                <span className="text-muted-foreground text-xs">General</span>
                                             )}
                                         </TableCell>
                                     </TableRow>
                                 ))}
                             </TableBody>
                         </Table>
-                        </div>
 
-                        {/* Quick-add row */}
-                        <div className="flex items-center gap-2 px-4 py-3 border-t bg-muted/10">
+                        {/* Quick-Add Row */}
+                        <div className="flex items-center gap-2 p-3 bg-muted/20 border-t border-border">
                             <Input
                                 ref={quickAddRollRef}
                                 placeholder="Roll"
                                 value={quickAdd.roll}
                                 onChange={(e) => setQuickAdd({ ...quickAdd, roll: e.target.value })}
-                                className="w-20 h-8 text-sm text-center font-mono"
+                                className="w-20 h-9 text-xs text-center font-mono font-bold bg-background"
                                 onKeyDown={(e) => {
                                     if (e.key === "Enter") {
                                         e.preventDefault();
@@ -889,10 +917,10 @@ function StudentsPageContent() {
                             />
                             <Input
                                 id="quick-add-name"
-                                placeholder="Student name — press Enter to add"
+                                placeholder="Student name — type and press Enter to quick register"
                                 value={quickAdd.name}
                                 onChange={(e) => setQuickAdd({ ...quickAdd, name: e.target.value })}
-                                className="flex-1 h-8 text-sm"
+                                className="flex-1 h-9 text-xs bg-background"
                                 onKeyDown={async (e) => {
                                     if (e.key === "Enter") {
                                         e.preventDefault();
@@ -910,12 +938,14 @@ function StudentsPageContent() {
                                             fetchStudents();
                                             setTimeout(() => quickAddRollRef.current?.focus(), 100);
                                         } catch (err: unknown) {
-                                            toast.error(err instanceof Error ? err.message : "Failed to add");
+                                            toast.error(err instanceof Error ? err.message : "Failed to add student");
                                         }
                                     }
                                 }}
                             />
-                            <span className="text-[10px] text-muted-foreground whitespace-nowrap">Enter ↵</span>
+                            <span className="text-[10px] text-muted-foreground font-semibold px-2 hidden sm:inline select-none">
+                                Press ↵
+                            </span>
                         </div>
                     </CardContent>
                 </Card>
@@ -939,7 +969,7 @@ export default function StudentsPage() {
         <Suspense
             fallback={
                 <div className="flex min-h-[40vh] items-center justify-center text-sm text-muted-foreground">
-                    Loading…
+                    Loading student records…
                 </div>
             }
         >

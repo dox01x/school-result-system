@@ -14,9 +14,9 @@ export function AccessDeniedToast() {
 
     useEffect(() => {
         if (searchParams.get("access") === "denied") {
-            toast.error("আপনার এই পেইজে অ্যাক্সেস নেই", {
-                description: "Access denied — you don't have permission to view that page.",
-                duration: 5000,
+            toast.error("Access Restricted", {
+                description: "You do not have permission to view that page.",
+                duration: 4000,
             });
             // Clean URL
             router.replace("/dashboard", { scroll: false });

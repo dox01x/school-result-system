@@ -9,6 +9,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 
 interface MarksSelectorProps {
     classes: Class[];
@@ -50,72 +51,72 @@ const MarksSelectors = React.memo(function MarksSelectors({
     onAcademicYearChange,
 }: MarksSelectorProps) {
     return (
-        <div className="flex items-center gap-4 flex-wrap">
-            <div className="flex-1 min-w-[140px]">
-                <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-2 px-1">Class</p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+            <div className="space-y-1.5">
+                <Label className="text-[10.5px] uppercase tracking-wider text-muted-foreground font-bold">Class</Label>
                 <Select value={selectedClass} onValueChange={onClassChange}>
-                    <SelectTrigger className="w-full h-11 rounded-xl border-0 bg-muted hover:bg-muted/80 transition-colors text-foreground font-semibold shadow-none focus:ring-1 focus:ring-ring/30">
-                        <SelectValue placeholder="Class" />
+                    <SelectTrigger className="w-full bg-background border-border text-xs sm:text-sm font-medium">
+                        <SelectValue placeholder="Select class" />
                     </SelectTrigger>
-                    <SelectContent className="rounded-xl border-border shadow-md">
+                    <SelectContent>
                         {classes.map((c) => (
-                            <SelectItem key={c.id} value={c.id} className="rounded-lg">{c.name}</SelectItem>
+                            <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                         ))}
                     </SelectContent>
                 </Select>
             </div>
 
-            <div className="flex-1 min-w-[140px]">
-                <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-2 px-1">Section</p>
+            <div className="space-y-1.5">
+                <Label className="text-[10.5px] uppercase tracking-wider text-muted-foreground font-bold">Section</Label>
                 <Select value={selectedSection} onValueChange={onSectionChange}>
-                    <SelectTrigger className="w-full h-11 rounded-xl border-0 bg-muted hover:bg-muted/80 transition-colors text-foreground font-semibold shadow-none focus:ring-1 focus:ring-ring/30">
-                        <SelectValue placeholder="Section" />
+                    <SelectTrigger className="w-full bg-background border-border text-xs sm:text-sm font-medium">
+                        <SelectValue placeholder="Select section" />
                     </SelectTrigger>
-                    <SelectContent className="rounded-xl border-border shadow-md">
+                    <SelectContent>
                         {sections.map((s) => (
-                            <SelectItem key={s.id} value={s.id} className="rounded-lg">{s.name}</SelectItem>
+                            <SelectItem key={s.id} value={s.id}>Section {s.name}</SelectItem>
                         ))}
                     </SelectContent>
                 </Select>
             </div>
 
-            <div className="flex-1 min-w-[140px]">
-                <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-2 px-1">Exam</p>
+            <div className="space-y-1.5">
+                <Label className="text-[10.5px] uppercase tracking-wider text-muted-foreground font-bold">Exam / Term</Label>
                 <Select value={selectedExam} onValueChange={onExamChange}>
-                    <SelectTrigger className="w-full h-11 rounded-xl border-0 bg-muted hover:bg-muted/80 transition-colors text-foreground font-semibold shadow-none focus:ring-1 focus:ring-ring/30">
-                        <SelectValue placeholder="Exam" />
+                    <SelectTrigger className="w-full bg-background border-border text-xs sm:text-sm font-medium">
+                        <SelectValue placeholder="Select exam" />
                     </SelectTrigger>
-                    <SelectContent className="rounded-xl border-border shadow-md">
+                    <SelectContent>
                         {exams.map((e) => (
-                            <SelectItem key={e.id} value={e.id} className="rounded-lg">{e.name}</SelectItem>
+                            <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>
                         ))}
                     </SelectContent>
                 </Select>
             </div>
 
-            <div className="flex-1 min-w-[140px]">
-                <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-2 px-1">Subject</p>
+            <div className="space-y-1.5">
+                <Label className="text-[10.5px] uppercase tracking-wider text-muted-foreground font-bold">Subject</Label>
                 <Select value={selectedSubject} onValueChange={onSubjectChange}>
-                    <SelectTrigger className="w-full h-11 rounded-xl border-0 bg-muted hover:bg-muted/80 transition-colors text-foreground font-semibold shadow-none focus:ring-1 focus:ring-ring/30">
-                        <SelectValue placeholder="Subject" />
+                    <SelectTrigger className="w-full bg-background border-border text-xs sm:text-sm font-medium">
+                        <SelectValue placeholder="Select subject" />
                     </SelectTrigger>
-                    <SelectContent className="rounded-xl border-border shadow-md">
+                    <SelectContent>
                         {subjects.map((s) => (
-                            <SelectItem key={s.id} value={s.id} className="rounded-lg">{s.name}</SelectItem>
+                            <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                         ))}
                     </SelectContent>
                 </Select>
             </div>
 
-            <div className="flex-1 min-w-[140px]">
-                <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-2 px-1">Year</p>
+            <div className="space-y-1.5 col-span-2 sm:col-span-1">
+                <Label className="text-[10.5px] uppercase tracking-wider text-muted-foreground font-bold">Year</Label>
                 <Select value={academicYear} onValueChange={onAcademicYearChange}>
-                    <SelectTrigger className="w-full h-11 rounded-xl border-0 bg-muted hover:bg-muted/80 transition-colors text-foreground font-semibold shadow-none focus:ring-1 focus:ring-ring/30">
+                    <SelectTrigger className="w-full bg-background border-border text-xs sm:text-sm font-medium">
                         <SelectValue placeholder="Year" />
                     </SelectTrigger>
-                    <SelectContent className="rounded-xl border-border shadow-md">
+                    <SelectContent>
                         {academicYearOptions.map((y) => (
-                            <SelectItem key={y} value={y} className="rounded-lg">{y}</SelectItem>
+                            <SelectItem key={y} value={y}>{y}</SelectItem>
                         ))}
                     </SelectContent>
                 </Select>

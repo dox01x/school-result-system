@@ -85,7 +85,7 @@ export async function GET(request: NextRequest) {
 
             const shifts = Array.from(shiftMap.entries()).map(([_, info], idx) => ({
                 id: `shift_${idx + 1}_${Date.now()}`,
-                name: `Shift ${idx + 1} (${formatTime12(info.start_time)} - ${formatTime12(info.end_time)})`,
+                name: `Shift ${idx + 1}`,
                 start_time: info.start_time,
                 end_time: info.end_time,
                 class_ids: Array.from(info.class_ids),

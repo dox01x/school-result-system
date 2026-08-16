@@ -9,7 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
-import { formatTaka } from '@/lib/finance-utils';
+import { formatTaka, formatCurrency } from '@/lib/finance-utils';
+import { generateDailyClosingHtml } from '@/lib/finance-receipt-template';
 import { Loader2 as SpinnerGap, Search as MagnifyingGlass, Printer, Banknote as Money, CreditCard, Smartphone as DeviceMobile, Receipt, TrendingDown as TrendDown, Users, CalendarDays as CalendarBlank } from "lucide-react";
 import { createClient } from '@/lib/supabase/client';
 
@@ -17,12 +18,12 @@ export default function DailyClosingPage() {
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<any>(null);
-  const [schoolInfo, setSchoolInfo] = useState<{name: string, address: string, phone: string} | null>(null);
+  const [schoolInfo, setSchoolInfo] = useState<{name: string, address: string, phone: string, logo_url?: string} | null>(null);
 
   useEffect(() => {
     const fetchSchoolInfo = async () => {
       const supabase = createClient();
-      const { data } = await supabase.from('school_info').select('name, address, phone').limit(1).single();
+      const { data } = await supabase.from('school_info').select('name, address, phone, logo_url').limit(1).single();
       if (data) setSchoolInfo(data);
     };
     fetchSchoolInfo();
@@ -45,77 +46,9 @@ export default function DailyClosingPage() {
 
   const handlePrint = () => {
     if (!data) return;
-    const d = data;
-    const tuitionRows = d.tuition_payments.map((p: any, i: number) =>
-      `<tr><td>${i + 1}</td><td class="col-label">${p.student}</td><td>${p.class}</td><td style="font-family:monospace">${p.receipt}</td><td style="text-transform:capitalize">${(p.method || 'cash').replace('_', ' ')}</td><td class="col-amount">${Number(p.amount).toLocaleString('en-IN')} TK</td></tr>`
-    ).join('');
-
-    const expenseRows = d.expenses.map((e: any, i: number) =>
-      `<tr><td>${i + 1}</td><td class="col-label">${e.category.replace('_', ' ')}</td><td>${e.description}</td><td class="col-amount">${Number(e.amount).toLocaleString('en-IN')} TK</td></tr>`
-    ).join('');
-
-    const html = `<!DOCTYPE html><html><head><title>Daily Closing - ${d.date}</title>
-    <style>
-      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap');
-      * { margin:0; padding:0; box-sizing:border-box; }
-      body { font-family:'Inter', sans-serif; max-width:800px; margin:0 auto; padding:40px; color:#000; background:#fff; }
-      .header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 40px; padding-bottom: 20px; border-bottom: 1px solid #e5e5e5; }
-      .header-title h1 { font-size: 28px; font-weight: 900; letter-spacing: -1px; line-height: 1; text-transform: uppercase; }
-      .header-title p { font-size: 12px; font-weight: 600; color: #666; letter-spacing: 2px; text-transform: uppercase; margin-top: 6px; }
-      .header-date { text-align: right; }
-      .header-date .month { font-size: 24px; font-weight: 800; }
-      .header-date .year { font-size: 12px; font-weight: 600; color: #666; letter-spacing: 2px; text-transform: uppercase; }
-      .section h3 { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 16px; color: #000; padding-bottom: 0; }
-      table { width: 100%; border-collapse: collapse; margin-bottom: 40px; }
-      th { text-align: left; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; color: #666; padding: 12px 0; border-bottom: 1px solid #e5e5e5; }
-      td { padding: 12px 0; border-bottom: none; font-size: 13px; }
-      .col-label { font-weight: 600; text-transform: capitalize; color: #333; }
-      .col-amount { text-align: right; font-family: monospace; font-weight: 600; font-size: 14px; }
-      .summary { display: grid; grid-template-columns: 1fr 1fr 1fr; margin-bottom: 40px; }
-      .summary > div:not(:last-child) { border-right: 1px solid #e5e5e5; }
-      .summary-card { padding: 20px; text-align: center; }
-      .summary-card h4 { font-size: 10px; text-transform: uppercase; letter-spacing: 2px; color: #666; margin-bottom: 8px; }
-      .summary-card .val { font-size: 24px; font-weight: 900; font-family: monospace; color: #000; letter-spacing: -0.5px; }
-      .summary-card .desc { font-size: 11px; color: #666; margin-top: 6px; font-weight: 600; }
-      .footer { text-align: center; font-size: 10px; color: #999; margin-top: 40px; padding-top: 20px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
-      .school-info { text-align: center; margin-bottom: 40px; }
-      .school-info h2 { font-size: 24px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; }
-      .school-info p { font-size: 12px; color: #666; margin-top: 4px; }
-      .signatures { display: flex; justify-content: space-between; margin-top: 60px; padding-top: 20px; }
-      .signatures > div { text-align: center; }
-      .signatures p { font-size: 10px; color: #999; margin-bottom: 40px; text-transform: uppercase; letter-spacing: 1px; }
-      .signatures .line { border-bottom: 1px solid #000; width: 180px; margin: 0 auto; }
-      @media print { body { padding: 20px; } }
-    </style></head><body>
-    <div class="school-info">
-      <h2>${schoolInfo?.name || 'School Name'}</h2>
-      <p>${schoolInfo?.address || ''} ${schoolInfo?.phone ? '• ' + schoolInfo.phone : ''}</p>
-    </div>
-    <div class="header">
-      <div class="header-title"><h1>Daily Closing</h1><p>Cash Reconciliation</p></div>
-      <div class="header-date">
-        <div class="month">${new Date(d.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}</div>
-        <div class="year">${new Date(d.date).getFullYear()}</div>
-      </div>
-    </div>
-    <div class="summary">
-      <div class="summary-card"><h4>Total Collection</h4><div class="val">${d.tuition_collected.toLocaleString('en-IN')} TK</div><div class="desc">${d.tuition_count} receipt(s)</div></div>
-      <div class="summary-card"><h4>Total Expense</h4><div class="val">${d.total_expense.toLocaleString('en-IN')} TK</div><div class="desc">Outflows</div></div>
-      <div class="summary-card"><h4>Net Cash In Hand</h4><div class="val">${d.net_cash_in_hand >= 0 ? '+' : ''}${d.net_cash_in_hand.toLocaleString('en-IN')} TK</div><div class="desc">Cash only</div></div>
-    </div>
-    <div class="summary">
-      <div class="summary-card"><h4>Cash</h4><div class="val">${(d.method_breakdown?.cash?.income || 0).toLocaleString('en-IN')} TK</div></div>
-      <div class="summary-card"><h4>Bank</h4><div class="val">${(d.method_breakdown?.bank?.income || 0).toLocaleString('en-IN')} TK</div></div>
-      <div class="summary-card"><h4>Mobile Banking</h4><div class="val">${(d.method_breakdown?.mobile_banking?.income || 0).toLocaleString('en-IN')} TK</div></div>
-    </div>
-    ${tuitionRows ? `<div class="section"><h3>Fee Collections</h3><table><thead><tr><th>#</th><th>Student</th><th>Class</th><th>Receipt</th><th>Method</th><th style="text-align:right">Amount</th></tr></thead><tbody>${tuitionRows}</tbody></table></div>` : ''}
-    ${expenseRows ? `<div class="section"><h3>Expenses</h3><table><thead><tr><th>#</th><th>Category</th><th>Description</th><th style="text-align:right">Amount</th></tr></thead><tbody>${expenseRows}</tbody></table></div>` : ''}
-    <div class="signatures">
-      <div><p>Prepared By (Signature)</p><div class="line"></div></div>
-      <div><p>Verified By (Signature)</p><div class="line"></div></div>
-    </div>
-    <div class="footer"><p>Generated on ${new Date().toLocaleDateString('en-GB')} &bull; School Management System</p></div>
-    </body></html>`;
+    const html = generateDailyClosingHtml(data, {
+      school: schoolInfo || undefined
+    });
     printHtml(html);
   };
 
@@ -168,7 +101,7 @@ export default function DailyClosingPage() {
                     <Receipt className="h-6 w-6 text-foreground" strokeWidth={1.2} />
                   </div>
                 </div>
-                <div className="text-3xl font-black tracking-tighter text-foreground tabular-nums">{formatTaka(data.tuition_collected).replace('৳', '')}</div>
+                <div className="text-3xl font-black tracking-tighter text-foreground tabular-nums">{formatCurrency(data.tuition_collected)}</div>
                 <p className="text-sm text-muted-foreground mt-1.5 font-medium">Total Collection</p>
                 <p className="text-xs text-muted-foreground mt-1">{data.tuition_count} receipt(s) today</p>
               </CardContent>
@@ -181,7 +114,7 @@ export default function DailyClosingPage() {
                     <TrendDown className="h-6 w-6 text-red-600" strokeWidth={1.2} />
                   </div>
                 </div>
-                <div className="text-3xl font-black tracking-tighter text-red-600 tabular-nums">{formatTaka(data.total_expense).replace('৳', '')}</div>
+                <div className="text-3xl font-black tracking-tighter text-red-600 tabular-nums">{formatCurrency(data.total_expense)}</div>
                 <p className="text-sm text-muted-foreground mt-1.5 font-medium">Total Expense</p>
               </CardContent>
             </Card>
@@ -193,7 +126,7 @@ export default function DailyClosingPage() {
                     <Users className="h-6 w-6 text-foreground" strokeWidth={1.2} />
                   </div>
                 </div>
-                <div className="text-3xl font-black tracking-tighter text-foreground tabular-nums">{formatTaka(data.salary_paid).replace('৳', '')}</div>
+                <div className="text-3xl font-black tracking-tighter text-foreground tabular-nums">{formatCurrency(data.salary_paid)}</div>
                 <p className="text-sm text-muted-foreground mt-1.5 font-medium">Salary Paid</p>
               </CardContent>
             </Card>
@@ -206,7 +139,7 @@ export default function DailyClosingPage() {
                   </div>
                 </div>
                 <div className={`text-3xl font-black tracking-tighter tabular-nums ${data.net_cash_in_hand >= 0 ? 'text-foreground' : 'text-red-600'}`}>
-                  {formatTaka(data.net_cash_in_hand).replace('৳', '')}
+                  {formatCurrency(data.net_cash_in_hand)}
                 </div>
                 <p className="text-sm text-muted-foreground mt-1.5 font-medium">Net Cash In Hand</p>
                 <p className="text-xs text-muted-foreground mt-1">Cash payments only</p>

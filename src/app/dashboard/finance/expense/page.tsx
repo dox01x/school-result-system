@@ -14,13 +14,14 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { createClient } from '@/lib/supabase/client';
+import { useUserRole } from '@/lib/hooks/use-user-role';
 
 export default function ExpensePage() {
+  const { role: userRole, userId } = useUserRole();
   const [expenses, setExpenses] = useState<ExpenseEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [open, setOpen] = useState(false);
-  const [userRole, setUserRole] = useState('');
 
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -50,28 +51,17 @@ export default function ExpensePage() {
     }
   };
 
-  const fetchRole = async () => {
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      const { data } = await supabase.from('profiles').select('role').eq('id', user.id).single();
-      if (data) setUserRole(data.role);
-    }
-  };
-
-  useEffect(() => { fetchData(); fetchRole(); }, []);
+  useEffect(() => { fetchData(); }, [dateFrom, dateTo]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.amount || !form.description) { toast.error('Amount and Description are required'); return; }
     setSubmitting(true);
     try {
-      const supabase = createClient();
-      const { data: user } = await supabase.auth.getUser();
       const res = await fetch('/api/finance/expense', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, amount: parseFloat(form.amount), paid_by: user?.user?.id })
+        body: JSON.stringify({ ...form, amount: parseFloat(form.amount), paid_by: userId })
       });
       const data = await res.json();
       if (data.success) {

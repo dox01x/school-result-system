@@ -14,16 +14,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import dynamic from "next/dynamic";
-const BarChart = dynamic(() => import("recharts").then((mod) => mod.BarChart), { ssr: false });
-const Bar = dynamic(() => import("recharts").then((mod) => mod.Bar), { ssr: false });
-const XAxis = dynamic(() => import("recharts").then((mod) => mod.XAxis), { ssr: false });
-const YAxis = dynamic(() => import("recharts").then((mod) => mod.YAxis), { ssr: false });
-const Tooltip = dynamic(() => import("recharts").then((mod) => mod.Tooltip), { ssr: false });
-const ResponsiveContainer = dynamic(() => import("recharts").then((mod) => mod.ResponsiveContainer), { ssr: false });
-const CartesianGrid = dynamic(() => import("recharts").then((mod) => mod.CartesianGrid), { ssr: false });
+const StudentTrendChart = dynamic(() => import("./student-trend-chart"), {
+    ssr: false,
+    loading: () => <div className="h-64 rounded-xl bg-muted/60 animate-pulse" />,
+});
 import { toast } from "sonner";
 import { Pencil, Printer, Trash2, MoveRight, TrendingUp, TrendingDown, Minus, ArrowUp, ArrowDown, FileText } from "lucide-react";
 import { printHtml } from "@/lib/print-utils";
+import { formatTaka } from "@/lib/finance-utils";
 
 type Props = {
     open: boolean;
@@ -79,6 +77,14 @@ const getExamCategory = (exam?: Exam | null): ExamCategory => {
     return "standalone";
 };
 
+function isPaymentVoid(p: any): boolean {
+    if (!p) return false;
+    if (p.status === 'void') return true;
+    if (typeof p.note === 'string' && p.note.startsWith('[VOIDED')) return true;
+    if (typeof p.void_reason === 'string' && p.void_reason.length > 0) return true;
+    return false;
+}
+
 export function StudentProfileSheet({
     open,
     onOpenChange,
@@ -96,7 +102,8 @@ export function StudentProfileSheet({
     const [results, setResults] = useState<Result[]>([]);
     const [exams, setExams] = useState<Exam[]>([]);
     const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
-    const [fees, setFees] = useState<{ receipt_number: string; amount_due: number; amount_paid: number; payment_date: string | null; fee_type: string }[]>([]);
+    const [fees, setFees] = useState<{ id?: string; receipt_number: string; amount_due: number; amount_paid: number; discount?: number; fine?: number; payment_date: string | null; fee_type: string; status?: string; fee_details?: any[] }[]>([]);
+    const [feeStructures, setFeeStructures] = useState<{ fee_type: string; amount: number }[]>([]);
     const [subjectMarks, setSubjectMarks] = useState<SubjectMark[]>([]);
     const [schoolInfo, setSchoolInfo] = useState<{ name?: string; address?: string; phone?: string; email?: string; logo_url?: string; principal_name?: string } | null>(null);
     const [selectedCategoryTab, setSelectedCategoryTab] = useState<ExamCategory | "all">("all");
@@ -153,20 +160,26 @@ export function StudentProfileSheet({
                 transferRoll: fetchedStudent.roll || "",
             }));
 
-            const [resultRes, attendanceRes, feeRes, marksRes] = await Promise.all([
+            const studentClass = (classesRes.data || []).find((c: any) => c.id === fetchedStudent.class_id);
+            const className = studentClass?.name;
+            const currentYearStr = new Date().getFullYear().toString();
+
+            const [resultRes, attendanceRes, feeRes, marksRes, feeStructRes] = await Promise.all([
                 supabase.from("results").select("id,student_id,exam_id,academic_year,total_marks,total_full_marks,percentage,gpa,grade,created_at").eq("student_id", studentId).order("created_at"),
                 supabase.from("attendance_records").select("id,student_id,class_id,section_id,att_date,status,source,created_at,updated_at").eq("student_id", studentId).order("att_date", { ascending: false }),
-                supabase.from("tuition_payments").select("receipt_number,amount_due,amount_paid,payment_date,fee_type").eq("student_id", studentId).order("payment_date", { ascending: false }).limit(12),
+                supabase.from("tuition_payments").select("*").eq("student_id", studentId).order("payment_date", { ascending: false }),
                 supabase.from("marks")
                     .select("student_id,subject_id,exam_id,total,subjects(name,pass_marks,full_marks)")
                     .eq("student_id", studentId)
                     .order("created_at"),
+                className ? supabase.from("fee_structure").select("fee_type,amount").eq("class_name", className).eq("academic_year", currentYearStr).eq("is_active", true) : Promise.resolve({ data: [] }),
             ]);
 
             if (cancelled) return;
             setResults(resultRes.data || []);
             setAttendance(attendanceRes.data || []);
-            setFees(feeRes.data || []);
+            setFees((feeRes.data as any) || []);
+            setFeeStructures((feeStructRes.data as any) || []);
 
             const processedMarks: SubjectMark[] = (marksRes.data || []).map((m: any) => ({
                 subjectId: m.subject_id,
@@ -480,7 +493,32 @@ export function StudentProfileSheet({
         return { orderedExams, rows };
     }, [subjectMarks, exams]);
 
-    const pendingDue = useMemo(() => fees.reduce((sum, f) => sum + (Number(f.amount_due) - Number(f.amount_paid)), 0), [fees]);
+    const financialStats = useMemo(() => {
+        const activePayments = fees.filter(f => !isPaymentVoid(f));
+        const totalPaid = activePayments.reduce((sum, f) => sum + Number(f.amount_paid || 0), 0);
+        const totalDiscount = activePayments.reduce((sum, f) => sum + Number(f.discount || 0), 0);
+        const totalFine = activePayments.reduce((sum, f) => sum + Number(f.fine || 0), 0);
+
+        let annualAssigned = 0;
+        feeStructures.forEach(fs => {
+            const fType = (fs.fee_type || '').toLowerCase().trim();
+            const isMonthly = ['tuition', 'tuition fee', 'hostel', 'transport', 'boarding'].includes(fType);
+            annualAssigned += Number(fs.amount) * (isMonthly ? 12 : 1);
+        });
+
+        const netPayableYear = Math.max(0, annualAssigned + totalFine - totalDiscount);
+        const pendingDue = Math.max(0, netPayableYear - totalPaid);
+
+        return {
+            annualAssigned,
+            totalPaid,
+            totalDiscount,
+            totalFine,
+            pendingDue
+        };
+    }, [fees, feeStructures]);
+
+    const pendingDue = financialStats.pendingDue;
 
     const handleUpdateBasic = async () => {
         if (!student) return;
@@ -907,19 +945,7 @@ ${subjectHTML}
                                             </CardTitle>
                                         </CardHeader>
                                         <CardContent className="h-64">
-                                            {trendData.length === 0 ? (
-                                                <p className="text-sm text-muted-foreground">No results found.</p>
-                                            ) : (
-                                                <ResponsiveContainer width="100%" height="100%">
-                                                    <BarChart data={trendData}>
-                                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                                                        <XAxis dataKey="exam" axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 12}} dy={10} />
-                                                        <YAxis domain={[0, 100]} axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 12}} dx={-10} />
-                                                        <Tooltip cursor={{fill: '#f1f5f9'}} contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}} />
-                                                        <Bar dataKey="percentage" fill="var(--primary)" radius={[6, 6, 0, 0]} barSize={40} />
-                                                    </BarChart>
-                                                </ResponsiveContainer>
-                                            )}
+                                            <StudentTrendChart data={trendData} />
                                         </CardContent>
                                     </Card>
 
@@ -1130,34 +1156,66 @@ ${subjectHTML}
 
                                 <TabsContent value="fees" className="space-y-4">
                                     <Card>
-                                        <CardHeader><CardTitle className="text-sm">Financial Snapshot</CardTitle></CardHeader>
-                                        <CardContent className="grid md:grid-cols-2 gap-4">
-                                            <div className="rounded-xl border-0 bg-muted p-5">
-                                                <p className="text-sm font-medium text-muted-foreground mb-1">Pending Dues</p>
-                                                <p className="text-3xl font-bold text-foreground">{pendingDue.toFixed(2)}</p>
+                                        <CardHeader className="flex flex-row items-center justify-between pb-2">
+                                            <CardTitle className="text-sm font-bold">Financial Summary ({new Date().getFullYear()})</CardTitle>
+                                            <Button 
+                                                size="sm" 
+                                                className="h-8 rounded-xl font-bold bg-primary text-primary-foreground hover:bg-primary/90 text-xs"
+                                                onClick={() => {
+                                                    if (student) {
+                                                        window.location.href = `/dashboard/finance/tuition/collect?student_id=${student.id}`;
+                                                    }
+                                                }}
+                                            >
+                                                Collect Fees
+                                            </Button>
+                                        </CardHeader>
+                                        <CardContent className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+                                            <div className="rounded-xl border-0 bg-muted/60 p-3.5">
+                                                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Annual Fee</p>
+                                                <p className="text-lg font-bold font-mono text-foreground">{formatTaka(financialStats.annualAssigned)}</p>
                                             </div>
-                                            <div className="rounded-xl border-0 bg-muted p-5">
-                                                <p className="text-sm font-medium text-muted-foreground mb-1">Recent Payments</p>
-                                                <p className="text-3xl font-bold text-foreground">{fees.length}</p>
+                                            <div className="rounded-xl border-0 bg-muted/60 p-3.5">
+                                                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Total Paid</p>
+                                                <p className="text-lg font-bold font-mono text-emerald-600 dark:text-emerald-400">{formatTaka(financialStats.totalPaid)}</p>
+                                            </div>
+                                            <div className="rounded-xl border-0 bg-muted/60 p-3.5">
+                                                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Total Discount</p>
+                                                <p className="text-lg font-bold font-mono text-amber-600 dark:text-amber-400">{formatTaka(financialStats.totalDiscount)}</p>
+                                            </div>
+                                            <div className="rounded-xl border-0 bg-red-50 dark:bg-red-950/30 p-3.5">
+                                                <p className="text-[10px] font-bold uppercase tracking-wider text-red-600 dark:text-red-400 mb-1">Pending Due</p>
+                                                <p className="text-lg font-black font-mono text-red-600 dark:text-red-400">{formatTaka(financialStats.pendingDue)}</p>
                                             </div>
                                         </CardContent>
                                     </Card>
+
                                     <Card>
-                                        <CardHeader><CardTitle className="text-sm">Fee Payment History</CardTitle></CardHeader>
+                                        <CardHeader className="pb-3"><CardTitle className="text-sm font-bold">Fee Payment History ({fees.length})</CardTitle></CardHeader>
                                         <CardContent className="space-y-3">
-                                            {fees.length === 0 && <p className="text-sm text-muted-foreground">No fee history.</p>}
-                                            {fees.map((f) => (
-                                                <div key={f.receipt_number} className="flex items-center justify-between border-b border-border/50 pb-3 last:border-0 last:pb-0">
-                                                    <div>
-                                                        <p className="text-base font-semibold text-foreground">{f.fee_type}</p>
-                                                        <p className="text-xs text-muted-foreground font-medium mt-0.5">{f.receipt_number}</p>
+                                            {fees.length === 0 && <p className="text-sm text-muted-foreground py-4 text-center">No payment history found for this student.</p>}
+                                            {fees.map((f) => {
+                                                const isVoid = isPaymentVoid(f);
+                                                return (
+                                                    <div key={f.id || f.receipt_number} className={`flex items-center justify-between border-b border-border/50 pb-3 last:border-0 last:pb-0 ${isVoid ? 'opacity-50 line-through' : ''}`}>
+                                                        <div>
+                                                            <div className="flex items-center gap-2">
+                                                                <p className="text-sm font-bold text-foreground">{f.fee_type}</p>
+                                                                {isVoid ? (
+                                                                    <Badge className="bg-red-100 text-red-800 border-0 text-[8px] font-black px-1.5 h-4">VOIDED</Badge>
+                                                                ) : (
+                                                                    <Badge className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[8px] font-bold px-1.5 h-4">PAID</Badge>
+                                                                )}
+                                                            </div>
+                                                            <p className="text-xs text-muted-foreground font-mono mt-0.5">{f.receipt_number}</p>
+                                                        </div>
+                                                        <div className="text-right text-sm">
+                                                            <p className="font-mono font-bold text-foreground">{formatTaka(f.amount_paid)}</p>
+                                                            <p className="text-xs text-muted-foreground mt-0.5">{f.payment_date ? new Date(f.payment_date).toLocaleDateString('en-GB') : "-"}</p>
+                                                        </div>
                                                     </div>
-                                                    <div className="text-right text-sm">
-                                                        <p className="font-bold text-foreground">Paid: {Number(f.amount_paid).toFixed(2)}</p>
-                                                        <p className="text-xs text-muted-foreground font-medium mt-0.5">{f.payment_date || "-"}</p>
-                                                    </div>
-                                                </div>
-                                            ))}
+                                                );
+                                            })}
                                         </CardContent>
                                     </Card>
                                 </TabsContent>

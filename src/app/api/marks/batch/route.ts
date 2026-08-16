@@ -77,12 +77,24 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // ── 2. Fetch subject to get base max marks ──
-        const { data: rawSubject, error: subjectErr } = await supabase
-            .from("subjects")
-            .select("full_marks,theory_marks,mcq_marks,practical_marks,has_theory,has_mcq,has_practical")
-            .eq("id", subject_id)
-            .single();
+        // ── 2 & 3. Fetch subject and exam-specific overrides in parallel ──
+        const [subjectRes, examConfigRes] = await Promise.all([
+            supabase
+                .from("subjects")
+                .select("full_marks,theory_marks,mcq_marks,practical_marks,has_theory,has_mcq,has_practical")
+                .eq("id", subject_id)
+                .single(),
+            supabase
+                .from("exam_subject_config")
+                .select("full_marks")
+                .eq("exam_id", exam_id)
+                .eq("subject_id", subject_id)
+                .maybeSingle(),
+        ]);
+
+        const rawSubject = subjectRes.data;
+        const subjectErr = subjectRes.error;
+        const examConfig = examConfigRes.data;
 
         if (subjectErr || !rawSubject) {
             return NextResponse.json(
@@ -92,15 +104,6 @@ export async function POST(req: NextRequest) {
         }
 
         const subject = rawSubject as SubjectRecord;
-
-        // ── 3. Check exam-specific overrides ──
-        const { data: examConfig } = await supabase
-            .from("exam_subject_config")
-            .select("full_marks")
-            .eq("exam_id", exam_id)
-            .eq("subject_id", subject_id)
-            .maybeSingle();
-
         const effectiveFullMarks = (examConfig as { full_marks?: number } | null)?.full_marks ?? subject.full_marks;
 
         // Guard against misconfigured subjects with zero full_marks

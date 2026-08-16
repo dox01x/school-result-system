@@ -1,41 +1,20 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { useUserRole } from "@/lib/hooks/use-user-role";
 import { ShieldAlert as ShieldWarning, Loader2 as SpinnerGap } from "lucide-react";
 
 export default function FinanceLayout({ children }: { children: React.ReactNode }) {
-  const [allowed, setAllowed] = useState<boolean | null>(null);
+  const { role, loading } = useUserRole();
 
-  useEffect(() => {
-    const checkAccess = async () => {
-      try {
-        const supabase = createClient();
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) { setAllowed(false); return; }
-
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', user.id)
-          .single();
-
-        const role = profile?.role || '';
-        setAllowed(role === 'super_admin' || role === 'admin' || role === 'accountant');
-      } catch {
-        setAllowed(false);
-      }
-    };
-    checkAccess();
-  }, []);
-
-  if (allowed === null) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <SpinnerGap size={24} strokeWidth={1.5} className="animate-spin text-muted-foreground" />
       </div>
     );
   }
+
+  const allowed = role === 'super_admin' || role === 'admin' || role === 'accountant';
 
   if (!allowed) {
     return (
@@ -55,3 +34,4 @@ export default function FinanceLayout({ children }: { children: React.ReactNode 
 
   return <>{children}</>;
 }
+

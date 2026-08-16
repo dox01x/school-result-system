@@ -11,7 +11,6 @@ const MONTHS = [
     { v: 10, l: "October" }, { v: 11, l: "November" }, { v: 12, l: "December" },
 ];
 
-
 export type AttendanceFilterState = {
     selectedClass: string;
     selectedSection: string;
@@ -48,56 +47,56 @@ export function AttendanceFilters({
     return (
         <div className={`grid gap-3 ${compact ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-1 sm:grid-cols-2 md:grid-cols-4"}`}>
             <div className="space-y-1.5">
-                <Label className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest px-1">Class</Label>
+                <Label className="text-[10.5px] uppercase font-bold text-muted-foreground tracking-wider">Class</Label>
                 <Select value={filters.selectedClass} onValueChange={onClassChange} disabled={loading}>
-                    <SelectTrigger className="bg-muted border-0 shadow-none h-11 rounded-xl font-bold text-foreground focus:ring-1 focus:ring-ring/30">
+                    <SelectTrigger className="w-full bg-background border-border text-xs sm:text-sm font-medium">
                         <SelectValue placeholder="Select class" />
                     </SelectTrigger>
-                    <SelectContent className="border-border rounded-xl shadow-md">
+                    <SelectContent>
                         {classes.map((c) => (
-                            <SelectItem key={c.id} value={c.id} className="rounded-lg font-medium">{c.name}</SelectItem>
+                            <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                         ))}
                     </SelectContent>
                 </Select>
             </div>
             <div className="space-y-1.5">
-                <Label className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest px-1">Section</Label>
+                <Label className="text-[10.5px] uppercase font-bold text-muted-foreground tracking-wider">Section</Label>
                 <Select value={filters.selectedSection} onValueChange={onSectionChange} disabled={!filters.selectedClass || loading}>
-                    <SelectTrigger className="bg-muted border-0 shadow-none h-11 rounded-xl font-bold text-foreground focus:ring-1 focus:ring-ring/30">
+                    <SelectTrigger className="w-full bg-background border-border text-xs sm:text-sm font-medium">
                         <SelectValue placeholder={filters.selectedClass ? "Select section" : "Select class first"} />
                     </SelectTrigger>
-                    <SelectContent className="border-border rounded-xl shadow-md">
+                    <SelectContent>
                         {sections.map((s) => (
-                            <SelectItem key={s.id} value={s.id} className="rounded-lg font-medium">{s.name}</SelectItem>
+                            <SelectItem key={s.id} value={s.id}>Section {s.name}</SelectItem>
                         ))}
                     </SelectContent>
                 </Select>
                 {filters.selectedClass && sections.length === 0 && !loading && (
-                    <p className="text-[10px] font-bold text-muted-foreground/60 px-1 mt-1">No sections found</p>
+                    <p className="text-[10px] text-muted-foreground mt-1">No sections found</p>
                 )}
             </div>
             <div className="space-y-1.5">
-                <Label className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest px-1">Year</Label>
+                <Label className="text-[10.5px] uppercase font-bold text-muted-foreground tracking-wider">Year</Label>
                 <Select value={String(filters.year)} onValueChange={(v) => onYearChange(Number(v))}>
-                    <SelectTrigger className="bg-muted border-0 shadow-none h-11 rounded-xl font-bold text-foreground focus:ring-1 focus:ring-ring/30">
+                    <SelectTrigger className="w-full bg-background border-border text-xs sm:text-sm font-medium">
                         <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="border-border rounded-xl shadow-md">
+                    <SelectContent>
                         {yearOptions.map((y) => (
-                            <SelectItem key={y} value={String(y)} className="rounded-lg font-medium">{y}</SelectItem>
+                            <SelectItem key={y} value={String(y)}>{y}</SelectItem>
                         ))}
                     </SelectContent>
                 </Select>
             </div>
             <div className="space-y-1.5">
-                <Label className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest px-1">Month</Label>
+                <Label className="text-[10.5px] uppercase font-bold text-muted-foreground tracking-wider">Month</Label>
                 <Select value={String(filters.month)} onValueChange={(v) => onMonthChange(Number(v))}>
-                    <SelectTrigger className="bg-muted border-0 shadow-none h-11 rounded-xl font-bold text-foreground focus:ring-1 focus:ring-ring/30">
+                    <SelectTrigger className="w-full bg-background border-border text-xs sm:text-sm font-medium">
                         <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="border-border rounded-xl shadow-md">
+                    <SelectContent>
                         {MONTHS.map((m) => (
-                            <SelectItem key={m.v} value={String(m.v)} className="rounded-lg font-medium">
+                            <SelectItem key={m.v} value={String(m.v)}>
                                 {m.l}
                             </SelectItem>
                         ))}

@@ -1590,6 +1590,10 @@ export type Database = {
                     payment_date: string | null;
                     note: string | null;
                     is_printed: boolean | null;
+                    status: string;
+                    void_reason: string | null;
+                    voided_at: string | null;
+                    voided_by: string | null;
                 };
                 Insert: {
                     id?: string;
@@ -1610,6 +1614,10 @@ export type Database = {
                     payment_date?: string | null;
                     note?: string | null;
                     is_printed?: boolean | null;
+                    status?: string;
+                    void_reason?: string | null;
+                    voided_at?: string | null;
+                    voided_by?: string | null;
                 };
                 Update: {
                     id?: string;
@@ -1630,6 +1638,10 @@ export type Database = {
                     payment_date?: string | null;
                     note?: string | null;
                     is_printed?: boolean | null;
+                    status?: string;
+                    void_reason?: string | null;
+                    voided_at?: string | null;
+                    voided_by?: string | null;
                 };
                 Relationships: [
                     {
@@ -1719,6 +1731,8 @@ export type Database = {
                     academic_year: string | null;
                     month: number | null;
                     year: number | null;
+                    reference_type: string | null;
+                    reference_id: string | null;
                     created_at: string | null;
                 };
                 Insert: {
@@ -1733,6 +1747,8 @@ export type Database = {
                     academic_year?: string | null;
                     month?: number | null;
                     year?: number | null;
+                    reference_type?: string | null;
+                    reference_id?: string | null;
                     created_at?: string | null;
                 };
                 Update: {
@@ -1747,6 +1763,8 @@ export type Database = {
                     academic_year?: string | null;
                     month?: number | null;
                     year?: number | null;
+                    reference_type?: string | null;
+                    reference_id?: string | null;
                     created_at?: string | null;
                 };
                 Relationships: [];
@@ -1764,6 +1782,8 @@ export type Database = {
                     receipt_url: string | null;
                     month: number | null;
                     year: number | null;
+                    reference_type: string | null;
+                    reference_id: string | null;
                     created_at: string | null;
                 };
                 Insert: {
@@ -1778,6 +1798,8 @@ export type Database = {
                     receipt_url?: string | null;
                     month?: number | null;
                     year?: number | null;
+                    reference_type?: string | null;
+                    reference_id?: string | null;
                     created_at?: string | null;
                 };
                 Update: {
@@ -1792,7 +1814,42 @@ export type Database = {
                     receipt_url?: string | null;
                     month?: number | null;
                     year?: number | null;
+                    reference_type?: string | null;
+                    reference_id?: string | null;
                     created_at?: string | null;
+                };
+                Relationships: [];
+            };
+            finance_audit_logs: {
+                Row: {
+                    id: string;
+                    actor_id: string | null;
+                    actor_name: string | null;
+                    action: string;
+                    target_table: string;
+                    target_id: string;
+                    details: unknown | null;
+                    created_at: string;
+                };
+                Insert: {
+                    id?: string;
+                    actor_id?: string | null;
+                    actor_name?: string | null;
+                    action: string;
+                    target_table: string;
+                    target_id: string;
+                    details?: unknown | null;
+                    created_at?: string;
+                };
+                Update: {
+                    id?: string;
+                    actor_id?: string | null;
+                    actor_name?: string | null;
+                    action?: string;
+                    target_table?: string;
+                    target_id?: string;
+                    details?: unknown | null;
+                    created_at?: string;
                 };
                 Relationships: [];
             };

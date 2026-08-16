@@ -264,6 +264,7 @@ export default function ExamSchedulePage() {
     }, [shifts, examDates, instructions, selectedShiftId, selectedExam]);
 
     const getName = (list: { id: string; name: string }[], id: string) => list.find((x) => x.id === id)?.name || "";
+    const getShiftDisplayName = (s: Shift) => (s?.name || "").replace(/\s*\([\d:APMapm\s\-–—to]+\)\s*$/i, "").trim() || s?.name || "";
     const selectedShift = shifts.find((s) => s.id === selectedShiftId);
     const shiftClasses = selectedShift ? classes.filter((c) => selectedShift.class_ids.includes(c.id)) : [];
     const activeSubjects = subjectsByClass[formData.class_id] || [];
@@ -498,7 +499,7 @@ ${schoolInfo?.logo_url ? `<img src="${schoolInfo.logo_url}" alt="Logo">` : ""}
 </div>
 
 <div class="header">
-<div class="header-title"><h1>${examName}</h1><p>${selectedShift.name} — Time: ${formatTime12(selectedShift.start_time)} to ${formatTime12(selectedShift.end_time)}</p></div>
+<div class="header-title"><h1>${examName}</h1><p>${getShiftDisplayName(selectedShift)} — Time: ${formatTime12(selectedShift.start_time)} to ${formatTime12(selectedShift.end_time)}</p></div>
 </div>
 
 <table>
@@ -639,7 +640,7 @@ ${instructionsHtml}
                     <p style={{ fontSize: 15, fontWeight: 700, color: "#1a365d" }}>{examName}</p>
                     {selectedShift && (
                         <p style={{ fontSize: 13, fontWeight: 600, marginTop: 2 }}>
-                            {selectedShift.name} — Time: {formatTime12(selectedShift.start_time)} to {formatTime12(selectedShift.end_time)}
+                            {getShiftDisplayName(selectedShift)} — Time: {formatTime12(selectedShift.start_time)} to {formatTime12(selectedShift.end_time)}
                         </p>
                     )}
                 </div>

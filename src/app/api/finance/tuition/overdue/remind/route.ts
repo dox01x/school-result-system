@@ -1,26 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { requireRole } from "@/lib/api-auth";
 import { sendOverdueReminderSms } from "@/lib/sms-gateway";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
-    const supabase = await createServerSupabaseClient();
-    const authHeader = req.headers.get("authorization");
-    const bearerToken = authHeader?.toLowerCase().startsWith("bearer ")
-        ? authHeader.slice(7).trim()
-        : null;
-    const {
-        data: { user },
-    } = bearerToken
-        ? await supabase.auth.getUser(bearerToken)
-        : await supabase.auth.getUser();
-
-    if (!user && process.env.AUTH_DISABLED !== "true") {
-        return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
-    }
-
     try {
+        const auth = await requireRole(['super_admin', 'admin', 'accountant']);
+        if (auth instanceof NextResponse) return auth;
+        const { supabase } = auth;
+
         const body = await req.json();
         const { studentId, outstanding, monthName } = body;
 
@@ -29,14 +18,14 @@ export async function POST(req: NextRequest) {
         }
 
         // Fetch student contact details
-        const { data: student } = await supabase
+        const { data: student, error: stdError } = await supabase
             .from("students")
             .select("name, phone")
             .eq("id", studentId)
             .single();
 
-        if (!student || !student.phone) {
-            return NextResponse.json({ success: false, error: "Student or parent contact not found" }, { status: 404 });
+        if (stdError || !student || !student.phone) {
+            return NextResponse.json({ success: false, error: "Student or parent contact phone number not found" }, { status: 404 });
         }
 
         const { data: schoolInfo } = await supabase.from("school_info").select("name").limit(1).maybeSingle();
@@ -45,7 +34,7 @@ export async function POST(req: NextRequest) {
         const res = await sendOverdueReminderSms({
             phone: student.phone,
             studentName: student.name,
-            outstanding,
+            outstanding: Number(outstanding),
             monthName,
             schoolName
         });

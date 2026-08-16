@@ -216,38 +216,52 @@ body{font-family:'Poppins',sans-serif;color:#1a202c;line-height:1.7}
             </div>
 
             {notices.length === 0 ? (
-                <Card className="border-dashed border-2 rounded-2xl border-border shadow-none">
-                    <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-                        <Megaphone size={48} strokeWidth={1.5} className="text-muted-foreground/40 mb-4" />
-                        <h3 className="font-bold text-foreground text-lg mb-1">No Notices</h3>
-                        <p className="text-sm font-bold text-muted-foreground max-w-sm">Click &quot;New Notice&quot; to create an announcement.</p>
-                    </CardContent>
-                </Card>
+                <div className="rounded-2xl border border-dashed border-border p-12 text-center bg-card shadow-xs">
+                    <div className="h-14 w-14 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center mb-4 mx-auto">
+                        <Megaphone size={28} strokeWidth={1.8} />
+                    </div>
+                    <h3 className="font-bold text-foreground text-lg mb-1">No notices published</h3>
+                    <p className="text-sm text-muted-foreground max-w-sm mx-auto mb-6">Create school-wide or group-specific circulars and announcements.</p>
+                    <Button onClick={openAddDialog} className="gap-2">
+                        <Plus size={16} /> New Notice
+                    </Button>
+                </div>
             ) : (
                 <div className="space-y-3">
                     {notices.map((n) => (
-                        <Card key={n.id} className="group rounded-2xl border-border shadow-none bg-card hover:bg-muted/30 transition-colors">
+                        <Card key={n.id} className="rounded-2xl border-border/80 shadow-xs bg-card hover:border-primary/40 transition-all">
                             <CardHeader className="pb-2">
-                                <CardTitle className="text-sm flex items-center gap-2 flex-wrap">
-                                    <span className="flex-1 min-w-0 truncate font-bold text-foreground">{n.title}</span>
-                                    <span className={priorityColor(n.priority)}>{n.priority}</span>
-                                    <span className={audienceColor(n.audience)}>{n.audience}</span>
-                                    <span className="text-[11px] font-bold text-muted-foreground/60 px-2">
-                                        {(() => { const _d = new Date(n.created_at); return `${_d.getDate().toString().padStart(2,'0')}/${(_d.getMonth()+1).toString().padStart(2,'0')}/${_d.getFullYear()}`; })()}
-                                    </span>
-                                </CardTitle>
+                                <div className="flex items-start justify-between gap-3 flex-wrap">
+                                    <div className="min-w-0 flex-1">
+                                        <CardTitle className="text-base font-semibold text-foreground truncate">{n.title}</CardTitle>
+                                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                                            Posted on {(() => { const _d = new Date(n.created_at); return `${_d.getDate().toString().padStart(2,'0')}/${(_d.getMonth()+1).toString().padStart(2,'0')}/${_d.getFullYear()}`; })()}
+                                        </p>
+                                    </div>
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                        <Badge
+                                            variant={n.priority === "urgent" || n.priority === "high" ? "destructive" : "secondary"}
+                                            className="text-[10.5px] uppercase font-semibold"
+                                        >
+                                            {n.priority}
+                                        </Badge>
+                                        <Badge variant="outline" className="text-[10.5px] uppercase font-semibold">
+                                            {n.audience}
+                                        </Badge>
+                                    </div>
+                                </div>
                             </CardHeader>
-                            <CardContent className="pb-3">
-                                <p className="text-[13px] font-medium text-muted-foreground whitespace-pre-wrap line-clamp-3">{n.content}</p>
-                                <div className="flex items-center gap-2 mt-4 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
-                                    <Button variant="ghost" className="h-8 rounded-lg text-xs font-bold text-muted-foreground hover:text-foreground hover:bg-muted px-3" onClick={() => openEditDialog(n)}>
-                                        <Pencil size={14} strokeWidth={2} className="mr-1.5" /> Edit
+                            <CardContent className="pt-1 pb-4">
+                                <p className="text-sm text-muted-foreground whitespace-pre-wrap line-clamp-3 leading-relaxed">{n.content}</p>
+                                <div className="flex items-center gap-2 mt-4 pt-3 border-t border-border/50">
+                                    <Button variant="outline" size="xs" onClick={() => openEditDialog(n)}>
+                                        <Pencil size={13} className="mr-1.5" /> Edit
                                     </Button>
-                                    <Button variant="ghost" className="h-8 rounded-lg text-xs font-bold text-muted-foreground hover:text-foreground hover:bg-muted px-3" onClick={() => handlePrintNotice(n)}>
-                                        <Printer size={14} strokeWidth={2} className="mr-1.5" /> Print
+                                    <Button variant="outline" size="xs" onClick={() => handlePrintNotice(n)}>
+                                        <Printer size={13} className="mr-1.5" /> Print
                                     </Button>
-                                    <Button variant="ghost" className="h-8 rounded-lg text-xs font-bold text-red-600 hover:text-red-700 hover:bg-red-50 px-3" onClick={() => handleDelete(n.id)}>
-                                        <Trash size={14} strokeWidth={2} className="mr-1.5" /> Delete
+                                    <Button variant="ghost" size="xs" className="text-destructive hover:bg-destructive/10 hover:text-destructive ml-auto" onClick={() => handleDelete(n.id)}>
+                                        <Trash size={13} className="mr-1.5" /> Delete
                                     </Button>
                                 </div>
                             </CardContent>

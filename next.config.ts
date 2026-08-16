@@ -22,6 +22,10 @@ const nextConfig: NextConfig = {
       "recharts",
       "radix-ui",
       "@supabase/supabase-js",
+      "papaparse",
+      "clsx",
+      "tailwind-merge",
+      "sonner",
     ],
   },
   async headers() {

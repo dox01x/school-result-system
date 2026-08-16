@@ -1,10 +1,14 @@
 import { NextResponse } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { requireAuth } from '@/lib/api-auth';
 import { getMonthName } from '@/lib/finance-utils';
 import { ApiResponse, TuitionReceiptData } from '@/types/finance';
 
 export async function POST(request: Request) {
   try {
+    const auth = await requireAuth();
+    if (auth instanceof NextResponse) return auth;
+    const { supabase } = auth;
+
     const body = await request.json();
     const { payment_id } = body;
     
@@ -12,14 +16,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: "payment_id is required" }, { status: 400 });
     }
 
-    const supabase = await createServerSupabaseClient();
-    
     // 1. Fetch tuition payment
     const { data: payment, error } = await supabase
       .from('tuition_payments')
       .select(`
         *,
-        students(name, roll, classes(name), sections(name))
+        students(name, roll, student_id, classes(name), sections(name))
       `)
       .eq('id', payment_id)
       .single();
@@ -33,7 +35,7 @@ export async function POST(request: Request) {
       .from('school_info')
       .select('name, address, phone, logo_url')
       .limit(1)
-      .single();
+      .maybeSingle();
 
     const schoolInfo = schoolData || {
       name: "Your School Name",
@@ -43,7 +45,7 @@ export async function POST(request: Request) {
 
     // 3. Format Receipt Data
     const rawPayment = payment as Record<string, unknown>;
-    const studentRel = payment.students as { name?: string; roll?: string; classes?: { name?: string }; sections?: { name?: string } } | null;
+    const studentRel = payment.students as { name?: string; roll?: string; student_id?: string; classes?: { name?: string }; sections?: { name?: string } } | null;
 
     const receiptData: TuitionReceiptData = {
       school: schoolInfo,
@@ -52,7 +54,8 @@ export async function POST(request: Request) {
         name: (rawPayment.student_name as string) || studentRel?.name || 'Unknown',
         class_name: payment.class_name || studentRel?.classes?.name || 'N/A',
         section: payment.section || studentRel?.sections?.name || '',
-        roll: (rawPayment.roll as string) || studentRel?.roll || 'N/A',
+        roll: (rawPayment.roll as string) || studentRel?.roll || studentRel?.student_id || 'N/A',
+        student_id: studentRel?.student_id || undefined
       },
       fee_type: payment.fee_type,
       fee_details: (payment.fee_details as { type: string; amount: number; month?: number; year?: number }[]) || undefined,
@@ -64,12 +67,13 @@ export async function POST(request: Request) {
       amount_paid: payment.amount_paid ?? 0,
       payment_method: payment.payment_method || 'cash',
       payment_date: payment.payment_date || '',
-      collected_by: 'Authorized Admin',
+      collected_by: 'Authorized Accounts Officer',
       note: payment.note ?? undefined,
+      status: (rawPayment.status as any) || 'completed',
       is_computer_generated: true
     };
 
-    // 4. Mark as printed
+    // 4. Mark as printed if not already
     if (!payment.is_printed) {
       await supabase.from('tuition_payments').update({ is_printed: true }).eq('id', payment_id);
     }

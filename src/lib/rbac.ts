@@ -5,11 +5,11 @@
 export type UserRole = "super_admin" | "admin" | "exam_controller" | "accountant" | "class_teacher";
 
 export const ROLE_LABELS: Record<UserRole, string> = {
-  super_admin: "সুপার অ্যাডমিন",
-  admin: "অ্যাডমিন",
-  exam_controller: "পরীক্ষা নিয়ন্ত্রক",
-  accountant: "অ্যাকাউন্ট্যান্ট",
-  class_teacher: "ক্লাস টিচার",
+  super_admin: "Super Admin",
+  admin: "Admin",
+  exam_controller: "Exam Controller",
+  accountant: "Accountant",
+  class_teacher: "Class Teacher",
 };
 
 export const ROLE_LABELS_EN: Record<UserRole, string> = {
@@ -21,11 +21,11 @@ export const ROLE_LABELS_EN: Record<UserRole, string> = {
 };
 
 export const ROLE_COLORS: Record<UserRole, string> = {
-  super_admin: "text-foreground",
-  admin: "text-foreground",
-  exam_controller: "text-foreground",
-  accountant: "text-foreground",
-  class_teacher: "text-foreground",
+  super_admin: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20",
+  admin: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20",
+  exam_controller: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20",
+  accountant: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20",
+  class_teacher: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20",
 };
 
 /**
@@ -55,6 +55,7 @@ const ROUTE_ACCESS: { path: string; roles: UserRole[] }[] = [
 
   // Administration
   { path: "/dashboard/administration/teachers-rooms", roles: ["super_admin", "admin"] },
+  { path: "/dashboard/administration/staff", roles: ["super_admin", "admin"] },
   { path: "/dashboard/administration/routine", roles: ["super_admin", "admin"] },
   { path: "/dashboard/administration/exam-schedule", roles: ["super_admin", "admin", "exam_controller"] },
   { path: "/dashboard/administration/notice", roles: ["super_admin", "admin"] },

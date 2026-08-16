@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import {
-    ArrowRight, BookOpen, Clock, Building2,
+    ArrowRight, BookOpen, Clock, Building2, Megaphone, CalendarCheck, BarChart2
 } from "lucide-react";
 
 import { PromotionBanner } from "./_components/promotion-banner";
@@ -11,6 +11,7 @@ import { StatsCards } from "./_components/stats-cards";
 import { AttendanceChart } from "./_components/attendance-chart";
 import { AccessDeniedToast } from "./_components/access-denied-toast";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 type SchoolData = { name: string; address: string; phone: string; email: string; logo_url: string; current_academic_year: string; last_promotion_year: string };
 type SectionRow = { class_name: string; section_name: string; student_count: number };
@@ -32,17 +33,14 @@ async function fetchDashboardData() {
     const todayIso = new Date().toISOString().slice(0, 10);
 
     const [
-        cRes, stuRes, subRes, exRes, secRes, schoolRes,
+        stuRes, exRes, schoolRes,
         classesRes, subjectsRes, noticesRes,
         upcomingSchedulesRes,
         allSectionsRes, allStudentsRes,
         todayAttendanceRes,
     ] = await Promise.all([
-        supabase.from("classes").select("id", { count: "exact", head: true }),
         supabase.from("students").select("id", { count: "exact", head: true }),
-        supabase.from("subjects").select("id", { count: "exact", head: true }),
         supabase.from("exams").select("id", { count: "exact", head: true }),
-        supabase.from("sections").select("id", { count: "exact", head: true }),
         supabase.from("school_info").select("name, address, phone, email, logo_url, current_academic_year, last_promotion_year").limit(1).maybeSingle(),
         supabase.from("classes").select("id, name, numeric_value").order("numeric_value"),
         supabase.from("subjects").select("id, name"),
@@ -53,10 +51,18 @@ async function fetchDashboardData() {
         supabase.from("attendance_records").select("status, att_date").eq("att_date", todayIso),
     ]);
 
-    const stats = { classes: cRes.count ?? 0, students: stuRes.count ?? 0, subjects: subRes.count ?? 0, exams: exRes.count ?? 0, sections: secRes.count ?? 0 };
-    const school = schoolRes.data as unknown as SchoolData | null;
     const classes = (classesRes.data || []) as unknown as ClassRecord[];
     const subjects = (subjectsRes.data || []) as unknown as SubjectRecord[];
+    const sections = (allSectionsRes.data || []) as unknown as SectionRecord[];
+
+    const stats = {
+        classes: classes.length,
+        students: stuRes.count ?? 0,
+        subjects: subjects.length,
+        exams: exRes.count ?? 0,
+        sections: sections.length,
+    };
+    const school = schoolRes.data as unknown as SchoolData | null;
     const classMap: Record<string, string> = {};
     classes.forEach((c) => { classMap[c.id] = c.name; });
     const subjectMap: Record<string, string> = {};
@@ -123,8 +129,8 @@ export default async function DashboardPage() {
             <AccessDeniedToast />
             <PromotionBanner academicYear={school?.current_academic_year} />
 
-            {/* Welcome */}
-            <Suspense fallback={<div className="h-12 rounded-lg bg-muted animate-pulse" />}>
+            {/* Welcome Greeting */}
+            <Suspense fallback={<div className="h-12 rounded-xl bg-muted/60 animate-pulse" />}>
                 <WelcomeBanner
                     schoolLogoUrl={school?.logo_url}
                     academicYear={school?.current_academic_year}
@@ -133,11 +139,15 @@ export default async function DashboardPage() {
 
             {/* Empty State */}
             {isEmpty && (
-                <div className="rounded-xl border-2 border-dashed border-border p-12 text-center bg-card">
-                    <Building2 size={32} strokeWidth={1.5} className="text-muted-foreground mx-auto mb-4" />
-                    <h2 className="text-lg font-semibold text-foreground mb-1">Welcome to EduPulse Pro</h2>
-                    <p className="text-sm text-muted-foreground max-w-md mx-auto mb-6">Get started by setting up your school&apos;s classes and sections.</p>
-                    <Button asChild>
+                <div className="rounded-2xl border border-dashed border-border p-10 sm:p-14 text-center bg-card shadow-xs">
+                    <div className="h-14 w-14 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center mx-auto mb-4">
+                        <Building2 size={28} strokeWidth={1.8} />
+                    </div>
+                    <h2 className="text-lg sm:text-xl font-bold text-foreground mb-1.5">Welcome to EduPulse Pro</h2>
+                    <p className="text-sm text-muted-foreground max-w-md mx-auto mb-6">
+                        Get started with your institution setup by creating classes, sections, and subjects.
+                    </p>
+                    <Button asChild className="gap-2">
                         <Link href="/dashboard/classes">
                             Create First Class <ArrowRight size={16} />
                         </Link>
@@ -145,7 +155,7 @@ export default async function DashboardPage() {
                 </div>
             )}
 
-            {/* Stats */}
+            {/* Core Stats Overview */}
             {!isEmpty && (
                 <StatsCards
                     students={stats.students}
@@ -155,36 +165,43 @@ export default async function DashboardPage() {
                 />
             )}
 
-            {/* Content Grid */}
+            {/* Main Content Grid */}
             {!isEmpty && (
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6">
                     {/* Section Distribution */}
-                    <div className="lg:col-span-8 bg-card rounded-xl border border-border p-5">
-                        <div className="flex items-center justify-between mb-5">
-                            <h3 className="text-[15px] font-semibold text-foreground">Section Distribution</h3>
-                            <Link href="/dashboard/students" className="text-xs font-medium text-primary hover:underline">
-                                View all
-                            </Link>
+                    <div className="lg:col-span-8 bg-card rounded-2xl border border-border/80 p-5 sm:p-6 shadow-xs flex flex-col">
+                        <div className="flex items-center justify-between gap-3 mb-5">
+                            <div>
+                                <h3 className="text-base font-semibold text-foreground tracking-tight">Section Distribution</h3>
+                                <p className="text-xs text-muted-foreground mt-0.5">Student capacity by class section</p>
+                            </div>
+                            <Button variant="ghost" size="sm" asChild className="text-primary hover:text-primary hover:bg-primary/10 gap-1 text-xs">
+                                <Link href="/dashboard/students">
+                                    View all <ArrowRight size={13} />
+                                </Link>
+                            </Button>
                         </div>
                         {sectionRows.length === 0 ? (
-                            <p className="text-sm text-muted-foreground py-8 text-center">No section data</p>
+                            <div className="py-12 text-center text-sm text-muted-foreground flex-1 flex items-center justify-center">
+                                No section data registered yet
+                            </div>
                         ) : (
-                            <div className="space-y-3">
-                                {sectionRows.slice(0, 8).map((row) => {
+                            <div className="space-y-3.5 flex-1 justify-center flex flex-col">
+                                {sectionRows.slice(0, 7).map((row) => {
                                     const pct = maxCount > 0 ? (row.student_count / maxCount) * 100 : 0;
                                     return (
-                                        <div key={`${row.class_name}-${row.section_name}`} className="flex items-center gap-4">
-                                            <div className="w-28 shrink-0">
-                                                <p className="text-sm font-medium text-foreground truncate">{row.class_name}</p>
-                                                <p className="text-[11px] text-muted-foreground">{row.section_name}</p>
+                                        <div key={`${row.class_name}-${row.section_name}`} className="flex items-center gap-3 sm:gap-4">
+                                            <div className="w-28 sm:w-32 shrink-0">
+                                                <p className="text-[13px] font-medium text-foreground truncate">{row.class_name}</p>
+                                                <p className="text-[11px] text-muted-foreground">Section {row.section_name}</p>
                                             </div>
-                                            <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
+                                            <div className="flex-1 h-2 sm:h-2.5 rounded-full bg-muted overflow-hidden">
                                                 <div
                                                     className="h-full rounded-full bg-primary animate-bar-fill"
-                                                    style={{ width: `${Math.max(pct, row.student_count > 0 ? 4 : 0)}%` }}
+                                                    style={{ width: `${Math.max(pct, row.student_count > 0 ? 5 : 0)}%` }}
                                                 />
                                             </div>
-                                            <span className="text-xs font-medium text-muted-foreground w-8 text-right tabular-nums">
+                                            <span className="text-xs font-semibold text-foreground w-10 text-right tabular-nums">
                                                 {row.student_count}
                                             </span>
                                         </div>
@@ -194,64 +211,107 @@ export default async function DashboardPage() {
                         )}
                     </div>
 
-                    {/* Notices */}
-                    <div className="lg:col-span-4 bg-card rounded-xl border border-border p-5 flex flex-col">
-                        <div className="flex items-center justify-between mb-5">
-                            <h3 className="text-[15px] font-semibold text-foreground">Notices</h3>
-                            <Link href="/dashboard/administration/notice" className="text-xs font-medium text-primary hover:underline">
-                                View all
-                            </Link>
+                    {/* Notices Card */}
+                    <div className="lg:col-span-4 bg-card rounded-2xl border border-border/80 p-5 sm:p-6 shadow-xs flex flex-col">
+                        <div className="flex items-center justify-between gap-3 mb-4">
+                            <div className="flex items-center gap-2">
+                                <div className="p-1.5 rounded-lg bg-primary/10 text-primary border border-primary/20 shrink-0">
+                                    <Megaphone size={16} strokeWidth={2} />
+                                </div>
+                                <div>
+                                    <h3 className="text-base font-semibold text-foreground tracking-tight">Notices</h3>
+                                    <p className="text-xs text-muted-foreground">School circulars</p>
+                                </div>
+                            </div>
+                            <Button variant="ghost" size="sm" asChild className="text-primary hover:text-primary hover:bg-primary/10 text-xs">
+                                <Link href="/dashboard/administration/notice">
+                                    All
+                                </Link>
+                            </Button>
                         </div>
-                        <div className="space-y-2 flex-1">
+                        <div className="space-y-2.5 flex-1">
                             {notices.length === 0 ? (
-                                <p className="text-sm text-muted-foreground py-8 text-center">No active notices</p>
+                                <div className="py-12 text-center text-sm text-muted-foreground flex-1 flex items-center justify-center">
+                                    No active notices
+                                </div>
                             ) : notices.map((n, i) => (
-                                <div key={i} className="flex items-start gap-3 py-2.5 border-b border-border last:border-0">
-                                    <div className="min-w-0 flex-1">
-                                        <p className="text-sm font-medium text-foreground line-clamp-1">{n.title}</p>
-                                        <p className="text-[11px] text-muted-foreground mt-0.5">{n.date}</p>
+                                <div key={i} className="p-3 rounded-xl bg-muted/40 hover:bg-muted/70 transition-colors border border-border/50">
+                                    <div className="flex items-start justify-between gap-2 mb-1">
+                                        <p className="text-[13px] font-semibold text-foreground line-clamp-1 leading-snug">{n.title}</p>
+                                        {n.priority === "high" && (
+                                            <Badge variant="destructive" className="text-[9.5px] px-1.5 py-0 shrink-0">
+                                                Urgent
+                                            </Badge>
+                                        )}
                                     </div>
+                                    <p className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+                                        <Clock size={11} /> {n.date}
+                                    </p>
                                 </div>
                             ))}
                         </div>
                     </div>
 
-                    {/* Upcoming Exams */}
-                    <div className="lg:col-span-4 bg-card rounded-xl border border-border p-5 flex flex-col">
-                        <div className="flex items-center justify-between mb-5">
-                            <h3 className="text-[15px] font-semibold text-foreground">Upcoming Exams</h3>
-                            <Link href="/dashboard/exams" className="text-xs font-medium text-primary hover:underline flex items-center gap-1">
-                                Schedule <ArrowRight size={12} />
-                            </Link>
+                    {/* Upcoming Exams Card */}
+                    <div className="lg:col-span-4 bg-card rounded-2xl border border-border/80 p-5 sm:p-6 shadow-xs flex flex-col">
+                        <div className="flex items-center justify-between gap-3 mb-4">
+                            <div className="flex items-center gap-2">
+                                <div className="p-1.5 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 shrink-0">
+                                    <BookOpen size={16} strokeWidth={2} />
+                                </div>
+                                <div>
+                                    <h3 className="text-base font-semibold text-foreground tracking-tight">Upcoming Exams</h3>
+                                    <p className="text-xs text-muted-foreground">Test schedules</p>
+                                </div>
+                            </div>
+                            <Button variant="ghost" size="sm" asChild className="text-primary hover:text-primary hover:bg-primary/10 gap-1 text-xs">
+                                <Link href="/dashboard/administration/exam-schedule">
+                                    Schedule <ArrowRight size={12} />
+                                </Link>
+                            </Button>
                         </div>
-                        <div className="space-y-2 flex-1">
+                        <div className="space-y-2.5 flex-1">
                             {upcomingExams.length === 0 ? (
-                                <p className="text-sm text-muted-foreground py-8 text-center">No upcoming exams</p>
+                                <div className="py-12 text-center text-sm text-muted-foreground flex-1 flex items-center justify-center">
+                                    No upcoming exams scheduled
+                                </div>
                             ) : upcomingExams.map((e, i) => (
-                                <div key={i} className="flex items-center gap-3 py-2.5 border-b border-border last:border-0">
-                                    <BookOpen size={14} className="text-muted-foreground shrink-0" strokeWidth={1.5} />
-                                    <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-medium text-foreground truncate">{e.subject}</p>
+                                <div key={i} className="flex items-center justify-between gap-3 p-3 rounded-xl bg-muted/40 border border-border/50">
+                                    <div className="min-w-0 flex-1">
+                                        <p className="text-[13px] font-semibold text-foreground truncate">{e.subject}</p>
                                         <div className="flex items-center gap-1.5 mt-0.5">
-                                            <Clock size={10} className="text-muted-foreground" />
+                                            <Clock size={11} className="text-muted-foreground" />
                                             <span className="text-[11px] text-muted-foreground">{e.date}</span>
                                         </div>
                                     </div>
-                                    <span className="text-[11px] font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-md">
+                                    <Badge variant="outline" className="text-[11px] font-semibold bg-background shrink-0">
                                         {e.className}
-                                    </span>
+                                    </Badge>
                                 </div>
                             ))}
                         </div>
                     </div>
 
-                    {/* Attendance */}
-                    <div className="lg:col-span-8 bg-card rounded-xl border border-border p-5">
-                        <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-[15px] font-semibold text-foreground">Attendance</h3>
+                    {/* Attendance Analytics */}
+                    <div className="lg:col-span-8 bg-card rounded-2xl border border-border/80 p-5 sm:p-6 shadow-xs flex flex-col">
+                        <div className="flex items-center justify-between gap-3 mb-4">
+                            <div className="flex items-center gap-2">
+                                <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shrink-0">
+                                    <CalendarCheck size={16} strokeWidth={2} />
+                                </div>
+                                <div>
+                                    <h3 className="text-base font-semibold text-foreground tracking-tight">Attendance Summary</h3>
+                                    <p className="text-xs text-muted-foreground">Status for {attendanceLabel}</p>
+                                </div>
+                            </div>
+                            <Button variant="ghost" size="sm" asChild className="text-primary hover:text-primary hover:bg-primary/10 gap-1 text-xs">
+                                <Link href="/dashboard/attendance">
+                                    Take Attendance <ArrowRight size={12} />
+                                </Link>
+                            </Button>
                         </div>
-                        <div className="min-h-[200px]">
-                            <Suspense fallback={<div className="h-[200px] rounded-lg bg-muted animate-pulse" />}>
+                        <div className="min-h-[220px] flex-1 flex flex-col justify-center">
+                            <Suspense fallback={<div className="h-[200px] rounded-xl bg-muted/60 animate-pulse" />}>
                                 <AttendanceChart data={attendanceData} label={attendanceLabel} />
                             </Suspense>
                         </div>
