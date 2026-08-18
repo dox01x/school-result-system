@@ -58,6 +58,8 @@ CREATE TABLE classes (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   name TEXT NOT NULL UNIQUE,
   numeric_value INTEGER DEFAULT 0,
+  paper_checking_rate NUMERIC DEFAULT 0,
+  paper_recheck_rate NUMERIC DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -80,6 +82,7 @@ CREATE TABLE school_info (
   last_promotion_year TEXT DEFAULT '',
   detailed_marks BOOLEAN DEFAULT false,
   gender_split_class_id UUID REFERENCES classes(id) ON DELETE SET NULL,
+  paper_checking_rate NUMERIC DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );

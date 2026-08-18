@@ -15,6 +15,7 @@ export type Database = {
                     last_promotion_year: string;
                     detailed_marks: boolean;
                     gender_split_class_id: string | null;
+                    paper_checking_rate?: number | null;
                     created_at?: string;
                     updated_at: string;
                 };
@@ -31,6 +32,7 @@ export type Database = {
                     last_promotion_year?: string;
                     detailed_marks?: boolean;
                     gender_split_class_id?: string | null;
+                    paper_checking_rate?: number | null;
                     created_at?: string;
                     updated_at?: string;
                 };
@@ -47,6 +49,7 @@ export type Database = {
                     last_promotion_year?: string;
                     detailed_marks?: boolean;
                     gender_split_class_id?: string | null;
+                    paper_checking_rate?: number | null;
                     created_at?: string;
                     updated_at?: string;
                 };
@@ -57,18 +60,24 @@ export type Database = {
                     id: string;
                     name: string;
                     numeric_value: number | null;
+                    paper_checking_rate?: number | null;
+                    paper_recheck_rate?: number | null;
                     created_at: string;
                 };
                 Insert: {
                     id?: string;
                     name: string;
                     numeric_value?: number | null;
+                    paper_checking_rate?: number | null;
+                    paper_recheck_rate?: number | null;
                     created_at?: string;
                 };
                 Update: {
                     id?: string;
                     name?: string;
                     numeric_value?: number | null;
+                    paper_checking_rate?: number | null;
+                    paper_recheck_rate?: number | null;
                     created_at?: string;
                 };
                 Relationships: [];
@@ -1089,10 +1098,14 @@ export type Database = {
                     section_id: string | null;
                     subject_id: string;
                     teacher_id: string;
+                    recheck_teacher_id?: string | null;
                     total_copies: number;
                     date_given: string;
                     date_returned: string | null;
                     date_received_from_hall: string | null;
+                    date_recheck_given?: string | null;
+                    date_recheck_returned?: string | null;
+                    recheck_status?: string | null;
                     status: string;
                     notes: string | null;
                     created_at: string;
@@ -1104,10 +1117,14 @@ export type Database = {
                     section_id?: string | null;
                     subject_id: string;
                     teacher_id: string;
+                    recheck_teacher_id?: string | null;
                     total_copies: number;
                     date_given: string;
                     date_returned?: string | null;
                     date_received_from_hall?: string | null;
+                    date_recheck_given?: string | null;
+                    date_recheck_returned?: string | null;
+                    recheck_status?: string | null;
                     status?: string;
                     notes?: string | null;
                     created_at?: string;
@@ -1119,10 +1136,14 @@ export type Database = {
                     section_id?: string | null;
                     subject_id?: string;
                     teacher_id?: string;
+                    recheck_teacher_id?: string | null;
                     total_copies?: number;
                     date_given?: string;
                     date_returned?: string | null;
                     date_received_from_hall?: string | null;
+                    date_recheck_given?: string | null;
+                    date_recheck_returned?: string | null;
+                    recheck_status?: string | null;
                     status?: string;
                     notes?: string | null;
                     created_at?: string;
@@ -1159,6 +1180,13 @@ export type Database = {
                     {
                         foreignKeyName: "exam_paper_distributions_teacher_id_fkey";
                         columns: ["teacher_id"];
+                        isOneToOne: false;
+                        referencedRelation: "teachers";
+                        referencedColumns: ["id"];
+                    },
+                    {
+                        foreignKeyName: "exam_paper_distributions_recheck_teacher_id_fkey";
+                        columns: ["recheck_teacher_id"];
                         isOneToOne: false;
                         referencedRelation: "teachers";
                         referencedColumns: ["id"];

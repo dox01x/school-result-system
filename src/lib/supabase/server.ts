@@ -19,10 +19,7 @@ export async function createServerSupabaseClient() {
                 setAll(cookiesToSet) {
                     try {
                         cookiesToSet.forEach(({ name, value, options }) => {
-                            const sessionOpts = { ...options };
-                            delete sessionOpts.maxAge;
-                            delete sessionOpts.expires;
-                            cookieStore.set(name, value, sessionOpts);
+                            cookieStore.set(name, value, options);
                         });
                     } catch {
                         // The `setAll` method was called from a Server Component.

@@ -82,7 +82,7 @@ export async function GET(request: Request) {
     const feeMap = new Map(fees.map((f) => [f.class_name, Number(f.amount)]));
 
     // 2. Get Students — join with classes to get class name
-    let stdQuery = supabase.from('students').select('id, name, roll, phone, class_id, classes(name)');
+    const stdQuery = supabase.from('students').select('id, name, roll, phone, class_id, classes(name)');
     const { data: rawStudents, error: stdErr } = await stdQuery;
     if (stdErr) throw stdErr;
 

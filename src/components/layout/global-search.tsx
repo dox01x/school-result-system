@@ -237,6 +237,8 @@ export function GlobalSearch() {
                 <input
                     ref={inputRef}
                     type="search"
+                    role="combobox"
+                    aria-autocomplete="list"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     onFocus={() => setFocused(true)}
@@ -275,6 +277,7 @@ export function GlobalSearch() {
                                     key={`${r.type}-${r.id}`}
                                     type="button"
                                     role="option"
+                                    aria-selected={false}
                                     className="w-full flex items-start gap-3 px-3 py-2.5 text-left hover:bg-muted/80 transition-colors"
                                     onMouseDown={(e) => {
                                         e.preventDefault();

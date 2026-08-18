@@ -32,7 +32,7 @@ async function requireSuperAdmin() {
       .from("profiles")
       .select("role")
       .eq("id", user.id)
-      .single();
+      .maybeSingle();
 
     if (profile?.role !== "super_admin") {
       return { error: "Only super admin can manage users", status: 403 };

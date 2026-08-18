@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { LayoutGrid, GraduationCap, CalendarCheck, Wallet, Menu } from "lucide-react";
+import { LayoutGrid, GraduationCap, ClipboardList, Wallet, CalendarCheck, Menu } from "lucide-react";
 import { useUserRole } from "@/lib/hooks/use-user-role";
 import { isNavItemVisible } from "@/lib/rbac";
 import { useMemo } from "react";
@@ -16,7 +16,7 @@ export function MobileBottomNav({ onOpenMenu }: { onOpenMenu?: () => void }) {
 
   const showFinance = useMemo(() => {
     if (!isRoleLoaded) return true;
-    return isNavItemVisible(role, "/dashboard/finance");
+    return isNavItemVisible(role, "/dashboard/finance") || isNavItemVisible(role, "/finance");
   }, [role, isRoleLoaded]);
 
   const navItems = [
@@ -30,30 +30,46 @@ export function MobileBottomNav({ onOpenMenu }: { onOpenMenu?: () => void }) {
     {
       label: "Students",
       icon: GraduationCap,
-      href: "/dashboard/students",
-      active: pathname?.startsWith("/dashboard/students"),
+      href: "/students",
+      active:
+        pathname === "/students" ||
+        pathname?.startsWith("/students/") ||
+        pathname === "/dashboard/students" ||
+        pathname?.startsWith("/dashboard/students/"),
     },
     {
-      label: "Attendance",
-      icon: CalendarCheck,
-      href: "/dashboard/attendance",
-      active: pathname?.startsWith("/dashboard/attendance"),
+      label: "Exams",
+      icon: ClipboardList,
+      href: "/exams",
+      active:
+        pathname === "/exams" ||
+        pathname?.startsWith("/exams/") ||
+        pathname === "/dashboard/exams" ||
+        pathname?.startsWith("/dashboard/exams/"),
     },
     ...(showFinance
       ? [
           {
             label: "Finance",
             icon: Wallet,
-            href: "/dashboard/finance",
-            active: pathname?.startsWith("/dashboard/finance"),
+            href: "/finance",
+            active:
+              pathname === "/finance" ||
+              pathname?.startsWith("/finance/") ||
+              pathname === "/dashboard/finance" ||
+              pathname?.startsWith("/dashboard/finance/"),
           },
         ]
       : [
           {
-            label: "Marks",
-            icon: GraduationCap,
-            href: "/dashboard/marks",
-            active: pathname?.startsWith("/dashboard/marks"),
+            label: "Attendance",
+            icon: CalendarCheck,
+            href: "/attendance",
+            active:
+              pathname === "/attendance" ||
+              pathname?.startsWith("/attendance/") ||
+              pathname === "/dashboard/attendance" ||
+              pathname?.startsWith("/dashboard/attendance/"),
           },
         ]),
   ];

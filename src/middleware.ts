@@ -16,65 +16,104 @@ function redirectWithCookies(
   return redirectResponse;
 }
 
+const PROTECTED_PREFIXES = [
+  "/dashboard",
+  "/students",
+  "/classes",
+  "/subjects",
+  "/exams",
+  "/marks",
+  "/results",
+  "/finance",
+  "/exam-configuration",
+  "/reports",
+  "/settings",
+  "/attendance",
+  "/administration",
+  "/promotion",
+];
+
 export async function middleware(request: NextRequest) {
-  const { supabaseResponse, user, supabase } = await updateSession(request);
-  const pathname = request.nextUrl.pathname;
+  try {
+    const { supabaseResponse, user, supabase } = await updateSession(request);
+    const pathname = request.nextUrl.pathname;
 
-  // If auth is disabled, skip all checks
-  if (AUTH_DISABLED) {
-    return supabaseResponse;
-  }
-
-  // If Supabase isn't configured, skip
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    return supabaseResponse;
-  }
-
-  // Unauthenticated user trying to access dashboard → redirect to login
-  if (!user && pathname.startsWith("/dashboard")) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    url.searchParams.set("next", pathname);
-    return redirectWithCookies(request, supabaseResponse, url.toString());
-  }
-
-  // Authenticated user on login page → redirect to dashboard
-  if (user && pathname === "/login") {
-    return redirectWithCookies(request, supabaseResponse, "/dashboard");
-  }
-
-  // Root route "/" redirects to login (or dashboard if already authenticated)
-  if (pathname === "/") {
-    return redirectWithCookies(request, supabaseResponse, user ? "/dashboard" : "/login");
-  }
-
-  // Role-based route guard for dashboard sub-routes
-  if (user && pathname.startsWith("/dashboard") && pathname !== "/dashboard") {
-    let role = (user.app_metadata?.role || user.user_metadata?.role) as UserRole | undefined;
-
-    if (!role) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", user.id)
-        .single();
-      role = profile?.role as UserRole | undefined;
+    // If auth is disabled, skip all checks
+    if (AUTH_DISABLED) {
+      return supabaseResponse;
     }
 
-    if (!role || !canAccessRoute(role, pathname)) {
-      return redirectWithCookies(request, supabaseResponse, "/dashboard?access=denied");
+    // If Supabase isn't configured, skip
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      return supabaseResponse;
     }
+
+    const isProtected = PROTECTED_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/"));
+
+    // Unauthenticated user trying to access protected route → redirect to login
+    if (!user && isProtected) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/login";
+      url.searchParams.set("next", pathname);
+      return redirectWithCookies(request, supabaseResponse, url.toString());
+    }
+
+    // Authenticated user on login or forgot-password page → redirect to dashboard
+    if (user && (pathname === "/login" || pathname === "/forgot-password")) {
+      return redirectWithCookies(request, supabaseResponse, "/dashboard");
+    }
+
+    // Root route "/" redirects to login (or dashboard if already authenticated)
+    if (pathname === "/") {
+      return redirectWithCookies(request, supabaseResponse, user ? "/dashboard" : "/login");
+    }
+
+    // Role-based route guard for protected sub-routes
+    if (user && isProtected && pathname !== "/dashboard") {
+      let role = (user.app_metadata?.role || user.user_metadata?.role) as UserRole | undefined;
+
+      if (!role) {
+        role = request.cookies.get("edu_user_role")?.value as UserRole | undefined;
+      }
+
+      if (!role) {
+        try {
+          const { data: profile } = await (supabase as any)
+            .from("profiles")
+            .select("role")
+            .eq("id", user.id)
+            .single();
+          role = profile?.role as UserRole | undefined;
+          if (role) {
+            supabaseResponse.cookies.set("edu_user_role", role, {
+              path: "/",
+              httpOnly: true,
+              sameSite: "lax",
+              maxAge: 86400,
+            });
+          }
+        } catch {
+          // ignore profile lookup failure
+        }
+      }
+
+      if (role && !canAccessRoute(role, pathname)) {
+        return redirectWithCookies(request, supabaseResponse, "/dashboard?access=denied");
+      }
+    }
+
+    // Prevent caching of authenticated pages & add security headers
+    supabaseResponse.headers.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0");
+    supabaseResponse.headers.set("Pragma", "no-cache");
+    supabaseResponse.headers.set("Expires", "0");
+    supabaseResponse.headers.set("X-Frame-Options", "DENY");
+    supabaseResponse.headers.set("X-Content-Type-Options", "nosniff");
+    supabaseResponse.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+
+    return supabaseResponse;
+  } catch {
+    return NextResponse.next({ request });
   }
-
-  // Prevent caching of authenticated pages & add security headers
-  supabaseResponse.headers.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0");
-  supabaseResponse.headers.set("Pragma", "no-cache");
-  supabaseResponse.headers.set("Expires", "0");
-  supabaseResponse.headers.set("X-Frame-Options", "DENY");
-  supabaseResponse.headers.set("X-Content-Type-Options", "nosniff");
-  supabaseResponse.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
-
-  return supabaseResponse;
 }
 
 export const config = {

@@ -47,8 +47,8 @@ export function StaffProfileSheet({
     useEffect(() => {
         if (!open || !staffId) return;
         let cancelled = false;
-        setLoading(true);
         void (async () => {
+            setLoading(true);
             const { data: staffData, error } = await supabase
                 .from("staffs")
                 .select("id,name,phone,email,designation,created_at")

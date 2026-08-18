@@ -10,13 +10,7 @@ export function createClient() {
     if (!client) {
         client = createBrowserClient<Database>(
             supabaseUrl,
-            supabaseAnonKey,
-            {
-                cookieOptions: {
-                    maxAge: undefined,
-                    expires: undefined,
-                },
-            }
+            supabaseAnonKey
         );
     }
     return client;

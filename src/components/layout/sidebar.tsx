@@ -18,7 +18,8 @@ import { useState, useEffect, useCallback, useMemo, memo } from "react";
 import { useUserRole } from "@/lib/hooks/use-user-role";
 import { isNavItemVisible, ROLE_LABELS_EN } from "@/lib/rbac";
 import { NAV_GROUPS, isActive, type NavItem, type NavGroup } from "./nav-config";
-import { NotificationPopover } from "./header";
+import { NotificationPopover, UserDropdown } from "./header";
+import { MobileSearch } from "./mobile-search";
 
 const SidebarNavItem = memo(function SidebarNavItem({
     item,
@@ -194,25 +195,25 @@ function SidebarNavGroup({
 
 export function Sidebar() {
     const pathname = usePathname();
-    const [mobileOpen, setMobileOpen] = useState(false);
-    const [collapsed, setCollapsed] = useState(false);
-    const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
-    const { role, fullName, email, loading } = useUserRole();
-
-    // Load initial states
-    useEffect(() => {
+    const [collapsed, setCollapsed] = useState<boolean>(() => {
+        if (typeof window === "undefined") return false;
         try {
-            const stored = localStorage.getItem("sidebar-collapsed");
-            if (stored === "true") setCollapsed(true);
-
-            const storedGroups = localStorage.getItem("sidebar-groups-collapsed");
-            if (storedGroups) {
-                setCollapsedGroups(JSON.parse(storedGroups));
-            }
+            return localStorage.getItem("sidebar-collapsed") === "true";
         } catch {
-            // Ignore JSON parse / storage errors
+            return false;
         }
-    }, []);
+    });
+    const [mobileOpen, setMobileOpen] = useState(false);
+    const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>(() => {
+        if (typeof window === "undefined") return {};
+        try {
+            const stored = localStorage.getItem("sidebar-groups-collapsed");
+            return stored ? JSON.parse(stored) : {};
+        } catch {
+            return {};
+        }
+    });
+    const { role, fullName, email, loading } = useUserRole();
 
     const toggleGroupExpand = useCallback((groupId: string) => {
         setCollapsedGroups((prev) => {
@@ -280,17 +281,7 @@ export function Sidebar() {
         <>
             {/* Mobile Header Bar */}
             <header className="lg:hidden fixed top-0 left-0 right-0 z-40 flex items-center justify-between h-14 px-3.5 bg-card/95 backdrop-blur-md border-b border-border shadow-xs">
-                <div className="flex items-center gap-2.5 min-w-0">
-                    <button
-                        type="button"
-                        onClick={() => setMobileOpen(!mobileOpen)}
-                        className="p-2 -ml-1 text-muted-foreground hover:text-foreground active:scale-95 rounded-lg transition-colors"
-                        aria-expanded={mobileOpen}
-                        aria-controls="mobile-sidebar"
-                        aria-label={mobileOpen ? "Close menu" : "Open menu"}
-                    >
-                        {mobileOpen ? <X size={20} strokeWidth={1.8} /> : <Menu size={20} strokeWidth={1.8} />}
-                    </button>
+                <div className="flex items-center gap-2 min-w-0">
                     <Link href="/dashboard" className="flex items-center gap-2 min-w-0">
                         <div className="h-7 w-7 rounded-lg bg-primary flex items-center justify-center shrink-0 shadow-xs">
                             <GraduationCap size={16} strokeWidth={2.2} className="text-primary-foreground" />
@@ -299,25 +290,10 @@ export function Sidebar() {
                     </Link>
                 </div>
 
-                <div className="flex items-center gap-1 shrink-0">
-                    <button
-                        type="button"
-                        onClick={() => {
-                            window.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true }));
-                        }}
-                        className="p-2 text-muted-foreground hover:text-foreground active:scale-95 rounded-lg transition-colors"
-                        aria-label="Search"
-                    >
-                        <Search size={18} strokeWidth={1.8} />
-                    </button>
+                <div className="flex items-center gap-1.5 shrink-0">
+                    <MobileSearch />
                     <NotificationPopover />
-                    <Link
-                        href="/dashboard/settings"
-                        className="h-7.5 w-7.5 ml-1 rounded-full bg-primary/10 text-primary border border-primary/20 flex items-center justify-center text-xs font-semibold"
-                        aria-label="Account settings"
-                    >
-                        {displayName.charAt(0).toUpperCase()}
-                    </Link>
+                    <UserDropdown />
                 </div>
             </header>
 

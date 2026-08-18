@@ -30,19 +30,20 @@ export async function updateSession(request: NextRequest): Promise<{
                         request,
                     });
                     cookiesToSet.forEach(({ name, value, options }) => {
-                        const sessionOpts = { ...options };
-                        delete sessionOpts.maxAge;
-                        delete sessionOpts.expires;
-                        supabaseResponse.cookies.set(name, value, sessionOpts);
+                        supabaseResponse.cookies.set(name, value, options);
                     });
                 },
             },
         }
     );
 
-    const {
-        data: { user },
-    } = await supabase.auth.getUser();
+    let user: User | null = null;
+    try {
+        const { data } = await supabase.auth.getUser();
+        user = data.user;
+    } catch {
+        user = null;
+    }
 
     return { supabaseResponse, user, supabase };
 }

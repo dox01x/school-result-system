@@ -35,25 +35,45 @@ export const ROLE_COLORS: Record<UserRole, string> = {
  */
 const ROUTE_ACCESS: { path: string; roles: UserRole[] }[] = [
   // User management — super_admin only
+  { path: "/settings/users", roles: ["super_admin"] },
   { path: "/dashboard/users", roles: ["super_admin"] },
 
-  // Settings — admin+
+  // Settings & Permissions — admin+
+  { path: "/settings", roles: ["super_admin", "admin"] },
   { path: "/dashboard/settings", roles: ["super_admin", "admin"] },
 
   // Finance — admin + accountant
+  { path: "/finance", roles: ["super_admin", "admin", "accountant"] },
   { path: "/dashboard/finance", roles: ["super_admin", "admin", "accountant"] },
 
-  // Examination section — admin + exam_controller + class_teacher (marks only)
+  // Examination & Marks — admin + exam_controller + class_teacher (marks only)
+  { path: "/marks", roles: ["super_admin", "admin", "exam_controller", "class_teacher"] },
+  { path: "/exams", roles: ["super_admin", "admin", "exam_controller"] },
+  { path: "/results", roles: ["super_admin", "admin", "exam_controller"] },
+  { path: "/exam-configuration", roles: ["super_admin", "admin", "exam_controller"] },
   { path: "/dashboard/marks", roles: ["super_admin", "admin", "exam_controller", "class_teacher"] },
   { path: "/dashboard/exams", roles: ["super_admin", "admin", "exam_controller"] },
   { path: "/dashboard/results", roles: ["super_admin", "admin", "exam_controller"] },
 
-  // Academic
+  // Academic & Reports
+  { path: "/students", roles: ["super_admin", "admin", "class_teacher"] },
+  { path: "/classes", roles: ["super_admin", "admin", "exam_controller"] },
+  { path: "/subjects", roles: ["super_admin", "admin", "exam_controller"] },
+  { path: "/reports", roles: ["super_admin", "admin", "exam_controller", "accountant"] },
   { path: "/dashboard/students", roles: ["super_admin", "admin", "class_teacher"] },
   { path: "/dashboard/classes", roles: ["super_admin", "admin", "exam_controller"] },
   { path: "/dashboard/subjects", roles: ["super_admin", "admin", "exam_controller"] },
 
   // Administration
+  { path: "/administration/teachers-rooms", roles: ["super_admin", "admin"] },
+  { path: "/administration/staff", roles: ["super_admin", "admin"] },
+  { path: "/administration/routine", roles: ["super_admin", "admin"] },
+  { path: "/administration/exam-schedule", roles: ["super_admin", "admin", "exam_controller"] },
+  { path: "/administration/notice", roles: ["super_admin", "admin"] },
+  { path: "/administration/teacher-shift", roles: ["super_admin", "admin"] },
+  { path: "/attendance", roles: ["super_admin", "admin", "class_teacher"] },
+  { path: "/promotion", roles: ["super_admin", "admin"] },
+  { path: "/archive", roles: ["super_admin", "admin"] },
   { path: "/dashboard/administration/teachers-rooms", roles: ["super_admin", "admin"] },
   { path: "/dashboard/administration/staff", roles: ["super_admin", "admin"] },
   { path: "/dashboard/administration/routine", roles: ["super_admin", "admin"] },

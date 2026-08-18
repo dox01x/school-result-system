@@ -369,13 +369,7 @@ export function sortAndRankStudentResults(
         }
     });
 
-    // Return the updated array mapped back
-    const positionMap = new Map(sorted.map((s) => [s.student.id, s.position]));
-    results.forEach((r) => {
-        r.position = positionMap.get(r.student.id);
-    });
-
-    return results;
+    return sorted;
 }
 
 /**
@@ -396,21 +390,21 @@ export function getPositionSuffix(position?: number): string {
  * Grade Badge Styling Helper
  */
 export function getGradeBadgeStyle(grade: string): { bg: string; text: string; border: string } {
-    switch (grade) {
+    switch (grade.toUpperCase()) {
         case "A+":
-            return { bg: "bg-emerald-500/10", text: "text-emerald-600 dark:text-emerald-400", border: "border-emerald-500/20" };
+            return { bg: "bg-emerald-500/15", text: "text-emerald-700 dark:text-emerald-400 font-bold", border: "border-emerald-500/30" };
         case "A":
-            return { bg: "bg-blue-500/10", text: "text-blue-600 dark:text-blue-400", border: "border-blue-500/20" };
+            return { bg: "bg-green-500/15", text: "text-green-700 dark:text-green-400 font-bold", border: "border-green-500/30" };
         case "A-":
-            return { bg: "bg-indigo-500/10", text: "text-indigo-600 dark:text-indigo-400", border: "border-indigo-500/20" };
+            return { bg: "bg-teal-500/15", text: "text-teal-700 dark:text-teal-400 font-bold", border: "border-teal-500/30" };
         case "B":
-            return { bg: "bg-amber-500/10", text: "text-amber-600 dark:text-amber-400", border: "border-amber-500/20" };
+            return { bg: "bg-blue-500/15", text: "text-blue-700 dark:text-blue-400 font-bold", border: "border-blue-500/30" };
         case "C":
-            return { bg: "bg-orange-500/10", text: "text-orange-600 dark:text-orange-400", border: "border-orange-500/20" };
+            return { bg: "bg-purple-500/15", text: "text-purple-700 dark:text-purple-400 font-bold", border: "border-purple-500/30" };
         case "D":
-            return { bg: "bg-yellow-500/10", text: "text-yellow-700 dark:text-yellow-400", border: "border-yellow-500/20" };
+            return { bg: "bg-amber-500/15", text: "text-amber-700 dark:text-amber-400 font-bold", border: "border-amber-500/30" };
         case "F":
         default:
-            return { bg: "bg-destructive/10", text: "text-destructive", border: "border-destructive/20" };
+            return { bg: "bg-rose-500/15", text: "text-rose-700 dark:text-rose-400 font-bold", border: "border-rose-500/30" };
     }
 }

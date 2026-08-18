@@ -11,7 +11,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import dynamic from "next/dynamic";
 const StudentTrendChart = dynamic(() => import("./student-trend-chart"), {
@@ -19,7 +18,7 @@ const StudentTrendChart = dynamic(() => import("./student-trend-chart"), {
     loading: () => <div className="h-64 rounded-xl bg-muted/60 animate-pulse" />,
 });
 import { toast } from "sonner";
-import { Pencil, Printer, Trash2, MoveRight, TrendingUp, TrendingDown, Minus, ArrowUp, ArrowDown, FileText } from "lucide-react";
+import { Pencil, Printer, Trash2, MoveRight, TrendingUp, TrendingDown, Minus, ArrowUp, ArrowDown, FileText, Loader2 } from "lucide-react";
 import { printHtml } from "@/lib/print-utils";
 import { formatTaka } from "@/lib/finance-utils";
 
@@ -85,6 +84,95 @@ function isPaymentVoid(p: any): boolean {
     return false;
 }
 
+interface MasterData {
+    classes: Class[];
+    sections: Section[];
+    exams: Exam[];
+    schoolInfo: any;
+    feeStructures: { class_name: string; fee_type: string; amount: number }[];
+    timestamp: number;
+}
+
+let masterDataCache: MasterData | null = null;
+const MASTER_DATA_TTL = 5 * 60 * 1000; // 5 minutes
+
+export async function getMasterData(supabase: any): Promise<MasterData> {
+    const now = Date.now();
+    if (masterDataCache && (now - masterDataCache.timestamp) < MASTER_DATA_TTL) {
+        return masterDataCache;
+    }
+
+    const currentYearStr = new Date().getFullYear().toString();
+    const [classesRes, sectionsRes, examsRes, schoolRes, feeStructRes] = await Promise.all([
+        supabase.from("classes").select("id,name,numeric_value,created_at").order("numeric_value"),
+        supabase.from("sections").select("id,class_id,name,created_at").order("name"),
+        supabase.from("exams").select("id,name,exam_type,term,created_at").order("term").order("exam_type"),
+        supabase.from("school_info").select("name,address,phone,email,logo_url,principal_name").limit(1).maybeSingle(),
+        supabase.from("fee_structure").select("class_name,fee_type,amount").eq("academic_year", currentYearStr).eq("is_active", true),
+    ]);
+
+    masterDataCache = {
+        classes: classesRes.data || [],
+        sections: sectionsRes.data || [],
+        exams: examsRes.data || [],
+        schoolInfo: schoolRes.data || null,
+        feeStructures: feeStructRes.data || [],
+        timestamp: now,
+    };
+    return masterDataCache;
+}
+
+interface CachedProfile {
+    student: Student;
+    results: Result[];
+    attendance: AttendanceRecord[];
+    fees: any[];
+    subjectMarks: SubjectMark[];
+    timestamp: number;
+}
+
+export const studentProfileCache = new Map<string, CachedProfile>();
+
+export async function prefetchStudentProfile(studentId: string) {
+    if (!studentId) return;
+    const cached = studentProfileCache.get(studentId);
+    if (cached && (Date.now() - cached.timestamp) < 120000) return;
+
+    try {
+        const supabase = createClient();
+        const [studentRes, resultRes, attendanceRes, feeRes, marksRes] = await Promise.all([
+            supabase.from("students").select("id,student_id,class_id,section_id,roll,name,gender,father_name,mother_name,date_of_birth,phone,address,blood_group,group_name,created_at").eq("id", studentId).maybeSingle(),
+            supabase.from("results").select("id,student_id,exam_id,academic_year,total_marks,total_full_marks,percentage,gpa,grade,created_at").eq("student_id", studentId).order("created_at"),
+            supabase.from("attendance_records").select("id,student_id,class_id,section_id,att_date,status,source,created_at,updated_at").eq("student_id", studentId).order("att_date", { ascending: false }).limit(300),
+            supabase.from("tuition_payments").select("id,receipt_number,amount_due,amount_paid,discount,fine,payment_date,fee_type,status,note,void_reason").eq("student_id", studentId).order("payment_date", { ascending: false }),
+            supabase.from("marks").select("student_id,subject_id,exam_id,total,subjects(name,pass_marks,full_marks)").eq("student_id", studentId).order("created_at"),
+            getMasterData(supabase),
+        ]);
+
+        if (studentRes.data) {
+            const processedMarks: SubjectMark[] = (marksRes.data || []).map((m: any) => ({
+                subjectId: m.subject_id,
+                subjectName: (m.subjects as any)?.name || "-",
+                examId: m.exam_id,
+                total: Number(m.total || 0),
+                passMark: Number((m.subjects as any)?.pass_marks || 33),
+                fullMark: Number((m.subjects as any)?.full_marks || 100),
+            }));
+
+            studentProfileCache.set(studentId, {
+                student: studentRes.data,
+                results: resultRes.data || [],
+                attendance: attendanceRes.data || [],
+                fees: (feeRes.data as any) || [],
+                subjectMarks: processedMarks,
+                timestamp: Date.now(),
+            });
+        }
+    } catch {
+        // Ignore background prefetch errors
+    }
+}
+
 export function StudentProfileSheet({
     open,
     onOpenChange,
@@ -94,7 +182,7 @@ export function StudentProfileSheet({
     onRequestTransfer,
     onRequestDelete,
 }: Props) {
-    const supabase = createClient();
+    const supabase = useMemo(() => createClient(), []);
     const [loading, setLoading] = useState(false);
     const [student, setStudent] = useState<Student | null>(null);
     const [classes, setClasses] = useState<Class[]>([]);
@@ -119,19 +207,55 @@ export function StudentProfileSheet({
         transferRoll: "",
     });
     const [saving, setSaving] = useState(false);
-    const [transferSections, setTransferSections] = useState<Section[]>([]);
-
     useEffect(() => {
         if (!open || !studentId) return;
         let cancelled = false;
-        setLoading(true);
+
         void (async () => {
-            const [studentRes, classesRes, sectionsRes, examsRes, schoolRes] = await Promise.all([
+            // Check if in-memory cached profile exists
+            const cached = studentProfileCache.get(studentId);
+            if (cached) {
+                setStudent(cached.student);
+                setResults(cached.results);
+                setAttendance(cached.attendance);
+                setFees(cached.fees);
+                setSubjectMarks(cached.subjectMarks);
+                setActionForm((prev) => ({
+                    ...prev,
+                    name: cached.student.name || "",
+                    phone: cached.student.phone || "",
+                    address: cached.student.address || "",
+                    father_name: cached.student.father_name || "",
+                    mother_name: cached.student.mother_name || "",
+                    blood_group: cached.student.blood_group || "",
+                    transferClassId: cached.student.class_id || "",
+                    transferSectionId: cached.student.section_id || "",
+                    transferRoll: cached.student.roll || "",
+                }));
+
+                if (masterDataCache) {
+                    setClasses(masterDataCache.classes);
+                    setSections(masterDataCache.sections);
+                    setExams(masterDataCache.exams);
+                    if (masterDataCache.schoolInfo) setSchoolInfo(masterDataCache.schoolInfo);
+                    const sClass = masterDataCache.classes.find((c) => c.id === cached.student.class_id);
+                    if (sClass) {
+                        const matchedFeeStructs = masterDataCache.feeStructures.filter((f) => f.class_name === sClass.name);
+                        setFeeStructures(matchedFeeStructs);
+                    }
+                }
+                setLoading(false);
+            } else {
+                setLoading(true);
+            }
+
+            const [studentRes, resultRes, attendanceRes, feeRes, marksRes, masterData] = await Promise.all([
                 supabase.from("students").select("id,student_id,class_id,section_id,roll,name,gender,father_name,mother_name,date_of_birth,phone,address,blood_group,group_name,created_at").eq("id", studentId).maybeSingle(),
-                supabase.from("classes").select("id,name,numeric_value,created_at").order("numeric_value"),
-                supabase.from("sections").select("id,class_id,name,created_at").order("name"),
-                supabase.from("exams").select("id,name,exam_type,term,created_at").order("term").order("exam_type"),
-                supabase.from("school_info").select("*").limit(1).maybeSingle(),
+                supabase.from("results").select("id,student_id,exam_id,academic_year,total_marks,total_full_marks,percentage,gpa,grade,created_at").eq("student_id", studentId).order("created_at"),
+                supabase.from("attendance_records").select("id,student_id,class_id,section_id,att_date,status,source,created_at,updated_at").eq("student_id", studentId).order("att_date", { ascending: false }).limit(300),
+                supabase.from("tuition_payments").select("id,receipt_number,amount_due,amount_paid,discount,fine,payment_date,fee_type,status,note,void_reason").eq("student_id", studentId).order("payment_date", { ascending: false }),
+                supabase.from("marks").select("student_id,subject_id,exam_id,total,subjects(name,pass_marks,full_marks)").eq("student_id", studentId).order("created_at"),
+                getMasterData(supabase),
             ]);
 
             if (cancelled) return;
@@ -141,11 +265,41 @@ export function StudentProfileSheet({
             }
 
             const fetchedStudent = studentRes.data;
+            const processedMarks: SubjectMark[] = (marksRes.data || []).map((m: any) => ({
+                subjectId: m.subject_id,
+                subjectName: (m.subjects as any)?.name || "-",
+                examId: m.exam_id,
+                total: Number(m.total || 0),
+                passMark: Number((m.subjects as any)?.pass_marks || 33),
+                fullMark: Number((m.subjects as any)?.full_marks || 100),
+            }));
+
+            // Save to profile cache
+            studentProfileCache.set(studentId, {
+                student: fetchedStudent,
+                results: resultRes.data || [],
+                attendance: attendanceRes.data || [],
+                fees: (feeRes.data as any) || [],
+                subjectMarks: processedMarks,
+                timestamp: Date.now(),
+            });
+
             setStudent(fetchedStudent);
-            setClasses(classesRes.data || []);
-            setSections(sectionsRes.data || []);
-            setExams(examsRes.data || []);
-            if (schoolRes.data) setSchoolInfo(schoolRes.data);
+            setClasses(masterData.classes);
+            setSections(masterData.sections);
+            setExams(masterData.exams);
+            if (masterData.schoolInfo) setSchoolInfo(masterData.schoolInfo);
+
+            const studentClass = masterData.classes.find((c: any) => c.id === fetchedStudent.class_id);
+            if (studentClass) {
+                const matchedFeeStructs = masterData.feeStructures.filter((f) => f.class_name === studentClass.name);
+                setFeeStructures(matchedFeeStructs);
+            }
+
+            setResults(resultRes.data || []);
+            setAttendance(attendanceRes.data || []);
+            setFees((feeRes.data as any) || []);
+            setSubjectMarks(processedMarks);
 
             setActionForm((prev) => ({
                 ...prev,
@@ -160,46 +314,17 @@ export function StudentProfileSheet({
                 transferRoll: fetchedStudent.roll || "",
             }));
 
-            const studentClass = (classesRes.data || []).find((c: any) => c.id === fetchedStudent.class_id);
-            const className = studentClass?.name;
-            const currentYearStr = new Date().getFullYear().toString();
-
-            const [resultRes, attendanceRes, feeRes, marksRes, feeStructRes] = await Promise.all([
-                supabase.from("results").select("id,student_id,exam_id,academic_year,total_marks,total_full_marks,percentage,gpa,grade,created_at").eq("student_id", studentId).order("created_at"),
-                supabase.from("attendance_records").select("id,student_id,class_id,section_id,att_date,status,source,created_at,updated_at").eq("student_id", studentId).order("att_date", { ascending: false }),
-                supabase.from("tuition_payments").select("*").eq("student_id", studentId).order("payment_date", { ascending: false }),
-                supabase.from("marks")
-                    .select("student_id,subject_id,exam_id,total,subjects(name,pass_marks,full_marks)")
-                    .eq("student_id", studentId)
-                    .order("created_at"),
-                className ? supabase.from("fee_structure").select("fee_type,amount").eq("class_name", className).eq("academic_year", currentYearStr).eq("is_active", true) : Promise.resolve({ data: [] }),
-            ]);
-
-            if (cancelled) return;
-            setResults(resultRes.data || []);
-            setAttendance(attendanceRes.data || []);
-            setFees((feeRes.data as any) || []);
-            setFeeStructures((feeStructRes.data as any) || []);
-
-            const processedMarks: SubjectMark[] = (marksRes.data || []).map((m: any) => ({
-                subjectId: m.subject_id,
-                subjectName: (m.subjects as any)?.name || "-",
-                examId: m.exam_id,
-                total: Number(m.total || 0),
-                passMark: Number((m.subjects as any)?.pass_marks || 33),
-                fullMark: Number((m.subjects as any)?.full_marks || 100),
-            }));
-            setSubjectMarks(processedMarks);
             setLoading(false);
         })();
+
         return () => {
             cancelled = true;
         };
-    }, [open, studentId]);
+    }, [open, studentId, supabase]);
 
-    useEffect(() => {
-        if (!actionForm.transferClassId) return;
-        setTransferSections(sections.filter((s) => s.class_id === actionForm.transferClassId));
+    const transferSections = useMemo(() => {
+        if (!actionForm.transferClassId) return [];
+        return sections.filter((s) => s.class_id === actionForm.transferClassId);
     }, [actionForm.transferClassId, sections]);
 
     const currentClass = classes.find((c) => c.id === student?.class_id);
@@ -336,7 +461,7 @@ export function StudentProfileSheet({
         };
 
         for (const cat of categories) {
-            let catResults = allExamResults.filter((r) => {
+            const catResults = allExamResults.filter((r) => {
                 const exam = exams.find((e) => e.id === r.exam_id);
                 const c = getExamCategory(exam);
                 if (cat.key === "semesterAndStandalone") {
@@ -582,7 +707,7 @@ export function StudentProfileSheet({
         const schoolAddress = schoolInfo?.address || "";
         const schoolPhone = schoolInfo?.phone || "";
 
-        let reportTitle = "STUDENT ACADEMIC PERFORMANCE REPORT";
+        const reportTitle = "STUDENT ACADEMIC PERFORMANCE REPORT";
 
         const renderComparisonTableHTML = (title: string, list: CategoryComparison[]) => {
             if (list.length === 0) return "";
@@ -832,17 +957,19 @@ ${subjectHTML}
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="w-[96vw] sm:max-w-[900px] p-0 gap-0 overflow-hidden bg-background">
-                <DialogHeader className="border-b border-border/50 bg-muted/30 p-6">
-                    <DialogTitle className="text-xl">Student Profile</DialogTitle>
-                    <DialogDescription>Detailed profile, academics, progress analysis, attendance and actions.</DialogDescription>
+            <DialogContent className="w-[96vw] sm:w-[92vw] md:max-w-[920px] h-[85vh] max-h-[820px] min-h-[580px] p-0 gap-0 overflow-hidden flex flex-col bg-background rounded-2xl border border-border shadow-2xl">
+                <DialogHeader className="border-b border-border/50 bg-muted/30 px-5 py-4 sm:px-6 sm:py-4 shrink-0">
+                    <DialogTitle className="text-lg sm:text-xl font-bold">Student Profile</DialogTitle>
+                    <DialogDescription className="text-xs sm:text-sm">Detailed profile, academics, progress analysis, attendance and actions.</DialogDescription>
                 </DialogHeader>
-                <ScrollArea className="max-h-[75vh]">
-                    {loading || !student ? (
-                        <div className="p-6 text-sm text-muted-foreground">Loading profile...</div>
-                    ) : (
-                        <div className="p-6 space-y-6">
-                            <div className="rounded-2xl border-0 bg-muted/50 p-5">
+                {loading || !student ? (
+                    <div className="flex-1 min-h-0 flex items-center justify-center p-8 text-sm text-muted-foreground">
+                        <Loader2 className="animate-spin mr-2.5 h-5 w-5 text-primary" />
+                        <span>Loading profile…</span>
+                    </div>
+                ) : (
+                    <div className="flex-1 min-h-0 overflow-y-auto p-5 sm:p-6 space-y-6 thin-scrollbar">
+                        <div className="rounded-2xl border-0 bg-muted/50 p-5">
                                 <div className="flex items-start justify-between gap-4 flex-wrap">
                                     <div className="flex items-center gap-4">
                                         <div className="h-16 w-16 rounded-2xl bg-muted text-foreground flex items-center justify-center text-2xl font-bold">
@@ -1269,7 +1396,6 @@ ${subjectHTML}
                             </Tabs>
                         </div>
                     )}
-                </ScrollArea>
             </DialogContent>
         </Dialog>
     );

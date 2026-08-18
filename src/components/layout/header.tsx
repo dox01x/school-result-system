@@ -127,7 +127,7 @@ export function NotificationPopover() {
                     )}
                 </button>
             </PopoverTrigger>
-            <PopoverContent align="end" className="w-80 p-0 overflow-hidden shadow-lg border border-border">
+            <PopoverContent align="end" sideOffset={8} className="w-[calc(100vw-24px)] max-w-80 sm:w-80 p-0 overflow-hidden shadow-xl border border-border z-50 mr-2 sm:mr-0">
                 <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted/40">
                     <div className="flex items-center gap-2">
                         <h3 className="font-semibold text-sm text-foreground">Notifications</h3>
@@ -172,7 +172,7 @@ export function NotificationPopover() {
     );
 }
 
-function UserDropdown() {
+export function UserDropdown() {
     const router = useRouter();
     const supabase = useMemo(() => createClient(), []);
     const { email, fullName, role } = useUserRole();
@@ -181,7 +181,6 @@ function UserDropdown() {
     const roleLabel = role ? ROLE_LABELS_EN[role] : "User";
 
     const handleSignOut = useCallback(async () => {
-        sessionStorage.removeItem("edu_session_active");
         await supabase.auth.signOut();
         toast.success("Signed out successfully");
         router.push("/login");
@@ -199,7 +198,7 @@ function UserDropdown() {
                     {displayName.charAt(0).toUpperCase()}
                 </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56 p-1.5 shadow-lg border-border">
+            <DropdownMenuContent align="end" sideOffset={8} className="w-56 p-1.5 shadow-xl border-border z-50 mr-2 sm:mr-0">
                 <div className="px-3 py-2.5 bg-muted/30 rounded-lg mb-1">
                     <p className="font-semibold text-[13px] text-foreground truncate">{displayName}</p>
                     {email && <p className="text-[11px] text-muted-foreground truncate mt-0.5">{email}</p>}

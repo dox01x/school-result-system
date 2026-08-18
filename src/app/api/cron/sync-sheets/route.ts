@@ -50,11 +50,18 @@ export async function GET(req: NextRequest) {
 
     const providedSecret = secretParam || bearerSecret || headerSecret;
 
-    if (process.env.CRON_SECRET && providedSecret !== process.env.CRON_SECRET) {
-        return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
-    }
-
     const supabase = await createServerSupabaseClient();
+
+    if (process.env.CRON_SECRET) {
+        if (providedSecret !== process.env.CRON_SECRET) {
+            return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+        }
+    } else if (process.env.AUTH_DISABLED !== "true") {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+            return NextResponse.json({ success: false, error: "Unauthorized - CRON_SECRET or Admin session required" }, { status: 401 });
+        }
+    }
 
     try {
         // Fetch all student sheet configurations

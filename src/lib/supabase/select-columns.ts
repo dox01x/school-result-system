@@ -4,9 +4,9 @@
  */
 
 export const SCHOOL_INFO_COLUMNS =
-    "id,name,address,phone,email,logo_url,principal_name,established_year,current_academic_year,last_promotion_year,detailed_marks,gender_split_class_id,created_at,updated_at";
+    "id,name,address,phone,email,logo_url,principal_name,established_year,current_academic_year,last_promotion_year,detailed_marks,gender_split_class_id,paper_checking_rate,created_at,updated_at";
 
-export const CLASS_COLUMNS = "id,name,numeric_value,created_at";
+export const CLASS_COLUMNS = "id,name,numeric_value,paper_checking_rate,paper_recheck_rate,created_at";
 export const SECTION_COLUMNS = "id,class_id,name,created_at";
 export const SUBJECT_COLUMNS =
     "id,class_id,name,full_marks,pass_marks,has_theory,has_mcq,has_practical,theory_marks,mcq_marks,practical_marks,is_optional,group_name,created_at";
@@ -26,7 +26,7 @@ export const STAFF_COLUMNS =
 export const ROOM_COLUMNS = "id,name,capacity,room_type,tables_count,seats_per_table,order_index,created_at";
 export const EXAM_SEAT_PLAN_COLUMNS = "id,exam_id,class_id,section_id,room_id,allocated_students,created_at";
 export const EXAM_DUTY_COLUMNS = "id,exam_id,room_id,teacher_id,exam_date,start_time,end_time,created_at";
-export const EXAM_PAPER_DISTRIBUTION_COLUMNS = "id,exam_id,class_id,subject_id,teacher_id,total_copies,date_given,date_returned,status,notes,created_at";
+export const EXAM_PAPER_DISTRIBUTION_COLUMNS = "id,exam_id,class_id,section_id,subject_id,teacher_id,recheck_teacher_id,total_copies,date_given,date_returned,date_received_from_hall,status,notes,created_at";
 export const CLASS_ROUTINE_COLUMNS =
     "id,class_id,section_id,subject_id,teacher_id,room_id,day_of_week,start_time,end_time,created_at";
 export const EXAM_SCHEDULE_COLUMNS =
