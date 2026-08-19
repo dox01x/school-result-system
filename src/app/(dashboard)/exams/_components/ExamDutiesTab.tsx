@@ -660,8 +660,8 @@ export function ExamDutiesTab({ exams }: { exams: { id: string; name: string }[]
 
         const totalRowsCount = printRows.reduce((acc, row) => acc + row.teachers.length, 0);
 
-        // Calculate available printable space to maximize cell height while strictly keeping it to 1 page
-        let rowHeight = 36;
+        // Calculate available printable space with a 9% reduction on cell height as requested
+        let rowHeight = 33;
         let fontSize = 12.5;
         let subFontSize = 11.5;
         let cellPaddingY = 5;
@@ -670,44 +670,44 @@ export function ExamDutiesTab({ exams }: { exams: { id: string; name: string }[]
         let headerPaddingY = 6;
 
         if (totalRowsCount <= 28) {
-            // For <= 28 rows, maximize row height to fill ~870px table area on 1 A4 page
-            const targetTableHeight = 870;
+            // For <= 28 rows, target ~792px table area (9% reduced from 870px)
+            const targetTableHeight = 792;
             const calculatedHeight = Math.floor(targetTableHeight / Math.max(1, totalRowsCount));
-            rowHeight = Math.min(65, Math.max(29, calculatedHeight));
+            rowHeight = Math.min(59, Math.max(26, calculatedHeight));
 
-            if (rowHeight >= 52) {
+            if (rowHeight >= 48) {
                 fontSize = 14;
                 subFontSize = 13;
-                cellPaddingY = 10;
+                cellPaddingY = 9;
                 headerFontSize = 14;
-                headerPaddingY = 9;
-            } else if (rowHeight >= 42) {
+                headerPaddingY = 8;
+            } else if (rowHeight >= 38) {
                 fontSize = 13.5;
                 subFontSize = 12.5;
-                cellPaddingY = 8;
+                cellPaddingY = 7;
                 headerFontSize = 13.5;
-                headerPaddingY = 8;
-            } else if (rowHeight >= 34) {
-                fontSize = 13;
-                subFontSize = 12;
-                cellPaddingY = 6;
-                headerFontSize = 12.5;
                 headerPaddingY = 7;
+            } else if (rowHeight >= 31) {
+                fontSize = 12.5;
+                subFontSize = 11.5;
+                cellPaddingY = 5;
+                headerFontSize = 12.5;
+                headerPaddingY = 6;
             } else {
-                fontSize = 12;
-                subFontSize = 11;
-                cellPaddingY = 4;
-                headerFontSize = 12;
+                fontSize = 11.5;
+                subFontSize = 10.5;
+                cellPaddingY = 3.5;
+                headerFontSize = 11.5;
                 headerPaddingY = 5;
             }
         } else {
             // For 29+ rows that naturally span 2+ pages
-            rowHeight = 36;
+            rowHeight = 33;
             fontSize = 12;
             subFontSize = 11;
-            cellPaddingY = 5;
+            cellPaddingY = 4.5;
             headerFontSize = 12;
-            headerPaddingY = 6;
+            headerPaddingY = 5.5;
         }
 
         const thStyle = `border:1.5px solid #000;padding:${headerPaddingY}px ${cellPaddingX}px;text-align:center;font-weight:800;background:#f8fafc;font-size:${headerFontSize}px`;
