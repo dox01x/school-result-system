@@ -660,68 +660,58 @@ export function ExamDutiesTab({ exams }: { exams: { id: string; name: string }[]
 
         const totalRowsCount = printRows.reduce((acc, row) => acc + row.teachers.length, 0);
 
-        // Smart dynamic typography & row sizing to fill an A4 page without overflowing to page 2
+        // Calculate available printable space to maximize cell height while strictly keeping it to 1 page
+        let rowHeight = 36;
         let fontSize = 12.5;
         let subFontSize = 11.5;
-        let cellPaddingY = 6;
+        let cellPaddingY = 5;
         let cellPaddingX = 8;
-        let minCellHeight = 36;
         let headerFontSize = 12.5;
-        let headerPaddingY = 7;
+        let headerPaddingY = 6;
 
-        if (totalRowsCount <= 6) {
-            fontSize = 14;
-            subFontSize = 13;
-            cellPaddingY = 12;
-            cellPaddingX = 10;
-            minCellHeight = 60;
-            headerFontSize = 13.5;
-            headerPaddingY = 10;
-        } else if (totalRowsCount <= 10) {
-            fontSize = 13.5;
-            subFontSize = 12.5;
-            cellPaddingY = 9;
-            cellPaddingX = 9;
-            minCellHeight = 50;
-            headerFontSize = 13;
-            headerPaddingY = 9;
-        } else if (totalRowsCount <= 16) {
-            fontSize = 13;
-            subFontSize = 12;
-            cellPaddingY = 7;
-            cellPaddingX = 8;
-            minCellHeight = 42;
-            headerFontSize = 12.5;
-            headerPaddingY = 8;
-        } else if (totalRowsCount <= 22) {
-            fontSize = 12.5;
-            subFontSize = 11.5;
-            cellPaddingY = 5.5;
-            cellPaddingX = 7;
-            minCellHeight = 34;
-            headerFontSize = 12;
-            headerPaddingY = 6.5;
-        } else if (totalRowsCount <= 28) {
-            fontSize = 11.5;
-            subFontSize = 10.5;
-            cellPaddingY = 4;
-            cellPaddingX = 6;
-            minCellHeight = 28;
-            headerFontSize = 11.5;
-            headerPaddingY = 5;
+        if (totalRowsCount <= 28) {
+            // For <= 28 rows, maximize row height to fill ~870px table area on 1 A4 page
+            const targetTableHeight = 870;
+            const calculatedHeight = Math.floor(targetTableHeight / Math.max(1, totalRowsCount));
+            rowHeight = Math.min(65, Math.max(29, calculatedHeight));
+
+            if (rowHeight >= 52) {
+                fontSize = 14;
+                subFontSize = 13;
+                cellPaddingY = 10;
+                headerFontSize = 14;
+                headerPaddingY = 9;
+            } else if (rowHeight >= 42) {
+                fontSize = 13.5;
+                subFontSize = 12.5;
+                cellPaddingY = 8;
+                headerFontSize = 13.5;
+                headerPaddingY = 8;
+            } else if (rowHeight >= 34) {
+                fontSize = 13;
+                subFontSize = 12;
+                cellPaddingY = 6;
+                headerFontSize = 12.5;
+                headerPaddingY = 7;
+            } else {
+                fontSize = 12;
+                subFontSize = 11;
+                cellPaddingY = 4;
+                headerFontSize = 12;
+                headerPaddingY = 5;
+            }
         } else {
-            // For large sets that will span 2+ pages naturally
-            fontSize = 11.5;
-            subFontSize = 10.5;
+            // For 29+ rows that naturally span 2+ pages
+            rowHeight = 36;
+            fontSize = 12;
+            subFontSize = 11;
             cellPaddingY = 5;
-            cellPaddingX = 7;
-            minCellHeight = 32;
-            headerFontSize = 11.5;
+            headerFontSize = 12;
             headerPaddingY = 6;
         }
 
-        const thStyle = `border:1px solid #000;padding:${headerPaddingY}px ${cellPaddingX}px;text-align:center;font-weight:800;background:#f8fafc;font-size:${headerFontSize}px`;
-        const tdBaseStyle = `border:1px solid #000;padding:${cellPaddingY}px ${cellPaddingX}px;vertical-align:middle;font-size:${fontSize}px;line-height:1.35;`;
+        const thStyle = `border:1.5px solid #000;padding:${headerPaddingY}px ${cellPaddingX}px;text-align:center;font-weight:800;background:#f8fafc;font-size:${headerFontSize}px`;
+        const tdBaseStyle = `border:1px solid #000;padding:${cellPaddingY}px ${cellPaddingX}px;vertical-align:middle;font-size:${fontSize}px;line-height:1.3;`;
         const tdSubStyle = `border:1px solid #000;padding:${cellPaddingY}px ${cellPaddingX}px;vertical-align:middle;font-size:${subFontSize}px;line-height:1.35;`;
 
         // Build table rows HTML
@@ -736,8 +726,8 @@ export function ExamDutiesTab({ exams }: { exams: { id: string; name: string }[]
                         tableRowsHtml += `<td style="${tdSubStyle}" rowspan="${row.teachers.length}">${row.classText}</td>`;
                         tableRowsHtml += `<td style="${tdSubStyle}" rowspan="${row.teachers.length}">${row.subjectText}</td>`;
                     }
-                    tableRowsHtml += `<td style="${tdBaseStyle};font-weight:600;height:${minCellHeight}px">${teacher.name}</td>`;
-                    tableRowsHtml += `<td style="border:1px solid #000;padding:${cellPaddingY}px ${cellPaddingX}px;vertical-align:middle;width:140px;height:${minCellHeight}px"></td>`;
+                    tableRowsHtml += `<td style="${tdBaseStyle};font-weight:600;height:${rowHeight}px">${teacher.name}</td>`;
+                    tableRowsHtml += `<td style="border:1px solid #000;padding:${cellPaddingY}px ${cellPaddingX}px;vertical-align:middle;width:145px;height:${rowHeight}px"></td>`;
                     tableRowsHtml += "</tr>";
                 });
             });
@@ -780,7 +770,7 @@ export function ExamDutiesTab({ exams }: { exams: { id: string; name: string }[]
         }
         @page {
             size: A4 portrait;
-            margin: 10mm 12mm 8mm 12mm;
+            margin: 8mm 10mm 6mm 10mm;
         }
         @media print {
             body { padding: 0; }
@@ -795,19 +785,19 @@ export function ExamDutiesTab({ exams }: { exams: { id: string; name: string }[]
 </head>
 <body>
     <!-- School Header -->
-    <div style="text-align:center;margin-bottom:10px">
+    <div style="text-align:center;margin-bottom:8px">
         <h1 style="font-size:22px;font-weight:900;text-transform:uppercase;letter-spacing:0.6px;margin:0;line-height:1.2;color:#000">${schoolInfo?.name || "School Name"}</h1>
-        <p style="font-size:11.5px;font-weight:500;color:#333;margin-top:3px">${schoolInfo?.address || ""} ${schoolInfo?.phone ? "• " + schoolInfo.phone : ""}</p>
+        <p style="font-size:11.5px;font-weight:500;color:#333;margin-top:2px">${schoolInfo?.address || ""} ${schoolInfo?.phone ? "• " + schoolInfo.phone : ""}</p>
     </div>
 
     <!-- Report Header Bar -->
-    <div style="display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #000;padding-bottom:6px;margin-bottom:12px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #000;padding-bottom:5px;margin-bottom:10px">
         <div>
-            <div style="font-size:22px;font-weight:900;text-transform:uppercase;letter-spacing:-0.2px;line-height:1.1;color:#000;margin-bottom:4px">HALL GUARD DUTY</div>
+            <div style="font-size:22px;font-weight:900;text-transform:uppercase;letter-spacing:-0.2px;line-height:1.1;color:#000;margin-bottom:3px">HALL GUARD DUTY</div>
             <div style="font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:#000">${subheaderHtml}</div>
         </div>
         <div style="text-align:right">
-            <div style="font-size:20px;font-weight:900;color:#000;line-height:1.1;margin-bottom:4px">${dayName}</div>
+            <div style="font-size:20px;font-weight:900;color:#000;line-height:1.1;margin-bottom:3px">${dayName}</div>
             <div style="font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:#000">${formattedDateStr}</div>
         </div>
     </div>
@@ -816,19 +806,19 @@ export function ExamDutiesTab({ exams }: { exams: { id: string; name: string }[]
     <table>
         <thead>
             <tr>
-                <th style="${thStyle};width:55px">Sl. No.</th>
-                <th style="${thStyle};width:90px">Hall / Room</th>
+                <th style="${thStyle};width:50px">Sl. No.</th>
+                <th style="${thStyle};width:85px">Hall / Room</th>
                 <th style="${thStyle}">Class (Section)</th>
                 <th style="${thStyle}">Subject</th>
                 <th style="${thStyle}">Invigilator Name</th>
-                <th style="${thStyle};width:140px">Signature</th>
+                <th style="${thStyle};width:145px">Signature</th>
             </tr>
         </thead>
         <tbody>${tableRowsHtml}</tbody>
     </table>
 
     <!-- Footer -->
-    <div style="text-align:center;font-size:10.5px;color:#333;margin-top:20px;font-weight:600;letter-spacing:0.5px">
+    <div style="text-align:center;font-size:10px;color:#333;margin-top:12px;font-weight:600;letter-spacing:0.5px">
         <p>Computer generated on ${new Date().toLocaleDateString('en-GB')}. No signature required.</p>
     </div>
 </body>
