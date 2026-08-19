@@ -47,7 +47,7 @@ export default function PermissionsMatrixPage() {
       <Card>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
-            <table className="w-full text-xs text-left">
+            <table className="w-full text-xs text-left min-w-[640px]">
               <thead className="bg-muted/50 border-b border-border uppercase font-semibold text-muted-foreground">
                 <tr>
                   <th className="p-3.5">Module / Feature</th>

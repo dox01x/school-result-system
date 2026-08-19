@@ -481,7 +481,7 @@ export function GlobalSearch() {
                             </div>
 
                             <div className="flex justify-end">
-                                <Button type="button" variant="outline" onClick={() => router.push("/dashboard/administration/teachers-rooms")}>
+                                <Button type="button" variant="outline" onClick={() => router.push("/administration/teachers-rooms")}>
                                     Open Teachers Page
                                 </Button>
                             </div>
@@ -531,6 +531,7 @@ export function GlobalSearch() {
                                 {[
                                     { label: "Email", value: staff.email },
                                     { label: "Phone", value: staff.phone },
+                                    { label: "Designation", value: staff.designation },
                                 ].map((item) => (
                                     <div key={item.label} className="space-y-0.5">
                                         <p className="text-xs text-muted-foreground">{item.label}</p>
@@ -540,7 +541,7 @@ export function GlobalSearch() {
                             </div>
 
                             <div className="flex justify-end">
-                                <Button type="button" variant="outline" onClick={() => router.push("/dashboard/administration/staff")}>
+                                <Button type="button" variant="outline" onClick={() => router.push("/administration/staff")}>
                                     Open Staff Page
                                 </Button>
                             </div>

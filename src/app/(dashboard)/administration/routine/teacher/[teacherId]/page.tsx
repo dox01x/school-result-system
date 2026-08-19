@@ -95,7 +95,7 @@ export default function TeacherRoutinePage({ params }: { params: Promise<{ teach
         return (
             <div className="text-center py-16">
                 <p className="text-muted-foreground">Teacher not found</p>
-                <Link href="/dashboard/administration/routine">
+                <Link href="/administration/routine">
                     <Button variant="outline" className="mt-4">Back to Routine</Button>
                 </Link>
             </div>
@@ -108,7 +108,7 @@ export default function TeacherRoutinePage({ params }: { params: Promise<{ teach
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div>
                     <div className="flex items-center gap-2 mb-1 print:hidden">
-                        <Link href="/dashboard/administration/routine">
+                        <Link href="/administration/routine">
                             <Button variant="ghost" size="icon" className="h-7 w-7">
                                 <ArrowLeft className="h-4 w-4" />
                             </Button>

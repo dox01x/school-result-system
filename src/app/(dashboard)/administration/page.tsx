@@ -9,25 +9,25 @@ const modules = [
     {
         title: "Class Routine",
         description: "Create and manage weekly class schedules for each class and section. Includes teacher and room conflict detection.",
-        href: "/dashboard/administration/routine",
+        href: "/administration/routine",
         icon: CalendarCheck,
     },
     {
         title: "Exam Schedule",
         description: "Plan exam dates, assign rooms, and designate invigilators for each subject and class.",
-        href: "/dashboard/administration/exam-schedule",
+        href: "/administration/exam-schedule",
         icon: CalendarCheck,
     },
     {
         title: "Teacher Shift",
         description: "Manage teacher duty rosters, assign shifts, and handle leave requests with an approval workflow.",
-        href: "/dashboard/administration/teacher-shift",
+        href: "/administration/teacher-shift",
         icon: UserCog,
     },
     {
         title: "Notice Board",
         description: "Create announcements for students, parents, and teachers. Export notices as PDF.",
-        href: "/dashboard/administration/notice",
+        href: "/administration/notice",
         icon: Megaphone,
     },
 ];

@@ -957,9 +957,9 @@ ${subjectHTML}
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="w-[96vw] sm:w-[92vw] md:max-w-[920px] h-[85vh] max-h-[820px] min-h-[580px] p-0 gap-0 overflow-hidden flex flex-col bg-background rounded-2xl border border-border shadow-2xl">
-                <DialogHeader className="border-b border-border/50 bg-muted/30 px-5 py-4 sm:px-6 sm:py-4 shrink-0">
-                    <DialogTitle className="text-lg sm:text-xl font-bold">Student Profile</DialogTitle>
+            <DialogContent className="w-[96vw] sm:w-[92vw] md:max-w-[920px] h-[92vh] sm:h-[85vh] max-h-[820px] min-h-0 sm:min-h-[520px] p-0 gap-0 overflow-hidden flex flex-col bg-background rounded-2xl border border-border shadow-2xl">
+                <DialogHeader className="border-b border-border/50 bg-muted/30 px-4 py-3 sm:px-6 sm:py-4 shrink-0">
+                    <DialogTitle className="text-base sm:text-xl font-bold">Student Profile</DialogTitle>
                     <DialogDescription className="text-xs sm:text-sm">Detailed profile, academics, progress analysis, attendance and actions.</DialogDescription>
                 </DialogHeader>
                 {loading || !student ? (
@@ -968,32 +968,32 @@ ${subjectHTML}
                         <span>Loading profile…</span>
                     </div>
                 ) : (
-                    <div className="flex-1 min-h-0 overflow-y-auto p-5 sm:p-6 space-y-6 thin-scrollbar">
-                        <div className="rounded-2xl border-0 bg-muted/50 p-5">
-                                <div className="flex items-start justify-between gap-4 flex-wrap">
-                                    <div className="flex items-center gap-4">
-                                        <div className="h-16 w-16 rounded-2xl bg-muted text-foreground flex items-center justify-center text-2xl font-bold">
+                    <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 space-y-5 sm:space-y-6 thin-scrollbar">
+                        <div className="rounded-2xl border-0 bg-muted/50 p-4 sm:p-5">
+                                <div className="flex items-start justify-between gap-4 flex-col sm:flex-row">
+                                    <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+                                        <div className="h-12 w-12 sm:h-16 sm:w-16 rounded-2xl bg-muted text-foreground flex items-center justify-center text-xl sm:text-2xl font-bold shrink-0">
                                             {student.name.charAt(0).toUpperCase()}
                                         </div>
-                                        <div>
-                                            <h3 className="text-2xl font-semibold text-foreground">{student.name}</h3>
-                                            <div className="mt-2 flex flex-wrap gap-2">
-                                                <Badge variant="secondary" className="bg-muted/80 text-foreground border-0 rounded-lg font-medium">Roll {student.roll}</Badge>
-                                                <Badge variant="secondary" className="bg-muted/80 text-foreground border-0 rounded-lg font-medium">{currentClass?.name || "-"}</Badge>
-                                                <Badge variant="secondary" className="bg-muted/80 text-foreground border-0 rounded-lg font-medium">{currentSection?.name || "-"}</Badge>
-                                                {student.student_id && <Badge variant="secondary" className="bg-muted/80 text-foreground border-0 rounded-lg font-medium">{student.student_id}</Badge>}
+                                        <div className="min-w-0">
+                                            <h3 className="text-lg sm:text-2xl font-semibold text-foreground truncate">{student.name}</h3>
+                                            <div className="mt-1.5 sm:mt-2 flex flex-wrap gap-1.5 sm:gap-2">
+                                                <Badge variant="secondary" className="bg-muted/80 text-foreground border-0 rounded-lg font-medium text-xs">Roll {student.roll}</Badge>
+                                                <Badge variant="secondary" className="bg-muted/80 text-foreground border-0 rounded-lg font-medium text-xs">{currentClass?.name || "-"}</Badge>
+                                                <Badge variant="secondary" className="bg-muted/80 text-foreground border-0 rounded-lg font-medium text-xs">{currentSection?.name || "-"}</Badge>
+                                                {student.student_id && <Badge variant="secondary" className="bg-muted/80 text-foreground border-0 rounded-lg font-medium text-xs">{student.student_id}</Badge>}
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="flex gap-2 flex-wrap">
-                                        <Button size="sm" variant="outline" className="border-0 bg-muted hover:bg-muted/80 text-foreground" onClick={() => handlePrintReport(selectedCategoryTab)}>
-                                            <Printer className="h-4 w-4 mr-1" strokeWidth={1.2} />Print Academic Report
+                                    <div className="flex gap-2 flex-wrap w-full sm:w-auto">
+                                        <Button size="sm" variant="outline" className="border-0 bg-muted hover:bg-muted/80 text-foreground text-xs h-8" onClick={() => handlePrintReport(selectedCategoryTab)}>
+                                            <Printer className="h-3.5 w-3.5 mr-1" strokeWidth={1.4} />Print Academic Report
                                         </Button>
-                                        <Button size="sm" variant="outline" className="border-0 bg-muted hover:bg-muted/80 text-foreground" onClick={() => onRequestTransfer?.(student)}>
-                                            <MoveRight className="h-4 w-4 mr-1" strokeWidth={1.2} />Transfer
+                                        <Button size="sm" variant="outline" className="border-0 bg-muted hover:bg-muted/80 text-foreground text-xs h-8" onClick={() => onRequestTransfer?.(student)}>
+                                            <MoveRight className="h-3.5 w-3.5 mr-1" strokeWidth={1.4} />Transfer
                                         </Button>
-                                        <Button size="sm" onClick={() => onRequestEdit?.(student)}>
-                                            <Pencil className="h-4 w-4 mr-1" strokeWidth={1.2} />Edit
+                                        <Button size="sm" className="text-xs h-8" onClick={() => onRequestEdit?.(student)}>
+                                            <Pencil className="h-3.5 w-3.5 mr-1" strokeWidth={1.4} />Edit
                                         </Button>
                                     </div>
                                 </div>
@@ -1290,7 +1290,7 @@ ${subjectHTML}
                                                 className="h-8 rounded-xl font-bold bg-primary text-primary-foreground hover:bg-primary/90 text-xs"
                                                 onClick={() => {
                                                     if (student) {
-                                                        window.location.href = `/dashboard/finance/tuition/collect?student_id=${student.id}`;
+                                                        window.location.href = `/finance/tuition/collect?student_id=${student.id}`;
                                                     }
                                                 }}
                                             >

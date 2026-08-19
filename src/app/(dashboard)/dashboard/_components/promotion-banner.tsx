@@ -24,7 +24,7 @@ export function PromotionBanner({ academicYear }: Props) {
             </div>
             <div className="flex items-center gap-2 shrink-0">
                 <Button size="sm" asChild>
-                    <Link href="/dashboard/promotion">Promote Now</Link>
+                    <Link href="/promotion">Promote Now</Link>
                 </Button>
                 <Button size="sm" variant="outline" onClick={dismiss}>
                     Dismiss

@@ -1,14 +1,19 @@
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { requireAuth, requireRole } from "@/lib/api-auth";
 import { NOTICE_COLUMNS } from "@/lib/supabase/select-columns";
 import { NextRequest, NextResponse } from "next/server";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(request: NextRequest) {
     try {
+        const auth = await requireAuth();
+        if (auth instanceof NextResponse) return auth;
+        const { supabase } = auth;
+
         const { searchParams } = new URL(request.url);
         const audience = searchParams.get("audience");
         const isPublishedParam = searchParams.get("is_published");
 
-        const supabase = await createServerSupabaseClient();
         let query = supabase
             .from("notices")
             .select(NOTICE_COLUMNS)
@@ -38,6 +43,10 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
     try {
+        const auth = await requireRole(["super_admin", "admin"]);
+        if (auth instanceof NextResponse) return auth;
+        const { supabase } = auth;
+
         const body = await request.json();
         const { title, content, audience, priority, is_published } = body;
 
@@ -55,8 +64,6 @@ export async function POST(request: NextRequest) {
         if (priority && !["low", "normal", "high", "urgent"].includes(priority)) {
             return NextResponse.json({ success: false, error: "priority must be: low, normal, high, or urgent" }, { status: 400 });
         }
-
-        const supabase = await createServerSupabaseClient();
 
         if (body.id) {
             const updatePayload: Record<string, unknown> = {
@@ -105,6 +112,10 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
     try {
+        const auth = await requireRole(["super_admin", "admin"]);
+        if (auth instanceof NextResponse) return auth;
+        const { supabase } = auth;
+
         const { searchParams } = new URL(request.url);
         const id = searchParams.get("id");
 
@@ -112,7 +123,6 @@ export async function DELETE(request: NextRequest) {
             return NextResponse.json({ success: false, error: "Missing id parameter" }, { status: 400 });
         }
 
-        const supabase = await createServerSupabaseClient();
         const { error } = await supabase.from("notices").delete().eq("id", id);
 
         if (error) {

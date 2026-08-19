@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { requireRole } from "@/lib/api-auth";
 import { sendAbsenceAlertSms } from "@/lib/sms-gateway";
 
 export const dynamic = "force-dynamic";
@@ -13,21 +13,9 @@ type BatchRecord = {
 };
 
 export async function POST(req: NextRequest) {
-    const supabase = await createServerSupabaseClient();
-
-    const authHeader = req.headers.get("authorization");
-    const bearerToken = authHeader?.toLowerCase().startsWith("bearer ")
-        ? authHeader.slice(7).trim()
-        : null;
-    const {
-        data: { user },
-    } = bearerToken
-        ? await supabase.auth.getUser(bearerToken)
-        : await supabase.auth.getUser();
-
-    if (!user && process.env.AUTH_DISABLED !== "true") {
-        return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
-    }
+    const auth = await requireRole(["super_admin", "admin", "class_teacher"]);
+    if (auth instanceof NextResponse) return auth;
+    const { supabase } = auth;
 
     let body: { records: BatchRecord[] };
     try {

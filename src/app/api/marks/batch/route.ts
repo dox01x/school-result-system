@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/lib/api-auth";
+import { requireRole } from "@/lib/api-auth";
 
 /** Shape of a single mark entry in the batch request body. */
 interface MarkEntryPayload {
@@ -32,7 +32,7 @@ interface SubjectRecord {
  * POST /api/marks/batch
  *
  * Server-side validated batch upsert of student marks.
- * 1. Authenticates request using requireAuth guard
+ * 1. Authenticates request using requireRole guard
  * 2. Validates all required fields are present
  * 3. Fetches subject config + exam overrides to determine real max marks
  * 4. Validates every entry against component flags & max values
@@ -40,7 +40,7 @@ interface SubjectRecord {
  */
 export async function POST(req: NextRequest) {
     try {
-        const auth = await requireAuth();
+        const auth = await requireRole(["super_admin", "admin", "exam_controller", "class_teacher"]);
         if (auth instanceof NextResponse) return auth;
         const { supabase } = auth;
 

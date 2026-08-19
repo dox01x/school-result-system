@@ -1,16 +1,21 @@
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { requireAuth, requireRole } from "@/lib/api-auth";
 import { EXAM_SCHEDULE_COLUMNS } from "@/lib/supabase/select-columns";
 import { timeToMinutes } from "@/lib/conflict-detector";
 import { NextRequest, NextResponse } from "next/server";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(request: NextRequest) {
     try {
+        const auth = await requireAuth();
+        if (auth instanceof NextResponse) return auth;
+        const { supabase } = auth;
+
         const { searchParams } = new URL(request.url);
         const examId = searchParams.get("exam_id");
         const classId = searchParams.get("class_id");
         const subjectId = searchParams.get("subject_id");
 
-        const supabase = await createServerSupabaseClient();
         let query = supabase
             .from("exam_schedules")
             .select(EXAM_SCHEDULE_COLUMNS)
@@ -35,6 +40,10 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
     try {
+        const auth = await requireRole(["super_admin", "admin", "exam_controller"]);
+        if (auth instanceof NextResponse) return auth;
+        const { supabase } = auth;
+
         const body = await request.json();
         const { exam_id, class_id, subject_id, exam_date, start_time, end_time, room_id, invigilator_id } = body;
 
@@ -48,8 +57,6 @@ export async function POST(request: NextRequest) {
         if (timeToMinutes(end_time) <= timeToMinutes(start_time)) {
             return NextResponse.json({ success: false, error: "end_time must be after start_time" }, { status: 400 });
         }
-
-        const supabase = await createServerSupabaseClient();
 
         if (body.id) {
             const { data, error } = await supabase
@@ -91,6 +98,10 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
     try {
+        const auth = await requireRole(["super_admin", "admin", "exam_controller"]);
+        if (auth instanceof NextResponse) return auth;
+        const { supabase } = auth;
+
         const { searchParams } = new URL(request.url);
         const id = searchParams.get("id");
 
@@ -98,7 +109,6 @@ export async function DELETE(request: NextRequest) {
             return NextResponse.json({ success: false, error: "Missing id parameter" }, { status: 400 });
         }
 
-        const supabase = await createServerSupabaseClient();
         const { error } = await supabase.from("exam_schedules").delete().eq("id", id);
 
         if (error) {

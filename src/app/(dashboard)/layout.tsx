@@ -101,7 +101,7 @@ export default async function DashboardLayout({
                     <Header />
                     <main id="main-content" className="flex-1 flex flex-col">
                         <div className="pt-14 lg:pt-0 flex-1 flex flex-col pb-20 lg:pb-8">
-                            <div className="animate-slide-up p-4 sm:p-6 lg:p-8 max-w-[1360px] w-full mx-auto flex-1">
+                            <div className="animate-slide-up p-3 sm:p-6 lg:p-8 max-w-[1360px] w-full mx-auto flex-1">
                                 {children}
                             </div>
                         </div>

@@ -74,7 +74,7 @@ export function AttendanceManualTab({ filters, onSaveComplete }: Props) {
                 newGrid.set(stu.id, new Map());
             }
             for (const rec of (attRes.data || []) as { student_id: string; att_date: string; status: string }[]) {
-                const day = new Date(rec.att_date).getDate();
+                const day = parseInt(rec.att_date.split("-")[2], 10);
                 const studentMap = newGrid.get(rec.student_id);
                 if (studentMap) {
                     studentMap.set(day, rec.status as CellStatus);
@@ -293,10 +293,10 @@ export function AttendanceManualTab({ filters, onSaveComplete }: Props) {
                     <table className="w-full text-xs">
                         <thead>
                             <tr className="bg-muted">
-                                <th className="sticky left-0 z-20 bg-muted text-left py-3 px-4 font-bold text-muted-foreground uppercase tracking-widest text-[10px] min-w-[50px] border-r border-border">
+                                <th className="sticky left-0 z-20 bg-muted text-left py-3 px-3 font-bold text-muted-foreground uppercase tracking-widest text-[10px] w-14 min-w-[56px] max-w-[56px] border-r border-border">
                                     Roll
                                 </th>
-                                <th className="sticky left-[66px] z-20 bg-muted text-left py-3 px-4 font-bold text-muted-foreground uppercase tracking-widest text-[10px] min-w-[120px] border-r border-border">
+                                <th className="sticky left-14 z-20 bg-muted text-left py-3 px-3 font-bold text-muted-foreground uppercase tracking-widest text-[10px] min-w-[120px] max-w-[140px] border-r border-border">
                                     Name
                                 </th>
                                 {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((d) => (
@@ -321,10 +321,10 @@ export function AttendanceManualTab({ filters, onSaveComplete }: Props) {
                                         key={student.id}
                                         className={`border-t border-border hover:bg-muted transition-colors ${idx % 2 === 0 ? "bg-card" : "bg-background"}`}
                                     >
-                                        <td className="sticky left-0 z-10 bg-inherit py-2 px-4 font-mono font-bold text-muted-foreground border-r border-border text-[11px]">
+                                        <td className="sticky left-0 z-10 bg-inherit py-2 px-3 font-mono font-bold text-muted-foreground border-r border-border text-[11px] w-14 min-w-[56px] max-w-[56px]">
                                             {student.roll}
                                         </td>
-                                        <td className="sticky left-[66px] z-10 bg-inherit py-2 px-4 font-bold text-foreground truncate max-w-[120px] border-r border-border text-[11px]">
+                                        <td className="sticky left-14 z-10 bg-inherit py-2 px-3 font-bold text-foreground truncate min-w-[120px] max-w-[140px] border-r border-border text-[11px]">
                                             {student.name}
                                         </td>
                                         {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((d) => {

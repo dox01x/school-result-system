@@ -28,7 +28,7 @@ export interface RenderReceiptOptions {
  * - No redundant physical signature boxes for computer-generated receipts
  */
 export const RECEIPT_PRINT_CSS = `
-  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700;800&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap');
 
   *, *::before, *::after {
     box-sizing: border-box;
@@ -39,8 +39,8 @@ export const RECEIPT_PRINT_CSS = `
   }
 
   body {
-    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    color: #1e293b;
+    font-family: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    color: #0f172a;
     background-color: #ffffff;
     font-size: 12px;
     line-height: 1.45;

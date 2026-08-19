@@ -315,7 +315,7 @@ export default function SettingsPage() {
                         </div>
                         <div className="flex gap-2">
                             <Button asChild size="sm" className="bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shadow-none transition-colors">
-                                <Link href="/dashboard/promotion">Promote Now</Link>
+                                <Link href="/promotion">Promote Now</Link>
                             </Button>
                             <Button variant="outline" size="sm" onClick={dismissReminder} className="border-0 bg-red-100 text-red-800 hover:bg-red-200 font-bold rounded-xl shadow-none">Dismiss</Button>
                         </div>
@@ -472,19 +472,19 @@ export default function SettingsPage() {
                         <CardContent className="space-y-3">
                             <div className="grid gap-3 md:grid-cols-2">
                                 <Link
-                                    href="/dashboard/attendance"
+                                    href="/attendance"
                                     className="rounded-xl border-0 bg-muted p-4 hover:bg-muted/80 transition-colors"
                                 >
                                     <p className="font-bold text-sm text-foreground">Attendance Setup</p>
                                 </Link>
                                 <Link
-                                    href="/dashboard/administration/routine/settings"
+                                    href="/administration/routine/settings"
                                     className="rounded-xl border-0 bg-muted p-4 hover:bg-muted/80 transition-colors"
                                 >
                                     <p className="font-bold text-sm text-foreground">Routine Settings</p>
                                 </Link>
                                 <Link
-                                    href="/dashboard/finance/fee-structure"
+                                    href="/finance/fee-structure"
                                     className="rounded-xl border-0 bg-muted p-4 hover:bg-muted/80 transition-colors"
                                 >
                                     <p className="font-bold text-sm text-foreground">Fee Structure Setup</p>

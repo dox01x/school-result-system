@@ -47,7 +47,7 @@ export async function GET(request: Request) {
       expectedTuitionResult
     ] = await Promise.all([
       // Fetch tuition payments with lean select and filter void in-memory
-      supabase.from('tuition_payments').select('amount_paid, status, note, void_reason').match({ month, year }),
+      supabase.from('tuition_payments').select('amount_paid, status, note, void_reason, month, fee_details').eq('year', year),
       supabase.from('income_entries').select('amount').match({ month, year }),
       supabase.from('expense_entries').select('amount').match({ month, year }),
       supabase.from('salary_payments').select('net_salary').match({ month, year }),
@@ -80,7 +80,14 @@ export async function GET(request: Request) {
       })()
     ]);
 
-    const activeTuitions = ((tuitionResult.data || []) as any[]).filter(p => !isPaymentVoid(p));
+    const activeTuitions = ((tuitionResult.data || []) as any[]).filter((p) => {
+      if (isPaymentVoid(p)) return false;
+      if (Number(p.month) === month) return true;
+      if (Array.isArray(p.fee_details)) {
+        return p.fee_details.some((fd: any) => Number(fd.month) === month);
+      }
+      return false;
+    });
     const tuition_collected = roundCurrency(activeTuitions.reduce((sum, p) => sum + Number(p.amount_paid || 0), 0));
 
     const sumValues = (arr: unknown[] | null, key: string) => 

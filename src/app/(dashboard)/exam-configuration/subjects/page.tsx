@@ -56,26 +56,28 @@ export default function ExamSubjectsConfigPage() {
           ) : subjects.length === 0 ? (
             <div className="py-16 text-center text-muted-foreground">No subjects found.</div>
           ) : (
-            <table className="w-full text-sm text-left">
-              <thead className="bg-muted/50 border-b border-border text-xs uppercase text-muted-foreground">
-                <tr>
-                  <th className="p-3.5">Code</th>
-                  <th className="p-3.5">Subject Name</th>
-                  <th className="p-3.5 text-center">Full Marks</th>
-                  <th className="p-3.5 text-center">Pass Marks</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/40">
-                {subjects.map((sub) => (
-                  <tr key={sub.id} className="hover:bg-muted/30 transition-colors">
-                    <td className="p-3.5 font-mono text-xs text-primary font-semibold">{sub.code}</td>
-                    <td className="p-3.5 font-medium">{sub.name}</td>
-                    <td className="p-3.5 text-center font-mono">{sub.full_marks || 100}</td>
-                    <td className="p-3.5 text-center font-mono">{sub.pass_marks || 33}</td>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm text-left min-w-[420px]">
+                <thead className="bg-muted/50 border-b border-border text-xs uppercase text-muted-foreground">
+                  <tr>
+                    <th className="p-3.5">Code</th>
+                    <th className="p-3.5">Subject Name</th>
+                    <th className="p-3.5 text-center">Full Marks</th>
+                    <th className="p-3.5 text-center">Pass Marks</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-border/40">
+                  {subjects.map((sub) => (
+                    <tr key={sub.id} className="hover:bg-muted/30 transition-colors">
+                      <td className="p-3.5 font-mono text-xs text-primary font-semibold">{sub.code}</td>
+                      <td className="p-3.5 font-medium">{sub.name}</td>
+                      <td className="p-3.5 text-center font-mono">{sub.full_marks || 100}</td>
+                      <td className="p-3.5 text-center font-mono">{sub.pass_marks || 33}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </CardContent>
       </Card>

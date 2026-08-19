@@ -1,18 +1,22 @@
 // API route: GET teacher schedule — fetches all routine entries for a specific teacher
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { requireAuth } from "@/lib/api-auth";
 import { TEACHER_COLUMNS } from "@/lib/supabase/select-columns";
 import { NextRequest, NextResponse } from "next/server";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(request: NextRequest) {
     try {
+        const auth = await requireAuth();
+        if (auth instanceof NextResponse) return auth;
+        const { supabase } = auth;
+
         const { searchParams } = new URL(request.url);
         const teacherId = searchParams.get("teacher_id");
 
         if (!teacherId) {
             return NextResponse.json({ success: false, error: "Missing teacher_id parameter" }, { status: 400 });
         }
-
-        const supabase = await createServerSupabaseClient();
 
         // Get teacher info
         const { data: teacher, error: teacherError } = await supabase

@@ -32,7 +32,7 @@ import { RoomsTab } from "./_components/RoomsTab";
 import { PaperCheckingTab } from "./_components/PaperCheckingTab";
 import { ExamDashboardTab } from "./_components/ExamDashboardTab";
 
-import { getCachedClasses, getCachedExams, getCachedGradingRules, getCachedExamConfigs } from "@/lib/cache/master-data-cache";
+import { getCachedClasses, getCachedExams, getCachedGradingRules, getCachedExamConfigs, invalidateMasterCache } from "@/lib/cache/master-data-cache";
 
 export default function ExamsPage() {
     const [activeTab, setActiveTab] = useState("dashboard");
@@ -46,6 +46,10 @@ export default function ExamsPage() {
 
     const fetchAll = useCallback(async () => {
         try {
+            invalidateMasterCache("exams");
+            invalidateMasterCache("gradingRules");
+            invalidateMasterCache("classes");
+            invalidateMasterCache("examConfigs");
             const [examData, gradeData, classData, configData] = await Promise.all([
                 getCachedExams(),
                 getCachedGradingRules(),

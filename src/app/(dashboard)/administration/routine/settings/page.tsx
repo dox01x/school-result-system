@@ -160,7 +160,7 @@ export default function RoutineSettingsPage() {
         <div className="space-y-6">
             {/* Header */}
             <div className="flex items-center gap-2">
-                <Link href="/dashboard/administration/routine">
+                <Link href="/administration/routine">
                     <Button variant="ghost" size="icon" className="h-7 w-7">
                         <ArrowLeft className="h-4 w-4" />
                     </Button>

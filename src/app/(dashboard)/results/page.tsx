@@ -725,7 +725,7 @@ body{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !impor
             />
 
             <div className="bg-card rounded-2xl border border-border/80 shadow-xs p-4 sm:p-5">
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                     <div className="space-y-1.5">
                         <Label className="text-[10.5px] uppercase tracking-wider text-muted-foreground font-bold">Class</Label>
                         <Select value={selectedClass} onValueChange={(v) => { setSelectedClass(v); setGenerated(false); }}>
@@ -794,7 +794,7 @@ body{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !impor
                     <Button
                         onClick={handleGenerate}
                         disabled={!selectedClass || !selectedExam || processing}
-                        className="gap-2 font-semibold shadow-xs"
+                        className="gap-2 font-semibold shadow-xs w-full sm:w-auto"
                     >
                         <Sparkle size={16} strokeWidth={2} />
                         {processing ? "Computing Results..." : "Compute Results"}
@@ -855,12 +855,12 @@ body{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !impor
                                 </Badge>
                             </CardTitle>
 
-                            <div className="flex gap-2 flex-wrap items-center">
+                            <div className="flex gap-2 flex-wrap items-center w-full sm:w-auto">
                                 <Input
                                     placeholder="Search student or roll..."
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="w-[200px] h-9 rounded-lg bg-muted border-0 focus-visible:ring-1 focus-visible:ring-ring/30 px-3 text-xs"
+                                    className="w-full sm:w-[200px] h-9 rounded-lg bg-muted border-0 focus-visible:ring-1 focus-visible:ring-ring/30 px-3 text-xs"
                                 />
                                 <Button variant="outline" size="sm" className="h-9 rounded-lg bg-muted border-0 hover:bg-muted/80 transition-colors text-foreground font-medium shadow-none text-xs" onClick={handleDownloadCSV}>
                                     <DownloadSimple size={14} strokeWidth={1.5} className="mr-1.5" />

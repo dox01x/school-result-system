@@ -105,7 +105,7 @@ function StudentsPageContent() {
             if (cancelled || error || !s) return;
             setProfileStudent(s);
             setProfileDialogOpen(true);
-            router.replace("/dashboard/students", { scroll: false });
+            router.replace("/students", { scroll: false });
         })();
         return () => {
             cancelled = true;
@@ -726,7 +726,7 @@ function StudentsPageContent() {
 
                             <div className="space-y-1.5">
                                 <Label>Academic Stream / Group</Label>
-                                <div className="grid grid-cols-4 gap-2 pt-1">
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
                                     {[{ value: "None", label: "General" }, { value: "Science", label: "Science" }, { value: "Arts", label: "Arts" }, { value: "Commerce", label: "Commerce" }].map((opt) => (
                                         <button
                                             key={opt.value}
@@ -980,7 +980,7 @@ function StudentsPageContent() {
                             />
                             <Input
                                 id="quick-add-name"
-                                placeholder="Student name — type and press Enter to quick register"
+                                placeholder="Student name (Press Enter to add)"
                                 value={quickAdd.name}
                                 onChange={(e) => setQuickAdd({ ...quickAdd, name: e.target.value })}
                                 className="flex-1 h-9 text-xs bg-background"

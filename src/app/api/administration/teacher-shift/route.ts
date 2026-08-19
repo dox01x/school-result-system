@@ -1,7 +1,9 @@
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { requireAuth, requireRole } from "@/lib/api-auth";
 import { LEAVE_REQUEST_COLUMNS, TEACHER_SHIFT_COLUMNS } from "@/lib/supabase/select-columns";
 import { timeToMinutes } from "@/lib/conflict-detector";
 import { NextRequest, NextResponse } from "next/server";
+
+export const dynamic = "force-dynamic";
 
 interface ProxyAssignmentInput {
     routine_id: string;
@@ -11,9 +13,12 @@ interface ProxyAssignmentInput {
 
 export async function GET(request: NextRequest) {
     try {
+        const auth = await requireAuth();
+        if (auth instanceof NextResponse) return auth;
+        const { supabase } = auth;
+
         const { searchParams } = new URL(request.url);
         const type = searchParams.get("type");
-        const supabase = await createServerSupabaseClient();
 
         if (type === "leave") {
             const { data, error } = await supabase
@@ -46,9 +51,12 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
     try {
+        const auth = await requireRole(["super_admin", "admin"]);
+        if (auth instanceof NextResponse) return auth;
+        const { supabase } = auth;
+
         const body = await request.json();
         const { type } = body;
-        const supabase = await createServerSupabaseClient();
 
         if (type === "leave") {
             const { teacher_id, start_date, end_date, reason, proxies } = body;
@@ -185,6 +193,10 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
     try {
+        const auth = await requireRole(["super_admin", "admin"]);
+        if (auth instanceof NextResponse) return auth;
+        const { supabase } = auth;
+
         const { searchParams } = new URL(request.url);
         const id = searchParams.get("id");
         const type = searchParams.get("type");
@@ -193,7 +205,6 @@ export async function DELETE(request: NextRequest) {
             return NextResponse.json({ success: false, error: "Missing id parameter" }, { status: 400 });
         }
 
-        const supabase = await createServerSupabaseClient();
         const table = type === "leave" ? "leave_requests" : "teacher_shifts";
         const { error } = await supabase.from(table).delete().eq("id", id);
 

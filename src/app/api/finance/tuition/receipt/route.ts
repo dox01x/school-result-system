@@ -7,7 +7,7 @@ export async function POST(request: Request) {
   try {
     const auth = await requireAuth();
     if (auth instanceof NextResponse) return auth;
-    const { supabase } = auth;
+    const { user, supabase } = auth;
 
     const body = await request.json();
     const { payment_id } = body;
@@ -21,7 +21,7 @@ export async function POST(request: Request) {
       .from('tuition_payments')
       .select(`
         *,
-        students(name, roll, student_id, classes(name), sections(name))
+        students(id, name, roll, student_id, user_id, classes(name), sections(name))
       `)
       .eq('id', payment_id)
       .single();
@@ -30,7 +30,29 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: "Payment not found" }, { status: 404 });
     }
 
-    // 2. Fetch school info from DB (with safe fallback)
+    // 2. Object-Level Authorization Check (BOLA / IDOR Prevention)
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    const role = profile?.role;
+    const isStaff = role === 'super_admin' || role === 'admin' || role === 'accountant';
+
+    if (!isStaff) {
+      const studentRel = payment.students as any;
+      const isOwner = studentRel && (studentRel.user_id === user.id || payment.student_id === user.id);
+      
+      if (!isOwner) {
+        return NextResponse.json(
+          { success: false, error: "Forbidden — you do not have permission to view this receipt" },
+          { status: 403 }
+        );
+      }
+    }
+
+    // 3. Fetch school info from DB (with safe fallback)
     const { data: schoolData } = await supabase
       .from('school_info')
       .select('name, address, phone, logo_url')
@@ -43,7 +65,7 @@ export async function POST(request: Request) {
       phone: "+8801XXXXXXXXX",
     };
 
-    // 3. Format Receipt Data
+    // 4. Format Receipt Data
     const rawPayment = payment as Record<string, unknown>;
     const studentRel = payment.students as { name?: string; roll?: string; student_id?: string; classes?: { name?: string }; sections?: { name?: string } } | null;
 
@@ -73,7 +95,7 @@ export async function POST(request: Request) {
       is_computer_generated: true
     };
 
-    // 4. Mark as printed if not already
+    // 5. Mark as printed if not already
     if (!payment.is_printed) {
       await supabase.from('tuition_payments').update({ is_printed: true }).eq('id', payment_id);
     }

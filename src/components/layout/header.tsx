@@ -26,39 +26,58 @@ import { ThemeToggle } from "@/components/theme-toggle";
 
 const ROUTE_TITLES: Record<string, { title: string; category?: string }> = {
     "/dashboard": { title: "Dashboard", category: "Overview" },
+    "/students": { title: "Students Directory", category: "Academic" },
+    "/classes": { title: "Classes & Sections", category: "Academic" },
+    "/subjects": { title: "Subject Management", category: "Academic" },
+    "/exams": { title: "Examinations", category: "Examination" },
+    "/marks": { title: "Marks Entry", category: "Examination" },
+    "/results": { title: "Student Results", category: "Examination" },
+    "/exam-configuration": { title: "Exam Configuration", category: "Examination" },
+    "/attendance": { title: "Attendance Tracking", category: "Administration" },
+    "/attendance/report": { title: "Attendance Report", category: "Administration" },
+    "/promotion": { title: "Student Promotion", category: "Administration" },
+    "/reports": { title: "All Reports", category: "Reports & Analytics" },
+    "/reports/results": { title: "Result Analytics", category: "Reports & Analytics" },
+    "/reports/finance": { title: "Financial Summary", category: "Reports & Analytics" },
+    "/reports/students": { title: "Student Reports", category: "Reports & Analytics" },
+    "/administration/teachers-rooms": { title: "Teachers", category: "Academic" },
+    "/administration/staff": { title: "General Staff", category: "Academic" },
+    "/administration/notice": { title: "Notice Board", category: "Administration" },
+    "/administration/routine": { title: "Class Routine", category: "Academic" },
+    "/administration/routine/settings": { title: "Routine Settings", category: "Academic" },
+    "/administration/exam-schedule": { title: "Exam Schedule", category: "Examination" },
+    "/administration/teacher-shift": { title: "Teacher Shifts & Duty", category: "Administration" },
+    "/settings": { title: "School Settings", category: "System" },
+    "/settings/school": { title: "School Configuration", category: "System" },
+    "/settings/users": { title: "User & Role Management", category: "System" },
+    "/settings/permissions": { title: "Permissions Matrix", category: "System" },
+    "/finance": { title: "Finance Overview", category: "Finance" },
+    "/finance/fee-structure": { title: "Fee Structures", category: "Finance" },
+    "/finance/tuition/collect": { title: "Payment Collection", category: "Finance" },
+    "/finance/tuition/overdue": { title: "Overdue & Dues", category: "Finance" },
+    "/finance/salary": { title: "Teacher Salary", category: "Finance" },
+    "/finance/salary/config": { title: "Salary Configuration", category: "Finance" },
+    "/finance/salary/pay": { title: "Disburse Teacher Salary", category: "Finance" },
+    "/finance/staff-salary": { title: "Staff Salary", category: "Finance" },
+    "/finance/staff-salary/config": { title: "Staff Salary Config", category: "Finance" },
+    "/finance/staff-salary/pay": { title: "Staff Salary Disbursement", category: "Finance" },
+    "/finance/expense": { title: "Expense Tracker", category: "Finance" },
+    "/finance/income": { title: "Income Records", category: "Finance" },
+    "/finance/daily-closing": { title: "Daily Closing", category: "Finance" },
+    "/finance/report": { title: "Finance Reports", category: "Finance" },
+    "/finance/report/monthly": { title: "Monthly Financial Report", category: "Finance" },
+    "/finance/report/yearly": { title: "Yearly Financial Report", category: "Finance" },
+    // Aliases for /dashboard/* legacy compatibility
     "/dashboard/students": { title: "Students Directory", category: "Academic" },
-    "/dashboard/administration/teachers-rooms": { title: "Teachers", category: "Academic" },
-    "/dashboard/administration/staff": { title: "General Staff", category: "Academic" },
-    "/dashboard/administration/notice": { title: "Notice Board", category: "Administration" },
-    "/dashboard/results": { title: "Student Results", category: "Examination" },
-    "/dashboard/settings": { title: "School Settings", category: "System" },
     "/dashboard/classes": { title: "Classes & Sections", category: "Academic" },
     "/dashboard/subjects": { title: "Subject Management", category: "Academic" },
     "/dashboard/exams": { title: "Examinations", category: "Examination" },
     "/dashboard/marks": { title: "Marks Entry", category: "Examination" },
+    "/dashboard/results": { title: "Student Results", category: "Examination" },
     "/dashboard/attendance": { title: "Attendance Tracking", category: "Administration" },
-    "/dashboard/attendance/report": { title: "Attendance Report", category: "Administration" },
-    "/dashboard/administration/exam-schedule": { title: "Exam Schedule", category: "Examination" },
-    "/dashboard/administration/routine": { title: "Class Routine", category: "Academic" },
-    "/dashboard/administration/teacher-shift": { title: "Teacher Shifts", category: "Academic" },
-    "/dashboard/promotion": { title: "Student Promotion", category: "Administration" },
-    "/dashboard/users": { title: "User & Role Management", category: "System" },
+    "/dashboard/settings": { title: "School Settings", category: "System" },
     "/dashboard/finance": { title: "Finance Overview", category: "Finance" },
-    "/dashboard/finance/tuition/collect": { title: "Tuition Collection", category: "Finance" },
-    "/dashboard/finance/tuition/overdue": { title: "Overdue Tuition", category: "Finance" },
-    "/dashboard/finance/fee-structure": { title: "Fee Structure", category: "Finance" },
-    "/dashboard/finance/salary": { title: "Salary Management", category: "Finance" },
-    "/dashboard/finance/salary/config": { title: "Salary Configuration", category: "Finance" },
-    "/dashboard/finance/salary/pay": { title: "Disburse Salary", category: "Finance" },
-    "/dashboard/finance/staff-salary": { title: "Staff Salary", category: "Finance" },
-    "/dashboard/finance/staff-salary/config": { title: "Staff Salary Config", category: "Finance" },
-    "/dashboard/finance/staff-salary/pay": { title: "Staff Salary Disbursement", category: "Finance" },
-    "/dashboard/finance/expense": { title: "Expense Tracker", category: "Finance" },
-    "/dashboard/finance/income": { title: "Income Records", category: "Finance" },
-    "/dashboard/finance/daily-closing": { title: "Daily Closing", category: "Finance" },
-    "/dashboard/finance/report": { title: "Finance Reports", category: "Finance" },
-    "/dashboard/finance/report/monthly": { title: "Monthly Financial Report", category: "Finance" },
-    "/dashboard/finance/report/yearly": { title: "Yearly Financial Report", category: "Finance" },
+    "/dashboard/promotion": { title: "Student Promotion", category: "Administration" },
 };
 
 function getPageMeta(pathname: string | null): { title: string; category?: string } {
@@ -66,7 +85,7 @@ function getPageMeta(pathname: string | null): { title: string; category?: strin
     if (ROUTE_TITLES[pathname]) return ROUTE_TITLES[pathname];
     const sorted = Object.keys(ROUTE_TITLES).sort((a, b) => b.length - a.length);
     for (const route of sorted) {
-        if (pathname.startsWith(route)) return ROUTE_TITLES[route];
+        if (pathname === route || pathname.startsWith(route + "/")) return ROUTE_TITLES[route];
     }
     return { title: "Dashboard", category: "Overview" };
 }
@@ -136,7 +155,7 @@ export function NotificationPopover() {
                         </Badge>
                     </div>
                     <Link
-                        href="/dashboard/administration/notice"
+                        href="/administration/notice"
                         className="text-[11px] font-medium text-primary hover:underline"
                     >
                         View all
@@ -210,7 +229,7 @@ export function UserDropdown() {
                 </div>
 
                 <DropdownMenuItem asChild className="cursor-pointer text-xs rounded-md">
-                    <Link href="/dashboard/settings" className="flex items-center gap-2">
+                    <Link href="/settings" className="flex items-center gap-2">
                         <Settings size={14} strokeWidth={1.7} />
                         Settings & Preferences
                     </Link>

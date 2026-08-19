@@ -104,7 +104,7 @@ export async function GET(request: NextRequest) {
             id: s.id,
             title: s.name,
             subtitle: [s.roll && `Roll ${s.roll}`, s.student_id || null].filter(Boolean).join(" · ") || null,
-            href: `/dashboard/students?studentId=${encodeURIComponent(s.id)}`,
+            href: `/students?studentId=${encodeURIComponent(s.id)}`,
         });
     }
 
@@ -115,7 +115,7 @@ export async function GET(request: NextRequest) {
             id: t.id,
             title: t.name,
             subtitle: t.subject_specialty || t.email || null,
-            href: "/dashboard/administration/teachers-rooms",
+            href: "/administration/teachers-rooms",
         });
     }
 
@@ -126,7 +126,7 @@ export async function GET(request: NextRequest) {
             id: s.id,
             title: s.name,
             subtitle: s.designation || s.email || "Staff",
-            href: "/dashboard/administration/staff",
+            href: "/administration/staff",
         });
     }
 
@@ -137,7 +137,7 @@ export async function GET(request: NextRequest) {
             id: c.id,
             title: c.name,
             subtitle: "Class",
-            href: "/dashboard/classes",
+            href: "/classes",
         });
     }
 
@@ -148,7 +148,7 @@ export async function GET(request: NextRequest) {
             id: s.id,
             title: s.name,
             subtitle: "Subject",
-            href: "/dashboard/subjects",
+            href: "/subjects",
         });
     }
 
@@ -159,7 +159,7 @@ export async function GET(request: NextRequest) {
             id: e.id,
             title: e.name,
             subtitle: e.exam_type || "Exam",
-            href: "/dashboard/exams",
+            href: "/exams",
         });
     }
 
@@ -170,7 +170,7 @@ export async function GET(request: NextRequest) {
             id: n.id,
             title: n.title,
             subtitle: "Notice",
-            href: "/dashboard/administration/notice",
+            href: "/administration/notice",
         });
     }
 

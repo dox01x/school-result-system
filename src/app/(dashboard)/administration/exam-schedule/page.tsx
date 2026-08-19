@@ -457,7 +457,7 @@ export default function ExamSchedulePage() {
             }).join("");
             instructionsHtml = `
                 <div class="inst-section">
-                    <h4>Instructions / নির্দেশনাবলী</h4>
+                    <h4>Instructions</h4>
                     <ul>${items}</ul>
                 </div>
             `;

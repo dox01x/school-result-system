@@ -11,7 +11,7 @@ export default function AttendanceReportRedirect() {
     const router = useRouter();
 
     useEffect(() => {
-        router.replace("/dashboard/attendance");
+        router.replace("/attendance");
     }, [router]);
 
     return (

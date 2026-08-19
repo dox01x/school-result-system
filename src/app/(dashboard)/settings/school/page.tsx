@@ -10,8 +10,10 @@ import { Label } from "@/components/ui/label";
 import { Breadcrumbs } from "@/components/navigation/breadcrumbs";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
+import { invalidateMasterCache } from "@/lib/cache/master-data-cache";
 
 export default function SchoolSettingsPage() {
+  const [existingId, setExistingId] = useState<string | null>(null);
   const [schoolName, setSchoolName] = useState("EduPulse Model Academy");
   const [address, setAddress] = useState("House 12, Road 4, Dhanmondi, Dhaka");
   const [phone, setPhone] = useState("+880 1700-000000");
@@ -22,8 +24,9 @@ export default function SchoolSettingsPage() {
   useEffect(() => {
     async function loadSchoolInfo() {
       const supabase = createClient();
-      const { data } = await supabase.from("school_info").select("*").single();
+      const { data } = await supabase.from("school_info").select("*").limit(1).maybeSingle();
       if (data) {
+        setExistingId(data.id);
         if (data.name) setSchoolName(data.name);
         if (data.address) setAddress(data.address);
         if (data.phone) setPhone(data.phone);
@@ -40,15 +43,29 @@ export default function SchoolSettingsPage() {
     setSaving(true);
     try {
       const supabase = createClient();
-      await (supabase as any).from("school_info").upsert([
-        {
+      if (existingId) {
+        const { error } = await (supabase as any).from("school_info").update({
           name: schoolName,
           address,
           phone,
           email,
           current_academic_year: academicYear,
-        },
-      ]);
+        }).eq("id", existingId);
+        if (error) throw error;
+      } else {
+        const { data: inserted, error } = await (supabase as any).from("school_info").insert([
+          {
+            name: schoolName,
+            address,
+            phone,
+            email,
+            current_academic_year: academicYear,
+          },
+        ]).select("id").single();
+        if (error) throw error;
+        if (inserted?.id) setExistingId(inserted.id);
+      }
+      invalidateMasterCache("schoolInfo");
       toast.success("School information saved successfully!");
     } catch (err: any) {
       toast.error(err.message || "Failed to save settings.");

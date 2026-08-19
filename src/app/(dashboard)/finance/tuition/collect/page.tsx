@@ -20,6 +20,9 @@ import {
 import { formatTaka, getMonthName, roundCurrency } from '@/lib/finance-utils';
 import PrintReceipt from '@/components/finance/PrintReceipt';
 import { generateTuitionReceiptHtml, ReceiptFormat } from '@/lib/finance-receipt-template';
+import { generateIdempotencyKey } from '@/lib/payment/idempotency';
+import { PaymentStatusBadge } from '@/components/finance/PaymentStatusBadge';
+import { PaymentActionModal } from '@/components/finance/PaymentActionModal';
 
 type FeeItem = {
   type: string;
@@ -496,9 +499,14 @@ export default function CollectTuitionPage() {
         note: note
       };
 
+      const idempKey = generateIdempotencyKey('tuition_collect');
+
       const res = await fetch('/api/finance/tuition/collect', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Idempotency-Key': idempKey
+        },
         body: JSON.stringify(payload)
       });
       const result = await res.json();
@@ -548,7 +556,7 @@ export default function CollectTuitionPage() {
       }
     } catch (err: any) {
       console.error('Submission error:', err);
-      toast.error(err?.message || "Network or server error during payment submission");
+      toast.error(err?.message || "Network or server error. Please verify payment history and try again.");
     } finally {
       setSubmitting(false);
     }

@@ -82,24 +82,26 @@ export default function StudentDemographicsReportPage() {
           <CardTitle className="text-base">Class-wise Enrollment Distribution</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          <table className="w-full text-sm text-left">
-            <thead className="bg-muted/50 border-b border-border text-xs uppercase text-muted-foreground">
-              <tr>
-                <th className="p-3.5">Class Name</th>
-                <th className="p-3.5 text-center">Enrolled Students</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border/40">
-              {classes.map((cls) => (
-                <tr key={cls.id} className="hover:bg-muted/30 transition-colors">
-                  <td className="p-3.5 font-medium">{cls.name}</td>
-                  <td className="p-3.5 text-center font-mono font-bold text-primary">
-                    {cls.students?.length || 0}
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-left min-w-[320px]">
+              <thead className="bg-muted/50 border-b border-border text-xs uppercase text-muted-foreground">
+                <tr>
+                  <th className="p-3.5">Class Name</th>
+                  <th className="p-3.5 text-center">Enrolled Students</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-border/40">
+                {classes.map((cls) => (
+                  <tr key={cls.id} className="hover:bg-muted/30 transition-colors">
+                    <td className="p-3.5 font-medium">{cls.name}</td>
+                    <td className="p-3.5 text-center font-mono font-bold text-primary">
+                      {cls.students?.length || 0}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </CardContent>
       </Card>
     </div>

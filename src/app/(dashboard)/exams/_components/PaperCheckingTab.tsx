@@ -22,7 +22,7 @@ import { toast } from "sonner";
 import { 
     Plus, Pencil, Trash2, CheckCircle, Printer, FileText, 
     ChevronDown, Clock, Filter, Search, X, Coins, Receipt, 
-    DollarSign, Edit3, Check, Eye, SlidersHorizontal
+    DollarSign, Edit3, Check, Eye, SlidersHorizontal, Send
 } from "lucide-react";
 import {
     DropdownMenu,
@@ -946,31 +946,31 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
                 const isRecheck = item.dutyType === "recheck";
                 tableRowsHtml += `
                     <tr>
-                        ${isFirst ? `<td rowspan="${rowCount}" style="border:1px solid #000;padding:5px 6px;text-align:center;font-family:monospace;vertical-align:middle;font-weight:600">${slCount.toString().padStart(2, "0")}</td>` : ""}
-                        ${isFirst ? `<td rowspan="${rowCount}" style="border:1px solid #000;padding:5px 8px;font-weight:700;vertical-align:middle">${teacherData.teacherName}</td>` : ""}
-                        <td style="border:1px solid #000;padding:5px 6px">${item.className}</td>
-                        <td style="border:1px solid #000;padding:5px 6px">${item.subjectName}${isRecheck ? ` <span style="font-size:9.5px;font-weight:700;color:#1e3a8a">(Recheck)</span>` : ""}</td>
-                        <td style="border:1px solid #000;padding:5px 6px;text-align:center;font-weight:600;font-family:monospace">${item.copies}</td>
-                        <td style="border:1px solid #000;padding:5px 6px;text-align:center;font-family:monospace">${!isRecheck ? `BDT ${item.mainRate}` : `—`}</td>
-                        <td style="border:1px solid #000;padding:5px 6px;text-align:right;font-weight:${!isRecheck ? 'bold' : 'normal'};font-family:monospace">${!isRecheck ? `BDT ${item.mainAmount.toLocaleString()}` : `—`}</td>
-                        <td style="border:1px solid #000;padding:5px 6px;text-align:center;font-family:monospace">${isRecheck ? `BDT ${item.recheckRate}` : `—`}</td>
-                        <td style="border:1px solid #000;padding:5px 6px;text-align:right;font-weight:${isRecheck ? 'bold' : 'normal'};font-family:monospace">${isRecheck ? `BDT ${item.recheckAmount.toLocaleString()}` : `—`}</td>
-                        <td style="border:1px solid #000;padding:5px 6px;text-align:right;font-weight:bold;font-family:monospace">BDT ${item.totalAmount.toLocaleString()}</td>
-                        ${isFirst ? `<td rowspan="${rowCount}" style="border:1px solid #000;padding:5px 6px;width:105px;vertical-align:middle;text-align:center"></td>` : ""}
+                        ${isFirst ? `<td rowspan="${rowCount}" style="border:1px solid #000;padding:5px 3px;text-align:center;font-family:monospace;vertical-align:middle;font-weight:700">${slCount.toString().padStart(2, "0")}</td>` : ""}
+                        ${isFirst ? `<td rowspan="${rowCount}" style="border:1px solid #000;padding:5px 6px;font-weight:700;vertical-align:middle;text-align:left">${teacherData.teacherName}</td>` : ""}
+                        <td style="border:1px solid #000;padding:5px 4px;text-align:left">${item.className}</td>
+                        <td style="border:1px solid #000;padding:5px 4px;text-align:left">${item.subjectName}${isRecheck ? ` <br><span style="font-size:9.5px;font-weight:700;color:#1e3a8a">(Recheck)</span>` : ""}</td>
+                        <td style="border:1px solid #000;padding:5px 3px;text-align:center;font-weight:700;font-family:monospace">${item.copies}</td>
+                        <td style="border:1px solid #000;padding:5px 3px;text-align:center;font-family:monospace">${!isRecheck ? `BDT ${item.mainRate}` : `—`}</td>
+                        <td style="border:1px solid #000;padding:5px 3px;text-align:center;font-weight:${!isRecheck ? 'bold' : 'normal'};font-family:monospace">${!isRecheck ? `BDT ${item.mainAmount.toLocaleString()}` : `—`}</td>
+                        <td style="border:1px solid #000;padding:5px 3px;text-align:center;font-family:monospace">${isRecheck ? `BDT ${item.recheckRate}` : `—`}</td>
+                        <td style="border:1px solid #000;padding:5px 3px;text-align:center;font-weight:${isRecheck ? 'bold' : 'normal'};font-family:monospace">${isRecheck ? `BDT ${item.recheckAmount.toLocaleString()}` : `—`}</td>
+                        <td style="border:1px solid #000;padding:5px 3px;text-align:center;font-weight:bold;font-family:monospace">BDT ${item.totalAmount.toLocaleString()}</td>
+                        ${isFirst ? `<td rowspan="${rowCount}" style="border:1px solid #000;padding:5px 3px;width:75px;vertical-align:middle;text-align:center"></td>` : ""}
                     </tr>
                 `;
             });
             if (rowCount > 1) {
                 tableRowsHtml += `
                     <tr style="background:#f8fafc;font-weight:bold">
-                        <td colspan="4" style="border:1px solid #000;padding:4px 6px;text-align:right;font-size:10.5px;color:#334155">Subtotal (${teacherData.teacherName}):</td>
-                        <td style="border:1px solid #000;padding:4px 6px;text-align:center;font-family:monospace;font-size:11px">${teacherData.totalCopies}</td>
-                        <td style="border:1px solid #000;padding:4px 6px;text-align:center;color:#666">—</td>
-                        <td style="border:1px solid #000;padding:4px 6px;text-align:right;font-family:monospace;font-size:11px">BDT ${teacherData.mainAmount.toLocaleString()}</td>
-                        <td style="border:1px solid #000;padding:4px 6px;text-align:center;color:#666">—</td>
-                        <td style="border:1px solid #000;padding:4px 6px;text-align:right;font-family:monospace;font-size:11px;color:#1e3a8a">BDT ${teacherData.recheckAmount.toLocaleString()}</td>
-                        <td style="border:1px solid #000;padding:4px 6px;text-align:right;font-family:monospace;font-size:11px;font-weight:900">BDT ${teacherData.totalAmount.toLocaleString()}</td>
-                        <td style="border:1px solid #000;padding:4px 6px"></td>
+                        <td colspan="4" style="border:1px solid #000;padding:4px 6px;text-align:right;font-size:10.5px;color:#000">Subtotal (${teacherData.teacherName}):</td>
+                        <td style="border:1px solid #000;padding:4px 3px;text-align:center;font-family:monospace;font-size:11px">${teacherData.totalCopies}</td>
+                        <td style="border:1px solid #000;padding:4px 3px;text-align:center;color:#666">—</td>
+                        <td style="border:1px solid #000;padding:4px 3px;text-align:center;font-family:monospace;font-size:11px">BDT ${teacherData.mainAmount.toLocaleString()}</td>
+                        <td style="border:1px solid #000;padding:4px 3px;text-align:center;color:#666">—</td>
+                        <td style="border:1px solid #000;padding:4px 3px;text-align:center;font-family:monospace;font-size:11px;color:#1e3a8a">BDT ${teacherData.recheckAmount.toLocaleString()}</td>
+                        <td style="border:1px solid #000;padding:4px 3px;text-align:center;font-family:monospace;font-size:11px;font-weight:900">BDT ${teacherData.totalAmount.toLocaleString()}</td>
+                        <td style="border:1px solid #000;padding:4px 3px"></td>
                     </tr>
                 `;
             }
@@ -988,8 +988,8 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             color: #000000;
             background: #ffffff;
-            font-size: 11.5px;
-            line-height: 1.35;
+            font-size: 11px;
+            line-height: 1.3;
             padding: 10mm 12mm;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
@@ -1004,9 +1004,8 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
             align-items: center;
             justify-content: center;
             position: relative;
-            margin-bottom: 12px;
-            border-bottom: 2px solid #000000;
-            padding-bottom: 10px;
+            margin-bottom: 6px;
+            padding-bottom: 2px;
             text-align: center;
         }
         .header-logo {
@@ -1014,12 +1013,12 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
             left: 0;
             top: 50%;
             transform: translateY(-50%);
-            max-height: 50px;
-            max-width: 50px;
+            max-height: 48px;
+            max-width: 48px;
             object-fit: contain;
         }
         .school-title {
-            font-size: 19px;
+            font-size: 20px;
             font-weight: 900;
             text-transform: uppercase;
             letter-spacing: 0.5px;
@@ -1027,7 +1026,7 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
             line-height: 1.2;
         }
         .school-subtitle {
-            font-size: 10.5px;
+            font-size: 11px;
             color: #333333;
             margin-top: 2px;
         }
@@ -1037,42 +1036,22 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
             text-transform: uppercase;
             letter-spacing: 0.6px;
             color: #000000;
-            margin-top: 6px;
+            margin-top: 4px;
         }
 
-        .report-header {
-            margin: 10px 0 14px 0;
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-end;
-            padding-bottom: 6px;
+        .report-header-center {
+            text-align: center;
+            margin: 4px 0 14px 0;
             border-bottom: 1.5px solid #000000;
-        }
-        .report-title-block {
-            text-align: left;
+            padding-bottom: 8px;
         }
         .report-title {
-            font-size: 13.5px;
+            font-size: 14px;
             font-weight: 900;
             text-transform: uppercase;
             letter-spacing: 0.5px;
             color: #000000;
-            margin-bottom: 2px;
-        }
-        .report-scope {
-            font-size: 11px;
-            font-weight: 500;
-            color: #333333;
-            margin-top: 2px;
-        }
-        .report-meta {
-            text-align: right;
-            font-size: 10.5px;
-            color: #444444;
-            line-height: 1.4;
-        }
-        .report-meta strong {
-            color: #000000;
+            margin-bottom: 0;
         }
 
         table {
@@ -1082,26 +1061,29 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
             margin-bottom: 20px;
         }
         th {
-            background: #f1f5f9;
+            background: #ffffff;
             color: #000;
             font-weight: 700;
             text-transform: uppercase;
-            font-size: 9px;
-            letter-spacing: 0.3px;
-            padding: 6px 5px;
+            font-size: 9.5px;
+            letter-spacing: 0.2px;
+            padding: 5px 3px;
             border: 1px solid #000;
-            text-align: left;
-        }
-        th.text-center, td.text-center {
             text-align: center;
-        }
-        th.text-right, td.text-right {
-            text-align: right;
+            vertical-align: middle;
+            line-height: 1.2;
         }
         td {
-            padding: 5px 5px;
+            padding: 5px 4px;
             border: 1px solid #000;
             vertical-align: middle;
+            text-align: center;
+            font-size: 11px;
+            line-height: 1.25;
+        }
+        td.text-left {
+            text-align: left;
+            padding-left: 6px;
         }
         tr {
             page-break-inside: avoid;
@@ -1110,7 +1092,7 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
         .footer-row td {
             background: #f1f5f9 !important;
             font-weight: 900;
-            font-size: 11.5px;
+            font-size: 12px;
             border-top: 2px solid #000;
         }
 
@@ -1155,24 +1137,20 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
 </head>
 <body>
     <!-- School Header -->
-    <div class="header-container">
-        ${schoolInfo?.logo_url ? `<img class="header-logo" src="${schoolInfo.logo_url}" alt="Logo">` : ""}
-        <div>
-            <h1 class="school-title">${schoolInfo?.name || "School Name"}</h1>
-            <p class="school-subtitle">${schoolInfo?.address || ""}${schoolInfo?.phone ? " • Phone: " + schoolInfo.phone : ""}</p>
-            <div class="exam-name-header">${examName}</div>
-        </div>
+    <div style="text-align:center;margin-bottom:14px">
+        <h1 style="font-size:20px;font-weight:900;text-transform:uppercase;letter-spacing:0.5px;margin:0;line-height:1.2;color:#000">${schoolInfo?.name || "School Name"}</h1>
+        <p style="font-size:11px;font-weight:500;color:#222;margin-top:2px">${schoolInfo?.address || ""} ${schoolInfo?.phone ? "• " + schoolInfo.phone : ""}</p>
     </div>
 
-    <!-- Report Header -->
-    <div class="report-header">
-        <div class="report-title-block">
-            <div class="report-title">Exam Paper Checking &amp; Rechecking Remuneration Bill</div>
-            <div class="report-scope">Scope: <strong>${remunerationStatusFilter === "returned" ? "Returned Papers Only" : "All Assigned Papers"}</strong></div>
+    <!-- Report Header Bar -->
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;border-bottom:1.5px solid #000;padding-bottom:8px;margin-bottom:16px">
+        <div>
+            <div style="font-size:24px;font-weight:900;text-transform:uppercase;letter-spacing:-0.3px;line-height:1.1;color:#000;margin-bottom:4px">REMUNERATION BILL</div>
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:#000">${examName} &bull; PAPER EVALUATION &amp; RECHECKING</div>
         </div>
-        <div class="report-meta">
-            <div>Date: <strong>${new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</strong></div>
-            <div>Time: <strong>${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</strong></div>
+        <div style="text-align:right">
+            <div style="font-size:22px;font-weight:900;color:#000;line-height:1.1;margin-bottom:4px">${new Date().toLocaleDateString('en-GB', { weekday: 'long' })}</div>
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:#000">${new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' }).toUpperCase()}</div>
         </div>
     </div>
 
@@ -1180,29 +1158,29 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
     <table>
         <thead>
             <tr>
-                <th style="width: 30px" class="text-center">Sl.</th>
-                <th>Teacher Name</th>
-                <th style="width: 115px">Class &amp; Section</th>
-                <th>Subject</th>
-                <th style="width: 50px" class="text-center">Copies</th>
-                <th style="width: 60px" class="text-center">Rate</th>
-                <th style="width: 80px" class="text-right">Main Amount</th>
-                <th style="width: 65px" class="text-center">Recheck Rate</th>
-                <th style="width: 80px" class="text-right">Recheck Amt</th>
-                <th style="width: 95px" class="text-right">Total Amount</th>
-                <th style="width: 100px" class="text-center">Signature / Remarks</th>
+                <th style="width: 28px">SL.</th>
+                <th style="width: 85px" class="text-left">TEACHER<br>NAME</th>
+                <th style="width: 85px" class="text-left">CLASS &amp;<br>SECTION</th>
+                <th style="width: 80px" class="text-left">SUBJECT</th>
+                <th style="width: 42px">COPIES</th>
+                <th style="width: 50px">RATE</th>
+                <th style="width: 68px">MAIN<br>AMOUNT</th>
+                <th style="width: 62px">RECHECK<br>RATE</th>
+                <th style="width: 62px">RECHECK<br>AMT</th>
+                <th style="width: 68px">TOTAL<br>AMOUNT</th>
+                <th style="width: 75px">SIGNATURE<br>/ REMARKS</th>
             </tr>
         </thead>
         <tbody>
             ${tableRowsHtml}
             <tr class="footer-row">
-                <td colspan="4" class="text-right" style="padding-right: 10px;">GRAND TOTAL</td>
-                <td class="text-center" style="font-family:monospace">${remunerationStats.totalCopies}</td>
-                <td class="text-center" style="font-family:monospace; font-size:9px">Class-wise</td>
-                <td class="text-right" style="font-family:monospace">BDT ${remunerationStats.totalMainAmount.toLocaleString()}</td>
-                <td class="text-center" style="font-family:monospace; font-size:9px">Class-wise</td>
-                <td class="text-right" style="font-family:monospace; color:#1e3a8a">BDT ${remunerationStats.totalRecheckAmount.toLocaleString()}</td>
-                <td class="text-right" style="font-family:monospace; font-size:11.5px; font-weight:900">BDT ${remunerationStats.totalAmount.toLocaleString()}</td>
+                <td colspan="4" style="text-align: right; padding-right: 10px;">GRAND TOTAL</td>
+                <td style="font-family:monospace; text-align: center;">${remunerationStats.totalCopies}</td>
+                <td style="font-family:monospace; font-size:9px; text-align: center;">Class-wise</td>
+                <td style="font-family:monospace; text-align: center;">BDT ${remunerationStats.totalMainAmount.toLocaleString()}</td>
+                <td style="font-family:monospace; font-size:9px; text-align: center;">Class-wise</td>
+                <td style="font-family:monospace; color:#1e3a8a; text-align: center;">BDT ${remunerationStats.totalRecheckAmount.toLocaleString()}</td>
+                <td style="font-family:monospace; font-size:11.5px; font-weight:900; text-align: center;">BDT ${remunerationStats.totalAmount.toLocaleString()}</td>
                 <td></td>
             </tr>
         </tbody>
@@ -1365,14 +1343,22 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
 </head>
 <body>
     <div class="voucher-box">
-        <div class="header-container">
-            <h1 class="school-title">${schoolInfo?.name || "School Name"}</h1>
-            <p class="school-subtitle">${schoolInfo?.address || ""}${schoolInfo?.phone ? " • Phone: " + schoolInfo.phone : ""}</p>
-            <div class="exam-name-header">${examName}</div>
+        <!-- School Header -->
+        <div style="text-align:center;margin-bottom:14px">
+            <h1 style="font-size:20px;font-weight:900;text-transform:uppercase;letter-spacing:0.5px;margin:0;line-height:1.2;color:#000">${schoolInfo?.name || "School Name"}</h1>
+            <p style="font-size:11px;font-weight:500;color:#222;margin-top:2px">${schoolInfo?.address || ""} ${schoolInfo?.phone ? "• " + schoolInfo.phone : ""}</p>
         </div>
 
-        <div class="voucher-title">
-            Teacher Paper Evaluation &amp; Rechecking Remuneration Voucher
+        <!-- Report Header Bar -->
+        <div style="display:flex;justify-content:space-between;align-items:flex-end;border-bottom:1.5px solid #000;padding-bottom:8px;margin-bottom:14px">
+            <div>
+                <div style="font-size:24px;font-weight:900;text-transform:uppercase;letter-spacing:-0.3px;line-height:1.1;color:#000;margin-bottom:4px">REMUNERATION BILL</div>
+                <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:#000">${examName} &bull; ${teacherData.teacherName}</div>
+            </div>
+            <div style="text-align:right">
+                <div style="font-size:22px;font-weight:900;color:#000;line-height:1.1;margin-bottom:4px">${new Date().toLocaleDateString('en-GB', { weekday: 'long' })}</div>
+                <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:#000">${new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' }).toUpperCase()}</div>
+            </div>
         </div>
 
         <div class="meta-grid">
@@ -1472,6 +1458,11 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
 
         const thStyle = `border:1px solid #000;padding:6px 6px;text-align:center;font-weight:bold;background:#f0f0f0;font-size:11px`;
         const totalPendingCopies = rowsToPrint.filter(r => r.status === "pending").reduce((sum, r) => sum + r.total_copies, 0);
+        const dateObj = selectedDate !== "all" ? new Date(selectedDate + 'T00:00:00') : new Date();
+        const dayName = !isNaN(dateObj.getTime()) ? dateObj.toLocaleDateString('en-GB', { weekday: 'long' }) : '';
+        const formattedDateStr = !isNaN(dateObj.getTime())
+            ? dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' }).toUpperCase()
+            : new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' }).toUpperCase();
 
         const html = `<!DOCTYPE html>
 <html>
@@ -1479,17 +1470,29 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
     <meta charset="utf-8">
     <title>${filterTitle}</title>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: Arial, sans-serif; color: #000; padding: 6mm; font-size: 12px; }
-        @page { size: A4 portrait; margin: 6mm; }
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #000; padding: 6mm 10mm; font-size: 11.5px; }
+        @page { size: A4 portrait; margin: 8mm 10mm; }
     </style>
 </head>
 <body>
-    <div style="text-align:center;margin-bottom:14px;border-bottom:2px solid #000;padding-bottom:10px">
-        <h2 style="font-size:18px;font-weight:bold;margin:0 0 4px 0">${filterTitle}</h2>
-        <p style="font-size:13px;margin:3px 0"><strong>Exam:</strong> ${examName}</p>
-        ${selectedDate !== "all" ? `<p style="font-size:11px;margin:2px 0"><strong>Exam Date:</strong> ${formatDate(selectedDate)}</p>` : ""}
-        <p style="font-size:11px;margin:3px 0;color:#333">Total Listed: ${rowsToPrint.length} entries | Total Pending Copies: ${totalPendingCopies} scripts</p>
+    <!-- School Header -->
+    <div style="text-align:center;margin-bottom:14px">
+        <h1 style="font-size:20px;font-weight:900;text-transform:uppercase;letter-spacing:0.5px;margin:0;line-height:1.2;color:#000">${schoolInfo?.name || "School Name"}</h1>
+        <p style="font-size:11px;font-weight:500;color:#222;margin-top:2px">${schoolInfo?.address || ""} ${schoolInfo?.phone ? "• " + schoolInfo.phone : ""}</p>
+    </div>
+
+    <!-- Report Header Bar -->
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;border-bottom:1.5px solid #000;padding-bottom:8px;margin-bottom:16px">
+        <div>
+            <div style="font-size:24px;font-weight:900;text-transform:uppercase;letter-spacing:-0.3px;line-height:1.1;color:#000;margin-bottom:4px">${filterTitle.toUpperCase()}</div>
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:#000">${examName}${selectedDate !== "all" ? ` &bull; ${formatDate(selectedDate)}` : ""} &bull; ${rowsToPrint.length} ENTRIES (${totalPendingCopies} SCRIPTS)</div>
+        </div>
+        <div style="text-align:right">
+            <div style="font-size:22px;font-weight:900;color:#000;line-height:1.1;margin-bottom:4px">${dayName}</div>
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:#000">${formattedDateStr}</div>
+        </div>
     </div>
 
     <table style="width:100%;border-collapse:collapse;font-size:11px">
@@ -1923,10 +1926,20 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
                                                                         {isVirtual ? <span className="text-muted-foreground/45">—</span> : d.total_copies}
                                                                     </TableCell>
                                                                     <TableCell className="text-xs px-2 text-[11px] whitespace-nowrap">
-                                                                        {isVirtual || d.date_given === "1970-01-01" ? (
+                                                                        {!isVirtual && d.date_given && d.date_given !== "1970-01-01" ? (
+                                                                            formatDate(d.date_given)
+                                                                        ) : isVirtual ? (
                                                                             <span className="text-muted-foreground/45">—</span>
                                                                         ) : (
-                                                                            formatDate(d.date_given)
+                                                                            <Button
+                                                                                variant="outline"
+                                                                                size="sm"
+                                                                                className="h-6 rounded-md text-[9.5px] px-1.5 font-bold border-dashed border-blue-500/50 hover:bg-blue-50 hover:text-blue-600 gap-1 text-blue-600"
+                                                                                onClick={() => handleMarkGiven(d.id)}
+                                                                                title="Mark as Given to Teacher"
+                                                                            >
+                                                                                <Send className="h-2.5 w-2.5" /> Mark Given
+                                                                            </Button>
                                                                         )}
                                                                     </TableCell>
                                                                     <TableCell className="text-xs px-2 whitespace-nowrap">
@@ -2075,6 +2088,16 @@ export function PaperCheckingTab({ exams }: { exams: Exam[] }) {
                                                             <div className="flex items-center justify-end gap-2 pt-2 border-t border-border/40">
                                                                 {!isVirtual ? (
                                                                     <>
+                                                                        {(!d.date_given || d.date_given === "1970-01-01") && (
+                                                                            <Button
+                                                                                variant="ghost"
+                                                                                size="sm"
+                                                                                className="h-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg px-2 text-xs font-medium"
+                                                                                onClick={() => handleMarkGiven(d.id)}
+                                                                            >
+                                                                                <Send className="h-3.5 w-3.5 mr-1" /> Given
+                                                                            </Button>
+                                                                        )}
                                                                         {d.status === "pending" && (
                                                                             <Button
                                                                                 variant="ghost"

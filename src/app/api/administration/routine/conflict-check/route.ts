@@ -1,7 +1,9 @@
 // API route: POST conflict-check — checks teacher, room & section conflicts across all routines
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { requireAuth } from "@/lib/api-auth";
 import { timesOverlap } from "@/lib/conflict-detector";
 import { NextRequest, NextResponse } from "next/server";
+
+export const dynamic = "force-dynamic";
 
 interface RoutineSlotRecord {
     id: string;
@@ -17,6 +19,10 @@ interface RoutineSlotRecord {
 
 export async function POST(request: NextRequest) {
     try {
+        const auth = await requireAuth();
+        if (auth instanceof NextResponse) return auth;
+        const { supabase } = auth;
+
         const body = await request.json();
         const { teacher_id, room_id, day_of_week, start_time, end_time, exclude_id, class_id, section_id } = body;
 
@@ -24,7 +30,6 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ success: false, error: "Missing required fields" }, { status: 400 });
         }
 
-        const supabase = await createServerSupabaseClient();
         const conflicts: { type: "teacher" | "room" | "section"; message: string; entry: Record<string, unknown> }[] = [];
 
         // 1. Section conflict check (if section_id provided)

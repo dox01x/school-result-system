@@ -23,6 +23,8 @@ import { toast } from "sonner";
 import { ConnectionBanner } from "@/components/connection-banner";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
+import { invalidateMasterCache } from "@/lib/cache/master-data-cache";
+
 export default function ClassesPage() {
     const [classes, setClasses] = useState<(Class & { sections: Section[] })[]>([]);
     const [loading, setLoading] = useState(true);
@@ -76,6 +78,7 @@ export default function ClassesPage() {
                 .from("classes")
                 .insert({ name: className.trim(), numeric_value: classNumericValue });
             if (error) throw error;
+            invalidateMasterCache("classes");
             toast.success(`Class "${className.trim()}" created`);
             setClassName("");
             setClassNumericValue(0);
@@ -94,6 +97,7 @@ export default function ClassesPage() {
                 .update({ name: className.trim(), numeric_value: classNumericValue })
                 .eq("id", editingClass.id);
             if (error) throw error;
+            invalidateMasterCache("classes");
             toast.success("Class updated");
             setClassName("");
             setClassNumericValue(0);
@@ -114,6 +118,8 @@ export default function ClassesPage() {
                 try {
                     const { error } = await supabase.from("classes").delete().eq("id", cls.id);
                     if (error) throw error;
+                    invalidateMasterCache("classes");
+                    invalidateMasterCache("sections");
                     toast.success(`Class "${cls.name}" deleted`);
                     fetchClasses();
                 } catch (err: unknown) {
@@ -131,6 +137,7 @@ export default function ClassesPage() {
                 .from("sections")
                 .insert({ class_id: addingSectionTo, name: sectionName.trim() });
             if (error) throw error;
+            invalidateMasterCache("sections");
             toast.success(`Section "${sectionName.trim()}" added`);
             setSectionName("");
             setSectionDialogOpen(false);
@@ -150,6 +157,7 @@ export default function ClassesPage() {
                 try {
                     const { error } = await supabase.from("sections").delete().eq("id", section.id);
                     if (error) throw error;
+                    invalidateMasterCache("sections");
                     toast.success(`Section "${section.name}" deleted`);
                     fetchClasses();
                 } catch (err: unknown) {

@@ -33,26 +33,28 @@ export default function GradingConfigPage() {
 
       <Card>
         <CardContent className="p-0">
-          <table className="w-full text-sm text-left">
-            <thead className="bg-muted/50 border-b border-border text-xs uppercase text-muted-foreground">
-              <tr>
-                <th className="p-3.5">Letter Grade</th>
-                <th className="p-3.5 text-center">Marks Range</th>
-                <th className="p-3.5 text-center">Grade Point</th>
-                <th className="p-3.5">Remarks / Distinction</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border/40">
-              {GRADING_SCALE.map((g) => (
-                <tr key={g.grade} className="hover:bg-muted/30 transition-colors">
-                  <td className="p-3.5 font-bold text-base text-primary">{g.grade}</td>
-                  <td className="p-3.5 text-center font-mono">{g.min}% – {g.max}%</td>
-                  <td className="p-3.5 text-center font-mono font-bold">{g.point.toFixed(2)}</td>
-                  <td className="p-3.5 text-muted-foreground">{g.remarks}</td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-left min-w-[480px]">
+              <thead className="bg-muted/50 border-b border-border text-xs uppercase text-muted-foreground">
+                <tr>
+                  <th className="p-3.5">Letter Grade</th>
+                  <th className="p-3.5 text-center">Marks Range</th>
+                  <th className="p-3.5 text-center">Grade Point</th>
+                  <th className="p-3.5">Remarks / Distinction</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-border/40">
+                {GRADING_SCALE.map((g) => (
+                  <tr key={g.grade} className="hover:bg-muted/30 transition-colors">
+                    <td className="p-3.5 font-bold text-base text-primary">{g.grade}</td>
+                    <td className="p-3.5 text-center font-mono">{g.min}% – {g.max}%</td>
+                    <td className="p-3.5 text-center font-mono font-bold">{g.point.toFixed(2)}</td>
+                    <td className="p-3.5 text-muted-foreground">{g.remarks}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </CardContent>
       </Card>
     </div>

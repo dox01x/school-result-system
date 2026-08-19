@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { CLASS_COLUMNS, SUBJECT_COLUMNS } from "@/lib/supabase/select-columns";
 import type { Class, Subject } from "@/lib/database.types";
-import { getCachedClasses, getCachedSubjects } from "@/lib/cache/master-data-cache";
+import { getCachedClasses, getCachedSubjects, invalidateMasterCache } from "@/lib/cache/master-data-cache";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -135,10 +135,12 @@ export default function SubjectsPage() {
                     .update(payload)
                     .eq("id", editingSubject.id);
                 if (error) throw error;
+                invalidateMasterCache("subjects");
                 toast.success("Subject updated");
             } else {
                 const { error } = await supabase.from("subjects").insert(payload);
                 if (error) throw error;
+                invalidateMasterCache("subjects");
                 toast.success(`Subject "${form.name.trim()}" created`);
             }
 
@@ -160,6 +162,7 @@ export default function SubjectsPage() {
                 try {
                     const { error } = await supabase.from("subjects").delete().eq("id", subject.id);
                     if (error) throw error;
+                    invalidateMasterCache("subjects");
                     toast.success(`Subject "${subject.name}" deleted`);
                     fetchSubjects();
                 } catch (err: unknown) {
@@ -217,7 +220,7 @@ export default function SubjectsPage() {
 
             {/* Class Funnel Selector */}
             <div className="bg-card rounded-2xl border border-border/80 p-4 sm:p-5 shadow-xs flex items-center justify-between gap-4 flex-wrap">
-                <div className="flex items-center gap-3 min-w-[240px]">
+                <div className="flex items-center gap-3 min-w-0 flex-1">
                     <div className="p-2 rounded-xl bg-primary/10 text-primary border border-primary/20 shrink-0">
                         <Layers size={18} strokeWidth={2} />
                     </div>
@@ -266,7 +269,7 @@ export default function SubjectsPage() {
                                 />
                             </div>
 
-                            <div className="grid grid-cols-2 gap-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 <div className="space-y-1.5">
                                     <Label htmlFor="group-name">Group / Stream</Label>
                                     <Select value={form.group_name} onValueChange={(v) => setForm({ ...form, group_name: v })}>
@@ -296,7 +299,7 @@ export default function SubjectsPage() {
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 <div className="space-y-1.5">
                                     <Label htmlFor="full-marks">Full Marks *</Label>
                                     <Input

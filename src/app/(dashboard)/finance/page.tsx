@@ -35,11 +35,13 @@ export default function FinanceDashboard() {
           supabase
             .from('tuition_payments')
             .select('amount_paid')
+            .neq('status', 'void')
             .gte('payment_date', todayStr + 'T00:00:00')
             .lte('payment_date', todayStr + 'T23:59:59'),
           supabase
             .from('tuition_payments')
             .select('receipt_number, amount_paid, payment_date, class_name, fee_type, student_id, students(name)')
+            .neq('status', 'void')
             .order('payment_date', { ascending: false })
             .limit(6)
         ]);

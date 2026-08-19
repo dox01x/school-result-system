@@ -378,7 +378,7 @@ export function MobileSearch() {
                                     className="w-full text-xs font-semibold"
                                     onClick={() => {
                                         setStudentOpen(false);
-                                        router.push(`/dashboard/students?studentId=${encodeURIComponent(student.id)}`);
+                                        router.push(`/students?studentId=${encodeURIComponent(student.id)}`);
                                     }}
                                 >
                                     Open Full Profile
@@ -437,7 +437,7 @@ export function MobileSearch() {
                                 className="w-full text-xs"
                                 onClick={() => {
                                     setTeacherOpen(false);
-                                    router.push("/dashboard/administration/teachers-rooms");
+                                    router.push("/administration/teachers-rooms");
                                 }}
                             >
                                 Open Teachers Directory
@@ -491,7 +491,7 @@ export function MobileSearch() {
                                 className="w-full text-xs"
                                 onClick={() => {
                                     setStaffOpen(false);
-                                    router.push("/dashboard/administration/staff");
+                                    router.push("/administration/staff");
                                 }}
                             >
                                 Open Staff Directory

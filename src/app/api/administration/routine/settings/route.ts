@@ -1,11 +1,16 @@
 // API route: GET/PUT routine_settings — manage working days, periods, and timing configuration
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { requireAuth, requireRole } from "@/lib/api-auth";
 import { ROUTINE_SETTINGS_COLUMNS } from "@/lib/supabase/select-columns";
 import { NextRequest, NextResponse } from "next/server";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
     try {
-        const supabase = await createServerSupabaseClient();
+        const auth = await requireAuth();
+        if (auth instanceof NextResponse) return auth;
+        const { supabase } = auth;
+
         const { data, error } = await supabase
             .from("routine_settings")
             .select(ROUTINE_SETTINGS_COLUMNS)
@@ -40,6 +45,10 @@ export async function GET() {
 
 export async function PUT(request: NextRequest) {
     try {
+        const auth = await requireRole(["super_admin", "admin"]);
+        if (auth instanceof NextResponse) return auth;
+        const { supabase } = auth;
+
         const body = await request.json();
         const { working_days, periods_per_day, period_duration_minutes, period_durations, break_after_period, break_duration_minutes, class_start_time } = body;
 
@@ -52,8 +61,6 @@ export async function PUT(request: NextRequest) {
         if (break_duration_minutes !== undefined && (typeof break_duration_minutes !== "number" || break_duration_minutes < 0)) {
             return NextResponse.json({ success: false, error: "break_duration_minutes must be a non-negative number" }, { status: 400 });
         }
-
-        const supabase = await createServerSupabaseClient();
 
         // Check if a settings row exists
         const { data: existing } = await supabase

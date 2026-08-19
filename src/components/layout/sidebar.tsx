@@ -20,6 +20,7 @@ import { isNavItemVisible, ROLE_LABELS_EN } from "@/lib/rbac";
 import { NAV_GROUPS, isActive, type NavItem, type NavGroup } from "./nav-config";
 import { NotificationPopover, UserDropdown } from "./header";
 import { MobileSearch } from "./mobile-search";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const SidebarNavItem = memo(function SidebarNavItem({
     item,
@@ -280,8 +281,16 @@ export function Sidebar() {
     return (
         <>
             {/* Mobile Header Bar */}
-            <header className="lg:hidden fixed top-0 left-0 right-0 z-40 flex items-center justify-between h-14 px-3.5 bg-card/95 backdrop-blur-md border-b border-border shadow-xs">
+            <header className="lg:hidden fixed top-0 left-0 right-0 z-40 flex items-center justify-between h-14 px-2.5 sm:px-3.5 bg-card/95 backdrop-blur-md border-b border-border shadow-xs">
                 <div className="flex items-center gap-2 min-w-0">
+                    <button
+                        type="button"
+                        onClick={openMobile}
+                        className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted active:scale-95 transition-all"
+                        aria-label="Open navigation menu"
+                    >
+                        <Menu size={19} strokeWidth={2} />
+                    </button>
                     <Link href="/dashboard" className="flex items-center gap-2 min-w-0">
                         <div className="h-7 w-7 rounded-lg bg-primary flex items-center justify-center shrink-0 shadow-xs">
                             <GraduationCap size={16} strokeWidth={2.2} className="text-primary-foreground" />
@@ -290,7 +299,8 @@ export function Sidebar() {
                     </Link>
                 </div>
 
-                <div className="flex items-center gap-1.5 shrink-0">
+                <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+                    <ThemeToggle />
                     <MobileSearch />
                     <NotificationPopover />
                     <UserDropdown />
@@ -313,7 +323,7 @@ export function Sidebar() {
                 className={cn(
                     "fixed top-0 left-0 z-50 h-screen bg-card border-r border-border transition-all duration-200 ease-out lg:sticky lg:z-auto flex flex-col shadow-xl lg:shadow-none",
                     collapsed ? "w-[68px]" : "w-[252px]",
-                    mobileOpen ? "translate-x-0 w-[265px]" : "-translate-x-full lg:translate-x-0"
+                    mobileOpen ? "translate-x-0 w-[280px] max-w-[85vw]" : "-translate-x-full lg:translate-x-0"
                 )}
             >
                 {/* Logo & Brand Header */}
@@ -378,7 +388,7 @@ export function Sidebar() {
                                 <p className="text-[10.5px] font-medium text-muted-foreground truncate">{roleLabel}</p>
                             </div>
                             <Link
-                                href="/dashboard/settings"
+                                href="/settings"
                                 className="p-1 text-muted-foreground hover:text-foreground rounded transition-colors"
                                 title="Settings"
                             >

@@ -75,12 +75,12 @@ export default function ResultDetailPage({
         ]}
       />
 
-      <div className="flex items-center justify-between no-print">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 no-print">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">Official Academic Transcript</h1>
           <p className="text-sm text-muted-foreground mt-0.5">Student result card and subject-wise breakdown.</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Button onClick={() => window.print()} variant="outline" size="sm" className="gap-1.5">
             <Printer className="w-4 h-4" /> Print Marksheet
           </Button>
@@ -92,25 +92,25 @@ export default function ResultDetailPage({
         </div>
       </div>
 
-      <Card className="max-w-3xl mx-auto border border-border shadow-sm p-8 bg-card">
-        <div className="text-center pb-6 border-b border-border/60">
-          <h2 className="text-2xl font-bold tracking-tight text-primary">Academic Transcript</h2>
+      <Card className="max-w-3xl mx-auto border border-border shadow-sm p-4 sm:p-8 bg-card">
+        <div className="text-center pb-5 sm:pb-6 border-b border-border/60">
+          <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-primary">Academic Transcript</h2>
           <p className="text-xs text-muted-foreground">Academic Progress Report & Marksheet</p>
         </div>
 
-        <div className="grid grid-cols-2 gap-4 py-4 text-xs">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 py-4 text-xs">
           <div>
             <p><span className="text-muted-foreground">Student Name:</span> <strong className="text-foreground">{student.name}</strong></p>
             <p className="mt-1"><span className="text-muted-foreground">Roll Number:</span> <strong className="text-foreground">{student.roll || student.roll_number}</strong></p>
           </div>
-          <div className="text-right">
+          <div className="sm:text-right">
             <p><span className="text-muted-foreground">Class:</span> <strong className="text-foreground">{student.classes?.name} ({student.sections?.name})</strong></p>
             <p className="mt-1"><span className="text-muted-foreground">Total Obtained:</span> <strong className="text-primary">{totalMarks} / {totalMax} ({percentage.toFixed(1)}%)</strong></p>
           </div>
         </div>
 
-        <div className="mt-4 overflow-hidden border border-border/80 rounded-lg">
-          <table className="w-full text-xs text-left">
+        <div className="mt-4 overflow-x-auto border border-border/80 rounded-lg">
+          <table className="w-full text-xs text-left min-w-[480px]">
             <thead className="bg-muted text-muted-foreground uppercase font-semibold">
               <tr>
                 <th className="p-3">Subject</th>

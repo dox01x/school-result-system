@@ -1,28 +1,21 @@
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { requireAuth, requireRole } from "@/lib/api-auth";
 import { EXAM_ROUTINE_CONFIG_COLUMNS, EXAM_SCHEDULE_COLUMNS } from "@/lib/supabase/select-columns";
 import { NextRequest, NextResponse } from "next/server";
 
-function formatTime12(t: string): string {
-    try {
-        const [h, m] = t.split(":").map(Number);
-        const ampm = h >= 12 ? "PM" : "AM";
-        const h12 = h % 12 || 12;
-        return `${h12}:${m.toString().padStart(2, "0")} ${ampm}`;
-    } catch {
-        return t;
-    }
-}
+export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
     try {
+        const auth = await requireAuth();
+        if (auth instanceof NextResponse) return auth;
+        const { supabase } = auth;
+
         const { searchParams } = new URL(request.url);
         const examId = searchParams.get("exam_id");
 
         if (!examId) {
             return NextResponse.json({ success: false, error: "Missing exam_id parameter" }, { status: 400 });
         }
-
-        const supabase = await createServerSupabaseClient();
 
         // 1. Try reading from exam_routine_configs
         try {
@@ -137,14 +130,16 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
     try {
+        const auth = await requireRole(["super_admin", "admin", "exam_controller"]);
+        if (auth instanceof NextResponse) return auth;
+        const { supabase } = auth;
+
         const body = await request.json();
         const { exam_id, shifts, dates, instructions, selectedShiftId } = body;
 
         if (!exam_id) {
             return NextResponse.json({ success: false, error: "Missing exam_id in request body" }, { status: 400 });
         }
-
-        const supabase = await createServerSupabaseClient();
 
         const payload = {
             exam_id,
@@ -184,6 +179,10 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
     try {
+        const auth = await requireRole(["super_admin", "admin", "exam_controller"]);
+        if (auth instanceof NextResponse) return auth;
+        const { supabase } = auth;
+
         const { searchParams } = new URL(request.url);
         const examId = searchParams.get("exam_id");
 
@@ -191,7 +190,6 @@ export async function DELETE(request: NextRequest) {
             return NextResponse.json({ success: false, error: "Missing exam_id parameter" }, { status: 400 });
         }
 
-        const supabase = await createServerSupabaseClient();
         const { error } = await (supabase as any)
             .from("exam_routine_configs")
             .delete()

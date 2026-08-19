@@ -52,8 +52,8 @@ export default function TeacherShiftPage() {
 
     const getDatesInRange = useCallback((start: string, end: string) => {
         const dates = [];
-        const current = new Date(start);
-        const endDate = new Date(end);
+        const current = new Date(start + "T00:00:00");
+        const endDate = new Date(end + "T00:00:00");
         while (current <= endDate) {
             dates.push(new Date(current));
             current.setDate(current.getDate() + 1);
@@ -67,7 +67,7 @@ export default function TeacherShiftPage() {
     };
 
     useEffect(() => {
-        if (leaveForm.teacher_id && leaveForm.start_date && leaveForm.end_date && new Date(leaveForm.end_date) >= new Date(leaveForm.start_date)) {
+        if (leaveForm.teacher_id && leaveForm.start_date && leaveForm.end_date && new Date(leaveForm.end_date + "T00:00:00") >= new Date(leaveForm.start_date + "T00:00:00")) {
             const fetchRoutines = async () => {
                 const dates = getDatesInRange(leaveForm.start_date, leaveForm.end_date);
                 const daysToFetch = [...new Set(dates.map(dateToSchoolDay).filter(d => d !== -1))];
@@ -89,9 +89,10 @@ export default function TeacherShiftPage() {
                     for (const d of dates) {
                         const day = dateToSchoolDay(d);
                         const routinesForDay = data.filter((r: any) => r.day_of_week === day);
+                        const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
                         for (const r of (routinesForDay as any[])) {
                             cover.push({
-                                date: d.toISOString().split("T")[0],
+                                date: dateStr,
                                 routine: r,
                             });
                         }
