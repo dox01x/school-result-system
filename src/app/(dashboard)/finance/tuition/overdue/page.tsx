@@ -188,7 +188,7 @@ export default function OverdueTuitionPage() {
                           variant="outline" 
                           onClick={() => sendReminder(item.student_info?.id, item.outstanding)} 
                           disabled={sendingReminders.includes(item.student_info?.id)}
-                          className="h-8 px-3 rounded-lg border-border bg-white hover:bg-muted/50 text-foreground font-bold shadow-none text-[10px] gap-1.5"
+                          className="h-8 px-3 rounded-lg border-border bg-card hover:bg-muted text-foreground font-bold shadow-none text-[10px] gap-1.5"
                         >
                           {sendingReminders.includes(item.student_info?.id) ? (
                             <SpinnerGap size={12} strokeWidth={2} className="animate-spin text-muted-foreground" />
@@ -198,7 +198,7 @@ export default function OverdueTuitionPage() {
                           Remind
                         </Button>
                         <Link href={`/finance/tuition/collect?student_id=${item.student_info?.id}`}>
-                          <Button size="sm" variant="outline" className="h-8 px-3 rounded-lg border-border bg-white hover:bg-muted/50 text-foreground font-bold shadow-none text-[10px] gap-1.5">
+                          <Button size="sm" variant="outline" className="h-8 px-3 rounded-lg border-border bg-card hover:bg-muted text-foreground font-bold shadow-none text-[10px] gap-1.5">
                             Collect <ArrowSquareOut className="w-3 h-3" />
                           </Button>
                         </Link>

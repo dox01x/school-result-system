@@ -28,6 +28,7 @@ import {
   UserCog,
   Sliders,
   CheckSquare,
+  Megaphone,
 } from "lucide-react";
 
 export type NavItem = {
@@ -118,6 +119,7 @@ export const NAV_GROUPS: NavGroup[] = [
     collapsible: true,
     items: [
       { title: "Daily Attendance", icon: CalendarCheck, href: "/attendance" },
+      { title: "Notice Board", icon: Megaphone, href: "/administration/notice" },
       { title: "Teacher Shifts & Duty", icon: UserCog, href: "/administration/teacher-shift" },
       { title: "Student Promotion", icon: ArrowUpCircle, href: "/promotion" },
     ],

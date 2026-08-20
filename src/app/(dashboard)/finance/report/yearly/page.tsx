@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
 import { Loader2 as SpinnerGap, Search as MagnifyingGlass, Printer as DownloadSimple } from "lucide-react";
+import { PageHeader } from "@/components/layout/page-header";
 import { formatTaka, getMonthName } from '@/lib/finance-utils';
 import { generateYearlyReportHtml } from '@/lib/finance-receipt-template';
 import { printHtml } from '@/lib/print-utils';
@@ -67,8 +68,11 @@ export default function YearlyReportPage() {
   return (
     <div className="space-y-6 print:m-0 print:p-0">
       <div className="print:hidden">
-        <h1 className="text-2xl font-bold tracking-tight text-foreground  mb-1">Yearly Financial Report</h1>
-        <p className="text-muted-foreground mt-1">Annual overview of the school&apos;s financial performance.</p>
+        <PageHeader
+          icon={DownloadSimple}
+          title="Yearly Financial Report"
+          subtitle="Annual overview of the school's financial performance and audits."
+        />
       </div>
 
       {/* Funnels */}
@@ -78,11 +82,11 @@ export default function YearlyReportPage() {
             <Label className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest px-1">Active Academic Year</Label>
             <Input type="number" value={form.year} onChange={e => setForm({...form, year: e.target.value})} className="h-11 rounded-xl bg-muted border-0 font-bold text-foreground focus-visible:ring-1 focus-visible:ring-ring/30 shadow-none" />
           </div>
-          <Button onClick={loadReport} disabled={loading} className="w-full md:w-auto h-11 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold shadow-none px-6">
+          <Button onClick={loadReport} disabled={loading} className="w-full md:w-auto h-11 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-none px-6">
             {loading ? <SpinnerGap size={16} strokeWidth={2} className="mr-2 animate-spin" /> : <MagnifyingGlass size={16} strokeWidth={2} className="mr-2" />}
             Generate Report
           </Button>
-          <Button onClick={handlePrint} variant="outline" className="w-full md:w-auto md:ml-auto h-11 rounded-xl border-border bg-white hover:bg-muted/50 text-muted-foreground font-bold shadow-none px-6" disabled={!report}>
+          <Button onClick={handlePrint} variant="outline" className="w-full md:w-auto md:ml-auto h-11 rounded-xl border-border bg-background hover:bg-muted text-foreground font-bold shadow-none px-6" disabled={!report}>
             <DownloadSimple size={16} strokeWidth={2} className="mr-2" /> Print Report
           </Button>
         </CardContent>

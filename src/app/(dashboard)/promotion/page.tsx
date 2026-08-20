@@ -239,10 +239,10 @@ export default function PromotionPage() {
                                             {failingStudents.length} student(s) have scored below 33% in one or more subjects this academic year. 
                                             It is recommended to resolve their marks or verify their status before running bulk promotion.
                                         </p>
-                                        <div className="mt-3 overflow-x-auto max-h-40 divide-y divide-amber-100 border border-amber-200/50 rounded-xl bg-white/70">
+                                        <div className="mt-3 overflow-x-auto max-h-40 divide-y divide-border border border-border rounded-xl bg-card">
                                             {failingStudents.map((s) => (
                                                 <div key={s.id} className="flex items-center justify-between px-3 py-2 text-xs">
-                                                    <span className="font-bold text-slate-800">{s.name} (Roll: {s.roll || "N/A"})</span>
+                                                    <span className="font-bold text-foreground">{s.name} (Roll: {s.roll || "N/A"})</span>
                                                     <div className="flex items-center gap-2">
                                                         <Badge variant="outline" className="bg-amber-100/50 text-amber-800 border-amber-200/50 text-[10px] uppercase font-bold tracking-widest px-1.5 py-0.5 rounded-md shadow-none">{s.className}</Badge>
                                                         <span className="text-[10px] font-bold text-red-600">{s.failedCount} Subject(s) failed</span>
@@ -345,12 +345,12 @@ export default function PromotionPage() {
                                 {preview.transitions.map((t, i) => (
                                     <div key={i} className="flex items-center justify-between rounded-xl border-0 bg-muted p-3 hover:bg-muted/80 transition-colors">
                                         <div className="flex items-center gap-2 text-sm">
-                                            <Badge className="bg-white text-foreground border-0 shadow-sm font-bold">{t.from_class} {t.from_section}</Badge>
+                                            <Badge className="bg-card text-foreground border border-border/80 shadow-xs font-bold">{t.from_class} {t.from_section}</Badge>
                                             <ArrowRight size={14} strokeWidth={2} className="text-muted-foreground/60" />
                                             {t.gender_split ? (
                                                 <div className="flex gap-1">
-                                                    <Badge className="bg-white text-foreground border-0 shadow-sm font-bold">Boys ({t.boys_count})</Badge>
-                                                    <Badge className="bg-white text-foreground border-0 shadow-sm font-bold">Girls ({t.girls_count})</Badge>
+                                                    <Badge className="bg-card text-foreground border border-border/80 shadow-xs font-bold">Boys ({t.boys_count})</Badge>
+                                                    <Badge className="bg-card text-foreground border border-border/80 shadow-xs font-bold">Girls ({t.girls_count})</Badge>
                                                     {(t.unset_count ?? 0) > 0 && <Badge className="bg-red-50 text-red-700 border-0 font-bold">Unset ({t.unset_count})</Badge>}
                                                 </div>
                                             ) : (
@@ -400,21 +400,21 @@ export default function PromotionPage() {
             {/* ─── STEP 2: Confirm ─── */}
             {step === 2 && preview && (
                 <div className="space-y-4">
-                    <Card className="border border-red-200 bg-red-50/50 shadow-none rounded-xl">
-                        <CardHeader><CardTitle className="text-base flex items-center gap-2 text-red-700 font-bold tracking-tight"><Shield size={18} strokeWidth={2} className="text-red-500" />Final Confirmation Required</CardTitle></CardHeader>
+                    <Card className="border border-red-500/30 bg-red-500/5 shadow-none rounded-xl">
+                        <CardHeader><CardTitle className="text-base flex items-center gap-2 text-red-600 dark:text-red-400 font-bold tracking-tight"><Shield size={18} strokeWidth={2} className="text-red-500" />Final Confirmation Required</CardTitle></CardHeader>
                         <CardContent className="space-y-4">
-                            <div className="rounded-xl bg-white border border-red-100 p-4 space-y-2 text-sm font-medium text-red-900 shadow-xs">
-                                <p><strong className="font-bold text-red-950">Active Academic Year:</strong> {preview.current_academic_year} → {preview.next_academic_year}</p>
-                                <p><strong className="font-bold text-red-950">Students to promote:</strong> {preview.total_promote + preview.total_new_examinee}</p>
-                                <p><strong className="font-bold text-red-950">New Examinee:</strong> {preview.total_new_examinee}</p>
-                                <p><strong className="font-bold text-red-950">Students to archive:</strong> {preview.total_archive}</p>
+                            <div className="rounded-xl bg-card border border-red-500/20 p-4 space-y-2 text-sm font-medium text-foreground shadow-xs">
+                                <p><strong className="font-bold text-foreground">Active Academic Year:</strong> {preview.current_academic_year} → {preview.next_academic_year}</p>
+                                <p><strong className="font-bold text-foreground">Students to promote:</strong> {preview.total_promote + preview.total_new_examinee}</p>
+                                <p><strong className="font-bold text-foreground">New Examinee:</strong> {preview.total_new_examinee}</p>
+                                <p><strong className="font-bold text-foreground">Students to archive:</strong> {preview.total_archive}</p>
                             </div>
                             <div className="space-y-2">
-                                <p className="text-sm text-red-800 font-bold">Type &quot;PROMOTE&quot; to confirm this action:</p>
-                                <Input value={confirmText} onChange={(e) => setConfirmText(e.target.value.toUpperCase())} placeholder="Type PROMOTE here" className="max-w-xs font-mono font-bold tracking-widest border-0 bg-white h-11 rounded-xl focus-visible:ring-1 focus-visible:ring-red-300 shadow-sm text-foreground" />
+                                <p className="text-sm text-red-600 dark:text-red-400 font-bold">Type &quot;PROMOTE&quot; to confirm this action:</p>
+                                <Input value={confirmText} onChange={(e) => setConfirmText(e.target.value.toUpperCase())} placeholder="Type PROMOTE here" className="max-w-xs font-mono font-bold tracking-widest border border-border bg-background h-11 rounded-xl focus-visible:ring-1 focus-visible:ring-red-500 shadow-sm text-foreground" />
                             </div>
                             <div className="flex gap-3">
-                                <Button variant="outline" onClick={() => { setStep(1); setConfirmText(""); }} className="h-11 rounded-xl font-bold border-0 bg-white text-red-800 hover:bg-red-100 shadow-none px-6">← Back</Button>
+                                <Button variant="outline" onClick={() => { setStep(1); setConfirmText(""); }} className="h-11 rounded-xl font-bold border-border bg-card hover:bg-muted text-foreground shadow-none px-6">← Back</Button>
                                 <Button onClick={executePromotion} disabled={confirmText !== "PROMOTE" || promoting} className="bg-red-600 text-white font-bold rounded-xl shadow-none hover:bg-red-700 h-11 px-6">
                                     {promoting ? <><SpinnerGap size={16} strokeWidth={2} className="mr-2 animate-spin" />Promoting...</> : <>Execute Promotion</>}
                                 </Button>

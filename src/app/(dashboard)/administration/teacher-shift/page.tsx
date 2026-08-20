@@ -483,10 +483,10 @@ export default function TeacherShiftPage() {
                                         <div key={i} className="flex flex-col gap-2 p-3 rounded-xl bg-muted/50 border-0">
                                             <div className="flex justify-between items-center text-xs text-muted-foreground font-medium">
                                                 <span>{c.date} ({c.routine.start_time} - {c.routine.end_time})</span>
-                                                <Badge variant="outline" className="text-[10px] bg-white border-0 text-muted-foreground">{classItem} - {subjectItem}</Badge>
+                                                <Badge variant="outline" className="text-[10px] bg-card border border-border text-foreground">{classItem} - {subjectItem}</Badge>
                                             </div>
                                             <Select value={proxyAssignments[key] || "unassigned"} onValueChange={(v) => setProxyAssignments(p => ({ ...p, [key]: v }))}>
-                                                <SelectTrigger className="h-9 text-xs rounded-lg border-0 bg-white shadow-none font-medium"><SelectValue placeholder="Select Proxy Teacher" /></SelectTrigger>
+                                                <SelectTrigger className="h-9 text-xs rounded-lg border border-border bg-card shadow-xs font-medium"><SelectValue placeholder="Select Proxy Teacher" /></SelectTrigger>
                                                 <SelectContent>
                                                     <SelectItem value="unassigned" disabled>Select Proxy Teacher</SelectItem>
                                                     {teachers.filter(t => t.id !== leaveForm.teacher_id).map((t) => (

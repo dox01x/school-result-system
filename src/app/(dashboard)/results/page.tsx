@@ -123,10 +123,20 @@ export default function ResultsPage() {
             const exam = exams.find((e) => e.id === examId);
             if (!exam) return [];
             const pairedMct = exam.exam_type === "semester" ? exams.find((e) => e.exam_type === "mct" && e.term === exam.term) : null;
-            const { data: directMarks } = await supabase.from("marks").select(MARK_COLUMNS).eq("exam_id", examId).in("student_id", students.map((s) => s.id));
+            const { data: directMarks } = await supabase
+                .from("marks")
+                .select(MARK_COLUMNS)
+                .eq("exam_id", examId)
+                .eq("academic_year", selectedAcademicYear)
+                .in("student_id", students.map((s) => s.id));
             let mctMarks: Mark[] = [];
             if (pairedMct) {
-                const { data } = await supabase.from("marks").select(MARK_COLUMNS).eq("exam_id", pairedMct.id).in("student_id", students.map((s) => s.id));
+                const { data } = await supabase
+                    .from("marks")
+                    .select(MARK_COLUMNS)
+                    .eq("exam_id", pairedMct.id)
+                    .eq("academic_year", selectedAcademicYear)
+                    .in("student_id", students.map((s) => s.id));
                 mctMarks = data || [];
             }
 
@@ -341,6 +351,43 @@ export default function ResultsPage() {
 
             let studentResults: StudentRankedResult[];
             const activeAcademicYear = selectedAcademicYear || schoolInfo?.current_academic_year || String(new Date().getFullYear());
+
+            // Validate that marks exist for this academic year and selected students before computing
+            const currentStudentIds = studentsToUse.map((s) => s.id);
+            if (isFinal) {
+                const semExamIds = exams.filter((e) => e.exam_type === "semester").map((e) => e.id);
+                if (semExamIds.length > 0) {
+                    const { count: finalMarksCount } = await supabase
+                        .from("marks")
+                        .select("id", { count: "exact", head: true })
+                        .in("exam_id", semExamIds)
+                        .in("student_id", currentStudentIds)
+                        .eq("academic_year", activeAcademicYear);
+                    if (!finalMarksCount || finalMarksCount === 0) {
+                        toast.error(`No semester marks recorded for these students in academic year ${activeAcademicYear}.`);
+                        setResults([]);
+                        setGenerated(false);
+                        setProcessing(false);
+                        return;
+                    }
+                }
+            } else {
+                const examIdsToCheck = [selectedExam];
+                if (pairedMctExam) examIdsToCheck.push(pairedMctExam.id);
+                const { count: marksCount } = await supabase
+                    .from("marks")
+                    .select("id", { count: "exact", head: true })
+                    .in("exam_id", examIdsToCheck)
+                    .in("student_id", currentStudentIds)
+                    .eq("academic_year", activeAcademicYear);
+                if (!marksCount || marksCount === 0) {
+                    toast.error(`No marks recorded for these students in academic year ${activeAcademicYear} in this exam.`);
+                    setResults([]);
+                    setGenerated(false);
+                    setProcessing(false);
+                    return;
+                }
+            }
 
             if (isFinal) {
                 studentResults = await generateFinalResult(studentsToUse, subjects || []);
@@ -728,7 +775,7 @@ body{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !impor
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                     <div className="space-y-1.5">
                         <Label className="text-[10.5px] uppercase tracking-wider text-muted-foreground font-bold">Class</Label>
-                        <Select value={selectedClass} onValueChange={(v) => { setSelectedClass(v); setGenerated(false); }}>
+                        <Select value={selectedClass} onValueChange={(v) => { setSelectedClass(v); setGenerated(false); setResults([]); }}>
                             <SelectTrigger className="w-full bg-background border-border text-xs sm:text-sm font-medium">
                                 <SelectValue placeholder="Select Class" />
                             </SelectTrigger>
@@ -742,7 +789,7 @@ body{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !impor
 
                     <div className="space-y-1.5">
                         <Label className="text-[10.5px] uppercase tracking-wider text-muted-foreground font-bold">Section</Label>
-                        <Select value={selectedSection} onValueChange={(v) => { setSelectedSection(v); setGenerated(false); }}>
+                        <Select value={selectedSection} onValueChange={(v) => { setSelectedSection(v); setGenerated(false); setResults([]); }}>
                             <SelectTrigger className="w-full bg-background border-border text-xs sm:text-sm font-medium">
                                 <SelectValue placeholder="All Sections" />
                             </SelectTrigger>
@@ -757,7 +804,7 @@ body{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !impor
 
                     <div className="space-y-1.5">
                         <Label className="text-[10.5px] uppercase tracking-wider text-muted-foreground font-bold">Exam / Term</Label>
-                        <Select value={selectedExam} onValueChange={(v) => { setSelectedExam(v); setGenerated(false); }}>
+                        <Select value={selectedExam} onValueChange={(v) => { setSelectedExam(v); setGenerated(false); setResults([]); }}>
                             <SelectTrigger className="w-full bg-background border-border text-xs sm:text-sm font-medium">
                                 <SelectValue placeholder="Select Exam" />
                             </SelectTrigger>
@@ -774,7 +821,7 @@ body{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !impor
 
                     <div className="space-y-1.5">
                         <Label className="text-[10.5px] uppercase tracking-wider text-muted-foreground font-bold">Academic Year</Label>
-                        <Select value={selectedAcademicYear} onValueChange={(v) => { setSelectedAcademicYear(v); setGenerated(false); }}>
+                        <Select value={selectedAcademicYear} onValueChange={(v) => { setSelectedAcademicYear(v); setGenerated(false); setResults([]); }}>
                             <SelectTrigger className="w-full bg-background border-border text-xs sm:text-sm font-medium">
                                 <SelectValue placeholder="Select Year" />
                             </SelectTrigger>

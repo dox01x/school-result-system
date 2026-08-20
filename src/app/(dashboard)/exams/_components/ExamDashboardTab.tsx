@@ -252,7 +252,7 @@ export function ExamDashboardTab({
                         <SelectContent className="rounded-xl border-border shadow-md">
                             {exams.map(e => (
                                 <SelectItem key={e.id} value={e.id} className="rounded-lg font-medium">
-                                    {e.name} (Term {e.term})
+                                    {e.name}
                                 </SelectItem>
                             ))}
                         </SelectContent>

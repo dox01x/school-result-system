@@ -74,9 +74,8 @@ export async function GET(request: Request) {
     }
 
     const dateStart = `${dateStr}T00:00:00.000Z`;
-    const nextDayObj = new Date(dateStr);
-    nextDayObj.setDate(nextDayObj.getDate() + 1);
-    const nextDayStr = nextDayObj.toISOString().split('T')[0];
+    const [y, m, d] = dateStr.split('-').map(Number);
+    const nextDayStr = new Date(Date.UTC(y, m - 1, d + 1)).toISOString().split('T')[0];
     const dateEnd = `${nextDayStr}T00:00:00.000Z`;
 
     // 1. Fetch tuition payments for this date (and filter void in-memory)

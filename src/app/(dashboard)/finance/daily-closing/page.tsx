@@ -66,12 +66,12 @@ export default function DailyClosingPage() {
             <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground px-1">Select Date</Label>
             <Input type="date" value={date} onChange={e => setDate(e.target.value)} className="h-11 rounded-xl bg-muted border-0 font-bold text-foreground focus-visible:ring-1 focus-visible:ring-ring/30 shadow-none" />
           </div>
-          <Button onClick={loadData} disabled={loading} className="w-full md:w-auto h-11 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold shadow-none px-6">
+          <Button onClick={loadData} disabled={loading} className="w-full md:w-auto h-11 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-none px-6">
             {loading ? <SpinnerGap size={16} strokeWidth={2} className="mr-2 animate-spin" /> : <MagnifyingGlass size={16} strokeWidth={2.5} className="mr-2" />}
             Load
           </Button>
           {data && (
-            <Button onClick={handlePrint} variant="outline" className="w-full md:w-auto md:ml-auto h-11 rounded-xl border-border bg-white hover:bg-muted/50 text-muted-foreground font-bold shadow-none px-6">
+            <Button onClick={handlePrint} variant="outline" className="w-full md:w-auto md:ml-auto h-11 rounded-xl border-border bg-background hover:bg-muted text-foreground font-bold shadow-none px-6">
               <Printer size={16} strokeWidth={2} className="mr-2" /> Print Report
             </Button>
           )}

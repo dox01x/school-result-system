@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import {
     Search,
     Loader2,
@@ -18,8 +19,7 @@ import {
 import { cn } from "@/lib/utils";
 import type { GlobalSearchHit } from "@/lib/global-search-types";
 import { createClient } from "@/lib/supabase/client";
-import { STUDENT_COLUMNS } from "@/lib/supabase/select-columns";
-import type { Student, Teacher, Staff } from "@/lib/database.types";
+import type { Teacher, Staff } from "@/lib/database.types";
 import {
     Dialog,
     DialogContent,
@@ -28,6 +28,11 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+
+const StudentProfileSheet = dynamic(
+    () => import("@/components/students/student-profile-sheet").then((m) => m.StudentProfileSheet),
+    { ssr: false }
+);
 
 const typeIcons: Record<GlobalSearchHit["type"], typeof GraduationCap> = {
     student: GraduationCap,
@@ -58,10 +63,7 @@ export function MobileSearch() {
     
     // Profile dialogs
     const [studentOpen, setStudentOpen] = useState(false);
-    const [studentLoading, setStudentLoading] = useState(false);
-    const [student, setStudent] = useState<Student | null>(null);
-    const [studentAttendanceRows, setStudentAttendanceRows] = useState<{ att_date: string; status: string }[]>([]);
-    const [studentAttendanceLoading, setStudentAttendanceLoading] = useState(false);
+    const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
 
     const [teacherOpen, setTeacherOpen] = useState(false);
     const [teacherLoading, setTeacherLoading] = useState(false);
@@ -91,31 +93,6 @@ export function MobileSearch() {
             setResults([]);
         }
     }, [isOpen]);
-
-    // Fetch student attendance when student profile opens
-    useEffect(() => {
-        if (!studentOpen || !student) {
-            setStudentAttendanceRows([]);
-            return;
-        }
-        let cancelled = false;
-        setStudentAttendanceLoading(true);
-        void (async () => {
-            const supabase = supabaseRef.current!;
-            const { data, error } = await supabase
-                .from("attendance_records")
-                .select("att_date,status")
-                .eq("student_id", student.id)
-                .order("att_date", { ascending: false });
-            if (!cancelled && !error) {
-                setStudentAttendanceRows((data as { att_date: string; status: string }[]) || []);
-            }
-            if (!cancelled) setStudentAttendanceLoading(false);
-        })();
-        return () => {
-            cancelled = true;
-        };
-    }, [studentOpen, student]);
 
     // Live search debounced query
     useEffect(() => {
@@ -155,29 +132,14 @@ export function MobileSearch() {
                 return;
             }
 
-            const supabase = supabaseRef.current!;
-
             if (hit.type === "student") {
-                setStudentLoading(true);
-                try {
-                    const { data, error } = await supabase
-                        .from("students")
-                        .select(STUDENT_COLUMNS)
-                        .eq("id", hit.id)
-                        .maybeSingle();
-                    if (error || !data) {
-                        setIsOpen(false);
-                        router.push(hit.href);
-                        return;
-                    }
-                    setStudent(data as unknown as Student);
-                    setStudentOpen(true);
-                    setIsOpen(false);
-                } finally {
-                    setStudentLoading(false);
-                }
+                setSelectedStudentId(hit.id);
+                setStudentOpen(true);
+                setIsOpen(false);
                 return;
             }
+
+            const supabase = supabaseRef.current!;
 
             if (hit.type === "staff") {
                 setStaffLoading(true);
@@ -303,8 +265,7 @@ export function MobileSearch() {
                                                     {r.subtitle ? ` · ${r.subtitle}` : ""}
                                                 </p>
                                             </div>
-                                            {(r.type === "student" && studentLoading) ||
-                                            (r.type === "teacher" && teacherLoading) ||
+                                            {(r.type === "teacher" && teacherLoading) ||
                                             (r.type === "staff" && staffLoading) ? (
                                                 <Loader2 className="h-4 w-4 animate-spin text-muted-foreground shrink-0" />
                                             ) : (
@@ -319,75 +280,27 @@ export function MobileSearch() {
                 </DialogContent>
             </Dialog>
 
-            {/* Student Profile Dialog */}
-            <Dialog
+            {/* Full Student Profile Sheet */}
+            <StudentProfileSheet
                 open={studentOpen}
                 onOpenChange={(open) => {
                     setStudentOpen(open);
-                    if (!open) setStudent(null);
+                    if (!open) setSelectedStudentId(null);
                 }}
-            >
-                <DialogContent className="max-w-[calc(100vw-24px)] sm:max-w-md p-5 rounded-2xl">
-                    <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2 text-base">
-                            <GraduationCap className="h-5 w-5 text-primary" /> Student Profile
-                        </DialogTitle>
-                    </DialogHeader>
-                    {student && (
-                        <div className="space-y-4 py-2">
-                            <div className="relative overflow-hidden rounded-xl border bg-card p-4 flex flex-col items-center text-center">
-                                <div className="h-16 w-16 rounded-full bg-primary/10 border-2 border-primary/20 flex items-center justify-center text-primary font-bold text-2xl shadow-xs">
-                                    {student.name.charAt(0).toUpperCase()}
-                                </div>
-                                <h3 className="mt-2.5 font-bold text-base text-foreground tracking-tight">
-                                    {student.name}
-                                </h3>
-                                <div className="mt-1.5 flex flex-wrap items-center justify-center gap-1.5">
-                                    <Badge variant="secondary" className="text-[10px]">
-                                        Roll: {student.roll || "—"}
-                                    </Badge>
-                                    {student.student_id && (
-                                        <Badge variant="outline" className="text-[10px] text-primary">
-                                            ID: {student.student_id}
-                                        </Badge>
-                                    )}
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-2 text-xs">
-                                {[
-                                    { label: "Gender", value: student.gender },
-                                    { label: "Date of Birth", value: student.date_of_birth },
-                                    { label: "Father", value: student.father_name },
-                                    { label: "Mother", value: student.mother_name },
-                                    { label: "Phone", value: student.phone },
-                                    { label: "Blood Group", value: student.blood_group },
-                                    { label: "Group", value: student.group_name || "General" },
-                                ].map((item) => (
-                                    <div key={item.label} className="p-2 rounded-lg bg-muted/40 space-y-0.5">
-                                        <p className="text-[10px] text-muted-foreground">{item.label}</p>
-                                        <p className="font-semibold text-foreground truncate">{item.value || "—"}</p>
-                                    </div>
-                                ))}
-                            </div>
-
-                            <div className="flex justify-end pt-1">
-                                <Button
-                                    type="button"
-                                    size="sm"
-                                    className="w-full text-xs font-semibold"
-                                    onClick={() => {
-                                        setStudentOpen(false);
-                                        router.push(`/students?studentId=${encodeURIComponent(student.id)}`);
-                                    }}
-                                >
-                                    Open Full Profile
-                                </Button>
-                            </div>
-                        </div>
-                    )}
-                </DialogContent>
-            </Dialog>
+                studentId={selectedStudentId}
+                onRequestEdit={(s) => {
+                    setStudentOpen(false);
+                    router.push(`/students?studentId=${encodeURIComponent(s.id)}`);
+                }}
+                onRequestTransfer={(s) => {
+                    setStudentOpen(false);
+                    router.push(`/students?studentId=${encodeURIComponent(s.id)}`);
+                }}
+                onRequestDelete={(s) => {
+                    setStudentOpen(false);
+                    router.push(`/students?studentId=${encodeURIComponent(s.id)}`);
+                }}
+            />
 
             {/* Teacher Profile Dialog */}
             <Dialog

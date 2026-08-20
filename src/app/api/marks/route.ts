@@ -12,11 +12,15 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const examId = searchParams.get("exam_id");
     const subjectId = searchParams.get("subject_id");
+    const academicYear = searchParams.get("academic_year");
+    const studentId = searchParams.get("student_id");
 
     let query = supabase.from("marks").select("*, students(id, name, roll)");
 
     if (examId) query = query.eq("exam_id", examId);
     if (subjectId) query = query.eq("subject_id", subjectId);
+    if (academicYear) query = query.eq("academic_year", academicYear);
+    if (studentId) query = query.eq("student_id", studentId);
 
     const { data, error } = await query;
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });

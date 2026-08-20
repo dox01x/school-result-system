@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import {
     Search,
     Loader2,
@@ -16,8 +17,7 @@ import {
 import { cn } from "@/lib/utils";
 import type { GlobalSearchHit } from "@/lib/global-search-types";
 import { createClient } from "@/lib/supabase/client";
-import { STUDENT_COLUMNS } from "@/lib/supabase/select-columns";
-import type { Student, Teacher, Staff } from "@/lib/database.types";
+import type { Teacher, Staff } from "@/lib/database.types";
 import {
     Dialog,
     DialogContent,
@@ -26,6 +26,11 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+
+const StudentProfileSheet = dynamic(
+    () => import("@/components/students/student-profile-sheet").then((m) => m.StudentProfileSheet),
+    { ssr: false }
+);
 
 const typeIcons: Record<GlobalSearchHit["type"], typeof GraduationCap> = {
     student: GraduationCap,
@@ -54,10 +59,7 @@ export function GlobalSearch() {
     const [results, setResults] = useState<GlobalSearchHit[]>([]);
     const [focused, setFocused] = useState(false);
     const [studentOpen, setStudentOpen] = useState(false);
-    const [studentLoading, setStudentLoading] = useState(false);
-    const [student, setStudent] = useState<Student | null>(null);
-    const [studentAttendanceRows, setStudentAttendanceRows] = useState<{ att_date: string; status: string }[]>([]);
-    const [studentAttendanceLoading, setStudentAttendanceLoading] = useState(false);
+    const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
     const [teacherOpen, setTeacherOpen] = useState(false);
     const [teacherLoading, setTeacherLoading] = useState(false);
     const [teacher, setTeacher] = useState<Teacher | null>(null);
@@ -93,30 +95,6 @@ export function GlobalSearch() {
         window.addEventListener("keydown", onKey);
         return () => window.removeEventListener("keydown", onKey);
     }, []);
-
-    useEffect(() => {
-        if (!studentOpen || !student) {
-            setStudentAttendanceRows([]);
-            return;
-        }
-        let cancelled = false;
-        setStudentAttendanceLoading(true);
-        void (async () => {
-            const supabase = supabaseRef.current!;
-            const { data, error } = await supabase
-                .from("attendance_records")
-                .select("att_date,status")
-                .eq("student_id", student.id)
-                .order("att_date", { ascending: false });
-            if (!cancelled && !error) {
-                setStudentAttendanceRows((data as { att_date: string; status: string }[]) || []);
-            }
-            if (!cancelled) setStudentAttendanceLoading(false);
-        })();
-        return () => {
-            cancelled = true;
-        };
-    }, [studentOpen, student]);
 
     useEffect(() => {
         if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -158,27 +136,13 @@ export function GlobalSearch() {
                 return;
             }
 
-            const supabase = supabaseRef.current!;
-
             if (hit.type === "student") {
-                setStudentLoading(true);
-                try {
-                    const { data, error } = await supabase
-                        .from("students")
-                        .select(STUDENT_COLUMNS)
-                        .eq("id", hit.id)
-                        .maybeSingle();
-                    if (error || !data) {
-                        router.push(hit.href);
-                        return;
-                    }
-                    setStudent(data as unknown as Student);
-                    setStudentOpen(true);
-                } finally {
-                    setStudentLoading(false);
-                }
+                setSelectedStudentId(hit.id);
+                setStudentOpen(true);
                 return;
             }
+
+            const supabase = supabaseRef.current!;
 
             if (hit.type === "staff") {
                 setStaffLoading(true);
@@ -294,7 +258,7 @@ export function GlobalSearch() {
                                             {r.subtitle ? ` · ${r.subtitle}` : ""}
                                         </p>
                                     </div>
-                                    {(r.type === "student" && studentLoading) || (r.type === "teacher" && teacherLoading) ? (
+                                    {(r.type === "teacher" && teacherLoading) || (r.type === "staff" && staffLoading) ? (
                                         <Loader2 className="h-4 w-4 animate-spin text-muted-foreground mt-1 shrink-0" />
                                     ) : null}
                                 </button>
@@ -303,124 +267,27 @@ export function GlobalSearch() {
                 </div>
             )}
 
-            <Dialog
+            {/* Full Student Profile Sheet */}
+            <StudentProfileSheet
                 open={studentOpen}
                 onOpenChange={(open) => {
                     setStudentOpen(open);
-                    if (!open) setStudent(null);
+                    if (!open) setSelectedStudentId(null);
                 }}
-            >
-                <DialogContent className="max-w-md">
-                    <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
-                            <User className="h-5 w-5" /> Student Profile
-                        </DialogTitle>
-                    </DialogHeader>
-                    {student && (
-                        <div className="space-y-4 py-4">
-                            <div className="relative overflow-hidden rounded-xl border bg-card shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)]">
-                                <div className="absolute top-0 inset-x-0 h-20 bg-primary" />
-                                <div className="relative pt-10 pb-6 px-6 flex flex-col items-center text-center">
-                                    <div className="h-20 w-20 rounded-full border-4 border-card bg-muted flex items-center justify-center text-primary font-bold text-3xl shadow-sm relative z-10">
-                                        {student.name.charAt(0).toUpperCase()}
-                                    </div>
-                                    <h3 className="mt-3 font-bold text-[19px] text-foreground tracking-tight leading-tight">
-                                        {student.name}
-                                    </h3>
-                                    <div className="mt-2 flex flex-wrap items-center justify-center gap-1.5">
-                                        <Badge
-                                            variant="secondary"
-                                            className="bg-slate-100 hover:bg-slate-100 text-slate-600 font-mono text-[10px] uppercase tracking-wider px-2 py-0.5"
-                                        >
-                                            Roll: {student.roll}
-                                        </Badge>
-                                        {student.student_id && (
-                                            <Badge
-                                                variant="secondary"
-                                                className="bg-primary/10 hover:bg-primary/10 text-primary font-mono text-[10px] uppercase tracking-wider px-2 py-0.5"
-                                            >
-                                                ID: {student.student_id}
-                                            </Badge>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-3 text-sm">
-                                {[
-                                    { label: "Gender", value: student.gender },
-                                    { label: "Date of Birth", value: student.date_of_birth },
-                                    { label: "Father's Name", value: student.father_name },
-                                    { label: "Mother's Name", value: student.mother_name },
-                                    { label: "Phone", value: student.phone },
-                                    { label: "Blood Group", value: student.blood_group },
-                                    { label: "Group", value: student.group_name || "General" },
-                                ].map((item) => (
-                                    <div key={item.label} className="space-y-0.5">
-                                        <p className="text-xs text-muted-foreground">{item.label}</p>
-                                        <p className="font-medium">{item.value || "—"}</p>
-                                    </div>
-                                ))}
-                            </div>
-
-                            {student.address && (
-                                <div className="text-sm space-y-0.5">
-                                    <p className="text-xs text-muted-foreground">Address</p>
-                                    <p className="font-medium">{student.address}</p>
-                                </div>
-                            )}
-                            <div className="rounded-xl border bg-muted/10 p-4 space-y-3">
-                                <div className="flex items-center justify-between">
-                                    <p className="text-sm font-semibold text-foreground">Attendance Summary</p>
-                                    {studentAttendanceLoading && <p className="text-xs text-muted-foreground">Loading…</p>}
-                                </div>
-                                {(() => {
-                                    const monthlyMap = new Map<string, { present: number; absent: number }>();
-                                    for (const row of studentAttendanceRows) {
-                                        const monthKey = row.att_date.slice(0, 7);
-                                        const current = monthlyMap.get(monthKey) || { present: 0, absent: 0 };
-                                        if (row.status === "P") current.present += 1;
-                                        if (row.status === "A") current.absent += 1;
-                                        monthlyMap.set(monthKey, current);
-                                    }
-                                    const monthlySummary = Array.from(monthlyMap.entries()).sort((a, b) => b[0].localeCompare(a[0]));
-                                    const currentMonthKey = new Date().toISOString().slice(0, 7);
-                                    const currentMonth = monthlyMap.get(currentMonthKey) || { present: 0, absent: 0 };
-                                    return (
-                                        <>
-                                            <div className="grid grid-cols-2 gap-3">
-                                                <div className="rounded-lg border bg-card px-3 py-2">
-                                                    <p className="text-[11px] text-muted-foreground">This Month Present</p>
-                                                    <p className="text-lg font-semibold text-emerald-600">{currentMonth.present}</p>
-                                                </div>
-                                                <div className="rounded-lg border bg-card px-3 py-2">
-                                                    <p className="text-[11px] text-muted-foreground">This Month Absent</p>
-                                                    <p className="text-lg font-semibold text-red-600">{currentMonth.absent}</p>
-                                                </div>
-                                            </div>
-                                            {monthlySummary.length === 0 ? (
-                                                <p className="text-xs text-muted-foreground">No attendance records yet.</p>
-                                            ) : (
-                                                <div className="space-y-2 max-h-44 overflow-y-auto">
-                                                    {monthlySummary.slice(0, 12).map(([monthKey, value]) => (
-                                                        <div key={monthKey} className="flex items-center justify-between rounded-lg border bg-card px-3 py-2 text-sm">
-                                                            <span className="font-medium">{monthKey}</span>
-                                                            <div className="flex items-center gap-3">
-                                                                <span className="text-emerald-600 font-semibold">P: {value.present}</span>
-                                                                <span className="text-red-600 font-semibold">A: {value.absent}</span>
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </>
-                                    );
-                                })()}
-                            </div>
-                        </div>
-                    )}
-                </DialogContent>
-            </Dialog>
+                studentId={selectedStudentId}
+                onRequestEdit={(s) => {
+                    setStudentOpen(false);
+                    router.push(`/students?studentId=${encodeURIComponent(s.id)}`);
+                }}
+                onRequestTransfer={(s) => {
+                    setStudentOpen(false);
+                    router.push(`/students?studentId=${encodeURIComponent(s.id)}`);
+                }}
+                onRequestDelete={(s) => {
+                    setStudentOpen(false);
+                    router.push(`/students?studentId=${encodeURIComponent(s.id)}`);
+                }}
+            />
 
             <Dialog
                 open={teacherOpen}

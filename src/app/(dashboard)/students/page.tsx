@@ -103,6 +103,8 @@ function StudentsPageContent() {
                 .eq("id", studentIdParam)
                 .maybeSingle();
             if (cancelled || error || !s) return;
+            if (s.class_id) setSelectedClass(s.class_id);
+            if (s.section_id) setSelectedSection(s.section_id);
             setProfileStudent(s);
             setProfileDialogOpen(true);
             router.replace("/students", { scroll: false });

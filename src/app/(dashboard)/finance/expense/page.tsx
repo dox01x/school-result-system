@@ -176,8 +176,8 @@ export default function ExpensePage() {
             <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground px-1">To</Label>
             <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="h-11 rounded-xl bg-muted border-0 font-bold text-foreground focus-visible:ring-1 focus-visible:ring-ring/30 shadow-none" />
           </div>
-          <Button onClick={fetchData} disabled={loading} className="w-full md:w-auto h-11 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold shadow-none px-6">Apply</Button>
-          <Button variant="outline" onClick={() => { setDateFrom(''); setDateTo(''); setTimeout(fetchData, 100); }} className="w-full md:w-auto h-11 rounded-xl border-border bg-white hover:bg-muted/50 text-muted-foreground font-bold shadow-none px-6">Clear</Button>
+          <Button onClick={fetchData} disabled={loading} className="w-full md:w-auto h-11 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-none px-6">Apply</Button>
+          <Button variant="outline" onClick={() => { setDateFrom(''); setDateTo(''); setTimeout(fetchData, 100); }} className="w-full md:w-auto h-11 rounded-xl border-border bg-background hover:bg-muted text-foreground font-bold shadow-none px-6">Clear</Button>
           <div className="w-full md:w-auto md:ml-auto flex items-center justify-center md:justify-start gap-2 bg-primary text-primary-foreground px-5 h-11 rounded-xl shadow-none mt-4 md:mt-0">
             <TrendDown size={16} strokeWidth={2} className="text-muted-foreground/60" />
             <span className="text-sm font-black font-mono">Total: <span className="text-red-400">{formatTaka(totalExpense)}</span></span>

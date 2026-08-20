@@ -266,7 +266,7 @@ export default function StaffPaySalaryPage() {
               ) : (
                 <div className="space-y-4">
                   <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-xl border border-border">
-                    <div className="w-10 h-10 bg-white border border-border shadow-sm rounded-full flex items-center justify-center">
+                    <div className="w-10 h-10 bg-card border border-border shadow-xs rounded-full flex items-center justify-center">
                       <User size={18} strokeWidth={2.5} className="text-muted-foreground" />
                     </div>
                     <div>

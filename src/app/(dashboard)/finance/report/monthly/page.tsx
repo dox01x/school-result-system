@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Loader2 as SpinnerGap, Search as MagnifyingGlass, Printer, TrendingUp as TrendUp, TrendingDown as TrendDown, BarChart2 as ChartBar } from "lucide-react";
+import { PageHeader } from "@/components/layout/page-header";
 import { formatTaka, getMonthName } from '@/lib/finance-utils';
 import { generateMonthlyReportHtml } from '@/lib/finance-receipt-template';
 import { MonthlyReport } from '@/types/finance';
@@ -61,10 +62,11 @@ export default function MonthlyReportPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground  mb-1">Monthly Report</h1>
-        <p className="text-muted-foreground text-sm mt-1">Detailed financial breakdown for any month.</p>
-      </div>
+      <PageHeader
+        icon={ChartBar}
+        title="Monthly Financial Report"
+        subtitle="Detailed revenue and expense breakdown for any academic or calendar month."
+      />
 
       {/* Funnels */}
       <Card className="bg-card rounded-2xl border border-border shadow-none">
@@ -95,11 +97,11 @@ export default function MonthlyReportPage() {
               </SelectContent>
             </Select>
           </div>
-          <Button onClick={loadReport} disabled={loading} className="w-full md:w-auto h-11 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold shadow-none px-6">
+          <Button onClick={loadReport} disabled={loading} className="w-full md:w-auto h-11 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-none px-6">
             {loading ? <SpinnerGap size={16} strokeWidth={2} className="mr-2 animate-spin" /> : <MagnifyingGlass size={16} strokeWidth={2} className="mr-2" />}
             Generate
           </Button>
-          <Button onClick={handlePrint} variant="outline" disabled={!report} className="w-full md:w-auto md:ml-auto h-11 rounded-xl border-border bg-white hover:bg-muted/50 text-muted-foreground font-bold shadow-none px-6">
+          <Button onClick={handlePrint} variant="outline" disabled={!report} className="w-full md:w-auto md:ml-auto h-11 rounded-xl border-border bg-background hover:bg-muted text-foreground font-bold shadow-none px-6">
             <Printer size={16} strokeWidth={2} className="mr-2" /> Print
           </Button>
         </CardContent>

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Sliders, Award, BookOpen, Layers, ShieldCheck, ArrowRight } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Breadcrumbs } from "@/components/navigation/breadcrumbs";
+import { PageHeader } from "@/components/layout/page-header";
 
 const CONFIG_CARDS = [
   {
@@ -33,28 +33,18 @@ const CONFIG_CARDS = [
 export default function ExamConfigurationPage() {
   return (
     <div className="space-y-6">
-      <Breadcrumbs
-        items={[
-          { label: "Examinations", href: "/exams" },
-          { label: "Exam Configuration" },
-        ]}
+      <PageHeader
+        icon={Sliders}
+        title="Exam Configuration Center"
+        subtitle="Configure system-wide academic grading criteria, subject setups, and marks distribution."
       />
-
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">Exam Configuration Center</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Configure system-wide academic grading criteria, subject setups, and marks distribution.
-          </p>
-        </div>
-      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {CONFIG_CARDS.map((c) => {
           const Icon = c.icon;
           return (
             <Link key={c.href} href={c.href} className="group">
-              <Card className="h-full border-border/60 hover:border-primary/40 hover:shadow-md transition-all">
+              <Card className="h-full border-border/80 rounded-2xl shadow-xs hover:border-primary/40 hover:shadow-md transition-all">
                 <CardHeader className="pb-3">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold">

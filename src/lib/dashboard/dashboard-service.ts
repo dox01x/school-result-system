@@ -340,13 +340,13 @@ export async function getAttendanceMetrics(
     }
   }
 
-  let { data: todayRecords } = await todayQuery;
+  const { data: todayRecords } = await todayQuery;
 
   // If historical range, use that date as label; if today, label as "Today"
   const pad = (n: number) => n.toString().padStart(2, "0");
   const now = new Date();
   const actualTodayDateStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
-  const isActualToday = todayStr === actualTodayDateStr;
+  const isActualToday = filters.range === "today" || todayStr === actualTodayDateStr;
   const attendanceDateLabel = isActualToday
     ? "Today"
     : new Date(todayStr).toLocaleDateString("en-US", { month: "short", day: "numeric" });

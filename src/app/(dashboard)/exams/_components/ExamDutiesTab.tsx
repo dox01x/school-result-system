@@ -665,7 +665,7 @@ export function ExamDutiesTab({ exams }: { exams: { id: string; name: string }[]
         let fontSize = 12.5;
         let subFontSize = 11.5;
         let cellPaddingY = 5;
-        let cellPaddingX = 8;
+        const cellPaddingX = 8;
         let headerFontSize = 12.5;
         let headerPaddingY = 6;
 
